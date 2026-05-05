@@ -1,0 +1,120 @@
+<div class="form-wrapper">
+
+  <div class="form-header">
+    <div class="header-info">
+      @if (modo === 'novo') {
+        <span class="form-badge badge-novo">Nova Pasta</span>
+        <h2 class="form-titulo">Cadastrar Pasta</h2>
+      } @else if (modo === 'editar') {
+        <span class="form-badge badge-editar">Editar</span>
+        <h2 class="form-titulo">{{ pasta?.nome }}</h2>
+      } @else {
+        <span class="form-badge badge-detalhes">Detalhes</span>
+        <h2 class="form-titulo">{{ pasta?.nome }}</h2>
+      }
+    </div>
+    <button class="btn-fechar" (click)="fechar.emit()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="form-body">
+
+    <!-- DETALHES -->
+    @if (modo === 'detalhes' && pasta) {
+      <div class="detalhes-grid">
+        <div class="detalhe-item detalhe-full">
+          <span class="detalhe-label">Nome</span>
+          <span class="detalhe-valor">{{ pasta.nome }}</span>
+        </div>
+        <div class="detalhe-item detalhe-full">
+          <span class="detalhe-label">Descrição</span>
+          <span class="detalhe-valor">{{ pasta.descricao ?? '—' }}</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="detalhe-label">Empresa</span>
+          <span class="detalhe-valor">{{ getNomeEmpresa(pasta.idEmpresa) }}</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="detalhe-label">Pasta Pai</span>
+          <span class="detalhe-valor">{{ getNomePasta(pasta.idPastaPai) }}</span>
+        </div>
+      </div>
+      <div class="form-acoes">
+        <button class="btn-secundario" (click)="fechar.emit()">Fechar</button>
+        <button class="btn-primario" (click)="irParaEdicao()">Editar</button>
+      </div>
+    }
+
+    <!-- NOVO / EDITAR -->
+    @if (modo === 'novo' || modo === 'editar') {
+      <div class="campos">
+
+        <div class="campo">
+          <label>Nome <span class="obrigatorio">*</span></label>
+          <input
+            type="text"
+            [(ngModel)]="dto.nome"
+            placeholder="Ex: 2025 Doc"
+            [class.campo-erro]="erros['nome']"
+          />
+          @if (erros['nome']) {
+            <span class="mensagem-erro">{{ erros['nome'] }}</span>
+          }
+        </div>
+
+        <div class="campo">
+          <label>Descrição</label>
+          <input
+            type="text"
+            [(ngModel)]="dto.descricao"
+            placeholder="Descrição opcional..."
+          />
+        </div>
+
+        <div class="campo">
+          <label>Empresa <span class="obrigatorio">*</span></label>
+          <select [(ngModel)]="dto.idEmpresa" [class.campo-erro]="erros['idEmpresa']">
+            <option [ngValue]="0" disabled>Selecione uma empresa...</option>
+            @for (empresa of empresas; track empresa.id) {
+              <option [ngValue]="empresa.id">{{ empresa.nomeFantasia }}</option>
+            }
+          </select>
+          @if (erros['idEmpresa']) {
+            <span class="mensagem-erro">{{ erros['idEmpresa'] }}</span>
+          }
+        </div>
+
+        <div class="campo">
+          <label>Pasta Pai <span class="label-hint">(opcional)</span></label>
+          <select [(ngModel)]="dto.idPastaPai">
+            <option [ngValue]="null">Nenhuma (pasta raiz)</option>
+            @for (p of pastasDisponiveis; track p.id) {
+              <option [ngValue]="p.id">{{ p.nome }}</option>
+            }
+          </select>
+        </div>
+
+      </div>
+
+      @if (erroGeral) {
+        <p class="erro-geral">{{ erroGeral }}</p>
+      }
+
+      <div class="form-acoes">
+        <button class="btn-secundario" (click)="fechar.emit()" [disabled]="salvando">Cancelar</button>
+        <button class="btn-primario" (click)="salvar()" [disabled]="salvando">
+          @if (salvando) {
+            <span class="spinner-sm"></span>
+          } @else {
+            {{ modo === 'novo' ? 'Cadastrar' : 'Salvar' }}
+          }
+        </button>
+      </div>
+    }
+
+  </div>
+
+</div>

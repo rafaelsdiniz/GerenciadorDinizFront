@@ -1,0 +1,134 @@
+<div class="form-wrapper">
+
+  <div class="form-header">
+    <div class="header-info">
+      @if (modo === 'novo') {
+        <span class="form-badge badge-novo">Novo Sócio</span>
+        <h2 class="form-titulo">Cadastrar Sócio</h2>
+      } @else if (modo === 'editar') {
+        <span class="form-badge badge-editar">Editar</span>
+        <h2 class="form-titulo">{{ socio?.nome }}</h2>
+      } @else {
+        <span class="form-badge badge-detalhes">Detalhes</span>
+        <h2 class="form-titulo">{{ socio?.nome }}</h2>
+      }
+    </div>
+    <button class="btn-fechar" (click)="fechar.emit()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="form-body">
+
+    <!-- DETALHES -->
+    @if (modo === 'detalhes' && socio) {
+      <div class="detalhes-grid">
+        <div class="detalhe-item detalhe-full">
+          <span class="detalhe-label">Nome</span>
+          <span class="detalhe-valor">{{ socio.nome }}</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="detalhe-label">CPF</span>
+          <span class="detalhe-valor">{{ formatarCpf(socio.cpf) }}</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="detalhe-label">Empresa</span>
+          <span class="detalhe-valor">{{ getNomeEmpresa(socio.idEmpresa) }}</span>
+        </div>
+      </div>
+      <div class="form-acoes">
+        <button class="btn-secundario" (click)="fechar.emit()">Fechar</button>
+        <button class="btn-primario" (click)="irParaEdicao()">Editar</button>
+      </div>
+    }
+
+    <!-- NOVO / EDITAR -->
+    @if (modo === 'novo' || modo === 'editar') {
+      <div class="campos">
+
+        <div class="campo">
+          <label>Nome <span class="obrigatorio">*</span></label>
+          <input
+            type="text"
+            [(ngModel)]="dto.nome"
+            placeholder="Ex: Gabriel Diniz"
+            [class.campo-erro]="erros['nome']"
+          />
+          @if (erros['nome']) {
+            <span class="mensagem-erro">{{ erros['nome'] }}</span>
+          }
+        </div>
+
+        <div class="campo">
+          <label>CPF <span class="obrigatorio">*</span></label>
+          <input
+            type="text"
+            [(ngModel)]="dto.cpf"
+            placeholder="000.000.000-00"
+            maxlength="14"
+            (input)="mascaraCpf($event)"
+            [class.campo-erro]="erros['cpf']"
+          />
+          @if (erros['cpf']) {
+            <span class="mensagem-erro">{{ erros['cpf'] }}</span>
+          }
+        </div>
+
+        <div class="campo">
+          <label>Empresa <span class="obrigatorio">*</span></label>
+          <select
+            [(ngModel)]="dto.idEmpresa"
+            [class.campo-erro]="erros['idEmpresa']"
+          >
+            <option [ngValue]="0" disabled>Selecione uma empresa...</option>
+            @for (empresa of empresas; track empresa.id) {
+              <option [ngValue]="empresa.id">{{ empresa.nomeFantasia }}</option>
+            }
+          </select>
+          @if (erros['idEmpresa']) {
+            <span class="mensagem-erro">{{ erros['idEmpresa'] }}</span>
+          }
+        </div>
+
+        <div class="campo">
+          <label>Participação (%)</label>
+          <input
+            type="number"
+            [(ngModel)]="dto.participacao"
+            min="0"
+            max="100"
+            step="0.01"
+            placeholder="Ex.: 50.00"
+          />
+        </div>
+
+        <div class="campo campo-check">
+          <label>
+            <input type="checkbox" [(ngModel)]="dto.administrador" />
+            Administrador da empresa
+          </label>
+        </div>
+
+      </div>
+
+      @if (erroGeral) {
+        <p class="erro-geral">{{ erroGeral }}</p>
+      }
+
+      <div class="form-acoes">
+        <button class="btn-secundario" (click)="fechar.emit()" [disabled]="salvando">Cancelar</button>
+        <button class="btn-primario" (click)="salvar()" [disabled]="salvando">
+          @if (salvando) {
+            <span class="spinner-sm"></span>
+          } @else {
+            {{ modo === 'novo' ? 'Cadastrar' : 'Salvar' }}
+          }
+        </button>
+      </div>
+    }
+
+  </div>
+
+</div>

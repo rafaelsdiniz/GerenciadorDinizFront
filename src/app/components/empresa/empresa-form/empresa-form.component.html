@@ -1,0 +1,264 @@
+<div class="form-wrapper">
+
+  <!-- HEADER DO PAINEL -->
+  <div class="form-header">
+    <div class="header-info">
+      @if (modo === 'novo') {
+        <span class="form-badge badge-novo">Nova Empresa</span>
+        <h2 class="form-titulo">Cadastrar Empresa</h2>
+      } @else if (modo === 'editar') {
+        <span class="form-badge badge-editar">Editar</span>
+        <h2 class="form-titulo">{{ empresa?.nomeFantasia }}</h2>
+      } @else {
+        <span class="form-badge badge-detalhes">Detalhes</span>
+        <h2 class="form-titulo">{{ empresa?.nomeFantasia }}</h2>
+      }
+    </div>
+    <button class="btn-fechar" (click)="fechar.emit()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="form-body">
+
+    <!-- MODO DETALHES -->
+    @if (modo === 'detalhes' && empresa) {
+      <div class="detalhes-grid">
+        <div class="detalhe-item">
+          <span class="detalhe-label">Nome Fantasia</span>
+          <span class="detalhe-valor">{{ empresa.nomeFantasia }}</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="detalhe-label">Razão Social</span>
+          <span class="detalhe-valor">{{ empresa.razaoSocial }}</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="detalhe-label">CNPJ</span>
+          <span class="detalhe-valor">{{ empresa.cnpj }}</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="detalhe-label">Telefone</span>
+          <span class="detalhe-valor">{{ empresa.telefone }}</span>
+        </div>
+        <div class="detalhe-item detalhe-full">
+          <span class="detalhe-label">Email</span>
+          <span class="detalhe-valor">{{ empresa.email }}</span>
+        </div>
+      </div>
+
+      <div class="form-acoes">
+        <button class="btn-secundario" (click)="fechar.emit()">Fechar</button>
+        <button class="btn-primario" (click)="irParaEdicao()">Editar</button>
+      </div>
+    }
+
+    <!-- MODO NOVO / EDITAR -->
+    @if (modo === 'novo' || modo === 'editar') {
+
+      <!-- IDENTIFICAÇÃO -->
+      <h3 class="secao-form-titulo">Identificação</h3>
+      <div class="campos">
+        <div class="campo">
+          <label>Nome Fantasia <span class="obrigatorio">*</span></label>
+          <input
+            type="text"
+            [(ngModel)]="dto.nomeFantasia"
+            placeholder="Ex: Diniz Contabilidade"
+            [class.campo-erro]="erros['nomeFantasia']"
+          />
+          @if (erros['nomeFantasia']) {
+            <span class="mensagem-erro">{{ erros['nomeFantasia'] }}</span>
+          }
+        </div>
+
+        <div class="campo">
+          <label>Razão Social <span class="obrigatorio">*</span></label>
+          <input
+            type="text"
+            [(ngModel)]="dto.razaoSocial"
+            placeholder="Ex: Diniz Assessoria Contábil LTDA"
+            [class.campo-erro]="erros['razaoSocial']"
+          />
+          @if (erros['razaoSocial']) {
+            <span class="mensagem-erro">{{ erros['razaoSocial'] }}</span>
+          }
+        </div>
+
+        <div class="campo">
+          <label>CNPJ <span class="obrigatorio">*</span></label>
+          <input
+            type="text"
+            [(ngModel)]="dto.cnpj"
+            placeholder="00.000.000/0000-00"
+            maxlength="18"
+            (input)="mascaraCnpj($event)"
+            [class.campo-erro]="erros['cnpj']"
+          />
+          @if (erros['cnpj']) {
+            <span class="mensagem-erro">{{ erros['cnpj'] }}</span>
+          }
+        </div>
+
+        <div class="campo">
+          <label>Data de abertura</label>
+          <input type="date" [(ngModel)]="dto.dataAbertura" />
+        </div>
+
+        <div class="campo">
+          <label>Situação cadastral</label>
+          <select [(ngModel)]="dto.situacaoCadastral">
+            <option [ngValue]="null">—</option>
+            @for (s of situacoes; track s) {
+              <option [ngValue]="s">{{ situacaoLabel[s] }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="campo">
+          <label>Natureza jurídica</label>
+          <select [(ngModel)]="dto.naturezaJuridica">
+            <option [ngValue]="null">—</option>
+            @for (n of naturezas; track n) {
+              <option [ngValue]="n">{{ naturezaLabel[n] }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- CONTATO -->
+      <h3 class="secao-form-titulo">Contato</h3>
+      <div class="campos">
+        <div class="campo">
+          <label>Telefone <span class="obrigatorio">*</span></label>
+          <input
+            type="text"
+            [(ngModel)]="dto.telefone"
+            placeholder="(00) 00000-0000"
+            maxlength="15"
+            (input)="mascaraTelefone($event)"
+            [class.campo-erro]="erros['telefone']"
+          />
+          @if (erros['telefone']) {
+            <span class="mensagem-erro">{{ erros['telefone'] }}</span>
+          }
+        </div>
+
+        <div class="campo">
+          <label>Email <span class="obrigatorio">*</span></label>
+          <input
+            type="email"
+            [(ngModel)]="dto.email"
+            placeholder="empresa@email.com"
+            [class.campo-erro]="erros['email']"
+          />
+          @if (erros['email']) {
+            <span class="mensagem-erro">{{ erros['email'] }}</span>
+          }
+        </div>
+
+        <div class="campo">
+          <label>Site</label>
+          <input
+            type="url"
+            [(ngModel)]="dto.site"
+            placeholder="https://exemplo.com.br"
+          />
+        </div>
+      </div>
+
+      <!-- ENDEREÇO -->
+      @if (dto.endereco) {
+        <h3 class="secao-form-titulo">Endereço</h3>
+        <div class="campos">
+          <div class="campo">
+            <label>CEP</label>
+            <input
+              type="text"
+              [(ngModel)]="dto.endereco.cep"
+              placeholder="00000-000"
+              maxlength="9"
+              (input)="mascaraCep($event)"
+            />
+          </div>
+          <div class="campo">
+            <label>Logradouro</label>
+            <input type="text" [(ngModel)]="dto.endereco.logradouro" placeholder="Avenida, rua, etc." />
+          </div>
+          <div class="campo">
+            <label>Número</label>
+            <input type="text" [(ngModel)]="dto.endereco.numero" />
+          </div>
+          <div class="campo">
+            <label>Complemento</label>
+            <input type="text" [(ngModel)]="dto.endereco.complemento" placeholder="Sala, andar, bloco..." />
+          </div>
+          <div class="campo">
+            <label>Bairro</label>
+            <input type="text" [(ngModel)]="dto.endereco.bairro" />
+          </div>
+          <div class="campo">
+            <label>Cidade</label>
+            <input type="text" [(ngModel)]="dto.endereco.cidade" />
+          </div>
+          <div class="campo">
+            <label>UF</label>
+            <input type="text" [(ngModel)]="dto.endereco.uf" maxlength="2" placeholder="TO" />
+          </div>
+        </div>
+      }
+
+      <!-- DADOS FISCAIS -->
+      <h3 class="secao-form-titulo">Dados fiscais</h3>
+      <div class="campos">
+        <div class="campo">
+          <label>Inscrição Estadual</label>
+          <input type="text" [(ngModel)]="dto.inscricaoEstadual" />
+        </div>
+        <div class="campo">
+          <label>Inscrição Municipal</label>
+          <input type="text" [(ngModel)]="dto.inscricaoMunicipal" />
+        </div>
+        <div class="campo">
+          <label>Regime tributário</label>
+          <select [(ngModel)]="dto.regimeTributario">
+            <option [ngValue]="null">—</option>
+            @for (r of regimes; track r) {
+              <option [ngValue]="r">{{ regimeLabel[r] }}</option>
+            }
+          </select>
+        </div>
+        <div class="campo">
+          <label>CNAE principal</label>
+          <input type="text" [(ngModel)]="dto.cnaePrincipal" placeholder="0000-0/00" />
+        </div>
+        <div class="campo">
+          <label>CNAEs secundários</label>
+          <input
+            type="text"
+            [(ngModel)]="dto.cnaesSecundarios"
+            placeholder="separar por vírgula"
+          />
+        </div>
+      </div>
+
+      @if (erroGeral) {
+        <p class="erro-geral">{{ erroGeral }}</p>
+      }
+
+      <div class="form-acoes">
+        <button class="btn-secundario" (click)="fechar.emit()" [disabled]="salvando">Cancelar</button>
+        <button class="btn-primario" (click)="salvar()" [disabled]="salvando">
+          @if (salvando) {
+            <span class="spinner-sm"></span>
+          } @else {
+            {{ modo === 'novo' ? 'Cadastrar' : 'Salvar' }}
+          }
+        </button>
+      </div>
+    }
+
+  </div>
+
+</div>

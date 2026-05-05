@@ -1,0 +1,171 @@
+<div class="form-wrapper">
+
+  <div class="form-header">
+    <div class="header-info">
+      <span class="form-badge badge-novo">Upload</span>
+      <h2 class="form-titulo">Enviar Arquivo</h2>
+    </div>
+    <button class="btn-fechar" (click)="fechar.emit()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="form-body">
+    <div class="campos">
+
+      <!-- ÁREA DE UPLOAD -->
+      <div class="campo">
+        <label>Arquivo <span class="obrigatorio">*</span></label>
+        <div
+          class="upload-area"
+          [class.upload-area-ativo]="arrastando"
+          [class.upload-area-erro]="erros['arquivo']"
+          [class.upload-area-sucesso]="arquivoSelecionado"
+          (dragover)="onDragOver($event)"
+          (dragleave)="arrastando = false"
+          (drop)="onDrop($event)"
+          (click)="inputArquivo.click()"
+        >
+          @if (arquivoSelecionado) {
+            <div class="arquivo-selecionado">
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <div class="arquivo-info">
+                <span class="arquivo-nome">{{ arquivoSelecionado.name }}</span>
+                <span class="arquivo-tamanho">{{ formatarTamanho(arquivoSelecionado.size) }}</span>
+              </div>
+              <button class="btn-remover-arquivo" type="button" (click)="removerArquivo($event)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+          } @else {
+            <div class="upload-placeholder">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <span class="upload-texto">Arraste um arquivo ou <strong>clique para selecionar</strong></span>
+              <span class="upload-tipos">PDF, XML, XLS, XLSX, CSV, DOC, DOCX, TXT, JPG, PNG</span>
+            </div>
+          }
+        </div>
+        <input
+          #inputArquivo
+          type="file"
+          style="display: none"
+          (change)="onArquivoSelecionado($event)"
+          accept=".pdf,.xml,.xls,.xlsx,.csv,.doc,.docx,.txt,.jpg,.jpeg,.png"
+        />
+        @if (erros['arquivo']) {
+          <span class="mensagem-erro">{{ erros['arquivo'] }}</span>
+        }
+      </div>
+
+      <!-- EMPRESA -->
+      <div class="campo">
+        <label>Empresa <span class="obrigatorio">*</span></label>
+        <select [(ngModel)]="idEmpresa" (change)="onEmpresaChange()" [class.campo-erro]="erros['idEmpresa']">
+          <option [ngValue]="0" disabled>Selecione uma empresa...</option>
+          @for (empresa of empresas; track empresa.id) {
+            <option [ngValue]="empresa.id">{{ empresa.nomeFantasia }}</option>
+          }
+        </select>
+        @if (erros['idEmpresa']) {
+          <span class="mensagem-erro">{{ erros['idEmpresa'] }}</span>
+        }
+      </div>
+
+      <!-- PASTA -->
+      <div class="campo">
+        <label>Pasta <span class="obrigatorio">*</span></label>
+        <select [(ngModel)]="idPasta" [class.campo-erro]="erros['idPasta']">
+          <option [ngValue]="0" disabled>Selecione uma pasta...</option>
+          @for (pasta of pastasFiltradas; track pasta.id) {
+            <option [ngValue]="pasta.id">{{ pasta.nome }}</option>
+          }
+        </select>
+        @if (erros['idPasta']) {
+          <span class="mensagem-erro">{{ erros['idPasta'] }}</span>
+        }
+      </div>
+
+      <!-- CATEGORIA FISCAL -->
+      <div class="campo">
+        <label>Categoria fiscal</label>
+        <select [(ngModel)]="categoriaFiscal">
+          <option [ngValue]="''">Sem categoria</option>
+          @for (cat of categorias; track cat) {
+            <option [ngValue]="cat">{{ categoriaLabel[cat] }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- DATA VENCIMENTO -->
+      <div class="campo">
+        <label>Data de vencimento</label>
+        <input type="date" [(ngModel)]="dataVencimento" />
+      </div>
+
+      <!-- DESCRIÇÃO -->
+      <div class="campo">
+        <label>Descrição</label>
+        <input type="text" [(ngModel)]="descricao" placeholder="Ex.: DAS competência 03/2026" maxlength="255" />
+      </div>
+
+      <!-- OBRIGAÇÃO PENDENTE (opcional) -->
+      @if (obrigacoesPendentes.length > 0) {
+        <div class="campo">
+          <label>Vincular a uma obrigação pendente</label>
+          <select [(ngModel)]="idObrigacaoPendente">
+            <option [ngValue]="null">Nenhuma</option>
+            @for (op of obrigacoesPendentes; track op.id) {
+              <option [ngValue]="op.id">
+                {{ op.nomeObrigacao || 'Obrigação' }} — vence em {{ op.dataVencimento }}
+              </option>
+            }
+          </select>
+        </div>
+      }
+
+    </div>
+
+    <!-- PROGRESSO -->
+    @if (enviando) {
+      <div class="progresso-wrapper">
+        <div class="progresso-barra">
+          <div class="progresso-fill" [style.width.%]="progresso"></div>
+        </div>
+        <span class="progresso-texto">Enviando... {{ progresso }}%</span>
+      </div>
+    }
+
+    @if (erroGeral) {
+      <p class="erro-geral">{{ erroGeral }}</p>
+    }
+
+    <div class="form-acoes">
+      <button class="btn-secundario" (click)="fechar.emit()" [disabled]="enviando">Cancelar</button>
+      <button class="btn-primario" (click)="enviar()" [disabled]="enviando || !arquivoSelecionado">
+        @if (enviando) {
+          <span class="spinner-sm"></span>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          Enviar
+        }
+      </button>
+    </div>
+
+  </div>
+
+</div>

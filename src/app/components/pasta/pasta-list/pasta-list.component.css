@@ -1,0 +1,300 @@
+.page-wrapper {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.page-titulo {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #0d1b4b;
+  margin: 0;
+}
+
+.page-subtitulo {
+  font-size: 0.82rem;
+  color: #888;
+  display: block;
+  margin-top: 2px;
+}
+
+.btn-novo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #0d1b4b;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.65rem 1.2rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-novo:hover { background: #162566; }
+
+.barra-busca { margin-bottom: 1.25rem; }
+
+.input-busca-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fff;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  max-width: 360px;
+  transition: border-color 0.2s;
+}
+
+.input-busca-wrapper:focus-within { border-color: #0d1b4b; }
+.input-busca-wrapper svg { color: #aaa; flex-shrink: 0; }
+
+.input-busca-wrapper input {
+  border: none;
+  outline: none;
+  font-size: 0.875rem;
+  color: #333;
+  width: 100%;
+  background: transparent;
+}
+
+.input-busca-wrapper input::placeholder { color: #bbb; }
+
+.tabela-wrapper {
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  overflow: visible;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.tabela thead tr {
+  background: #f8f9fc;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.tabela th {
+  text-align: left;
+  padding: 0.85rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tabela tbody tr {
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.15s;
+}
+
+.tabela tbody tr:last-child { border-bottom: none; }
+.tabela tbody tr:hover { background: #f8f9fc; }
+
+.tabela td {
+  padding: 0.9rem 1rem;
+  font-size: 0.875rem;
+  color: #333;
+}
+
+.td-nome { font-weight: 600; color: #0d1b4b !important; }
+
+.td-nome-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.td-acoes { width: 48px; text-align: center; }
+
+.menu-wrapper { position: relative; display: inline-block; }
+
+.btn-menu {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #aaa;
+  padding: 0.25rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-menu:hover { background: #f0f0f0; color: #333; }
+
+.menu-dropdown {
+  position: fixed;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  min-width: 160px;
+  z-index: 1000;
+  overflow: hidden;
+  animation: fadeUp 0.15s ease;
+}
+
+.menu-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  background: none;
+  border: none;
+  font-size: 0.85rem;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-align: left;
+}
+
+.menu-dropdown button:hover { background: #f8f9fc; }
+.menu-dropdown .btn-deletar { color: #c0392b; }
+.menu-dropdown .btn-deletar:hover { background: #fff5f5; }
+
+.estado-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  gap: 1rem;
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 200;
+  animation: fadeIn 0.2s ease;
+}
+
+.painel-lateral {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 480px;
+  height: 100vh;
+  background: #fff;
+  z-index: 201;
+  box-shadow: -8px 0 32px rgba(0,0,0,0.15);
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+
+.painel-lateral.painel-aberto { transform: translateX(0); }
+
+.modal-confirmacao {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border-radius: 12px;
+  padding: 2rem;
+  z-index: 202;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+  animation: fadeUp 0.2s ease;
+}
+
+.modal-confirmacao h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0d1b4b;
+  margin-bottom: 0.75rem;
+}
+
+.modal-confirmacao p {
+  font-size: 0.875rem;
+  color: #555;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.modal-acoes {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.btn-cancelar {
+  padding: 0.65rem 1.2rem;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: #555;
+  transition: background 0.15s;
+}
+
+.btn-cancelar:hover { background: #f5f5f5; }
+
+.btn-confirmar-delete {
+  padding: 0.65rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  background: #c0392b;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  min-width: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-confirmar-delete:hover:not(:disabled) { background: #a93226; }
+.btn-confirmar-delete:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #e0e0e0;
+  border-top-color: #0d1b4b;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+.spinner-sm {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

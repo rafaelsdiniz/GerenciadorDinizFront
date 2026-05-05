@@ -1,0 +1,129 @@
+    <div class="page-wrapper">
+
+    <!-- HEADER -->
+    <div class="page-header">
+        <div class="header-left">
+        <h1 class="page-titulo">Sócios</h1>
+        <span class="page-subtitulo">{{ socios.length }} sócio(s) cadastrado(s)</span>
+        </div>
+        <button class="btn-novo" (click)="abrirFormNovo()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Novo Sócio
+        </button>
+    </div>
+
+    <!-- BARRA DE BUSCA -->
+    <div class="barra-busca">
+        <div class="input-busca-wrapper">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input
+            type="text"
+            placeholder="Buscar sócio..."
+            [(ngModel)]="termoBusca"
+            (input)="filtrar()"
+        />
+        </div>
+    </div>
+
+    <!-- TABELA -->
+    <div class="tabela-wrapper">
+        @if (carregando) {
+        <div class="estado-vazio">
+            <span class="spinner"></span>
+            <p>Carregando sócios...</p>
+        </div>
+        } @else if (sociosFiltrados.length === 0) {
+        <div class="estado-vazio">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+            <p>Nenhum sócio encontrado.</p>
+        </div>
+        } @else {
+        <table class="tabela">
+            <thead>
+            <tr>
+                <th>Nome</th>
+                <th>CPF</th>
+                <th>Empresa</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            @for (socio of sociosFiltrados; track socio.id) {
+                <tr>
+                <td class="td-nome">{{ socio.nome }}</td>
+                <td>{{ formatarCpf(socio.cpf) }}</td>
+                <td>{{ getNomeEmpresa(socio.idEmpresa) }}</td>
+                <td class="td-acoes">
+                    <div class="menu-wrapper">
+                    <button class="btn-menu" (click)="toggleMenu(socio.id!, $event); $event.stopPropagation()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                        </svg>
+                    </button>
+                    @if (menuAbertoId === socio.id) {
+                        <div class="menu-dropdown" [style.top.px]="menuPosicao.top" [style.right.px]="menuPosicao.right">
+                        <button (click)="verDetalhes(socio)">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            Ver detalhes
+                        </button>
+                        <button (click)="abrirFormEdicao(socio)">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                            Editar
+                        </button>
+                        <button class="btn-deletar" (click)="confirmarDelete(socio)">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                            </svg>
+                            Deletar
+                        </button>
+                        </div>
+                    }
+                    </div>
+                </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        }
+    </div>
+
+    </div>
+
+    <!-- PAINEL LATERAL -->
+    @if (painelAberto) {
+    <div class="overlay" (click)="fecharPainel()"></div>
+    <div class="painel-lateral" [class.painel-aberto]="painelAberto">
+        <app-socio-form
+        [socio]="socioSelecionado"
+        [modo]="modoPainel"
+        [empresas]="empresas"
+        (fechar)="fecharPainel()"
+        (salvo)="onSocioSalvo()"
+        />
+    </div>
+    }
+
+    <!-- MODAL CONFIRMAÇÃO DELETE -->
+    @if (socioParaDeletar) {
+    <div class="overlay" (click)="cancelarDelete()"></div>
+    <div class="modal-confirmacao">
+        <h3>Deletar sócio</h3>
+        <p>Tem certeza que deseja deletar <strong>{{ socioParaDeletar.nome }}</strong>? Esta ação não pode ser desfeita.</p>
+        <div class="modal-acoes">
+        <button class="btn-cancelar" (click)="cancelarDelete()">Cancelar</button>
+        <button class="btn-confirmar-delete" (click)="deletar()" [disabled]="deletando">
+            @if (deletando) { <span class="spinner-sm"></span> } @else { Deletar }
+        </button>
+        </div>
+    </div>
+    }

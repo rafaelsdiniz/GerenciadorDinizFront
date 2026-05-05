@@ -1,0 +1,181 @@
+<div class="layout-wrapper">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" [class.sidebar-recolhida]="recolhida">
+
+    <!-- LOGO -->
+    <div class="sidebar-logo">
+      <img src="images/logo/logo-final.png" alt="Diniz" class="logo-img" />
+      @if (!recolhida) {
+        
+      }
+    </div>
+
+    <!-- TOGGLE -->
+    <button class="btn-toggle" (click)="toggleSidebar()" [title]="recolhida ? 'Expandir' : 'Recolher'">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        @if (recolhida) {
+          <polyline points="9 18 15 12 9 6"/>
+        } @else {
+          <polyline points="15 18 9 12 15 6"/>
+        }
+      </svg>
+    </button>
+
+    <!-- MENU -->
+    <nav class="sidebar-nav">
+
+      <span class="nav-secao" *ngIf="!recolhida">Geral</span>
+
+      <a class="nav-item" routerLink="/dashboard" routerLinkActive="nav-item-ativo" [title]="recolhida ? 'Dashboard' : ''">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        @if (!recolhida) { <span>Dashboard</span> }
+      </a>
+
+      <a class="nav-item" routerLink="/arquivos" routerLinkActive="nav-item-ativo" [title]="recolhida ? 'Arquivos' : ''">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+        </svg>
+        @if (!recolhida) { <span>Arquivos</span> }
+      </a>
+
+      <a class="nav-item" [routerLink]="linkEmpresa" routerLinkActive="nav-item-ativo" [title]="recolhida ? labelEmpresa : ''">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+        </svg>
+        @if (!recolhida) { <span>{{ labelEmpresa }}</span> }
+      </a>
+
+      <a class="nav-item" routerLink="/calendario" routerLinkActive="nav-item-ativo" [title]="recolhida ? 'Calendário' : ''">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        @if (!recolhida) { <span>Calendário</span> }
+      </a>
+
+      <a class="nav-item" routerLink="/obrigacoes-pendentes" routerLinkActive="nav-item-ativo" [title]="recolhida ? 'Obrigações pendentes' : ''">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        @if (!recolhida) { <span>Obrigações</span> }
+      </a>
+
+      <a class="nav-item" routerLink="/lixeira" routerLinkActive="nav-item-ativo" [title]="recolhida ? 'Lixeira' : ''">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>
+        </svg>
+        @if (!recolhida) { <span>Lixeira</span> }
+      </a>
+
+      @if (isAdmin) {
+        <span class="nav-secao" *ngIf="!recolhida">Administração</span>
+
+        <a class="nav-item" routerLink="/obrigacoes-recorrentes" routerLinkActive="nav-item-ativo" [title]="recolhida ? 'Obrigações recorrentes' : ''">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/>
+          </svg>
+          @if (!recolhida) { <span>Obrig. recorrentes</span> }
+        </a>
+
+        <a class="nav-item" routerLink="/logs" routerLinkActive="nav-item-ativo" [title]="recolhida ? 'Logs' : ''">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+          @if (!recolhida) { <span>Logs</span> }
+        </a>
+
+        <a class="nav-item" routerLink="/usuarios" routerLinkActive="nav-item-ativo" [title]="recolhida ? 'Usuários' : ''">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+          @if (!recolhida) { <span>Usuários</span> }
+        </a>
+
+        <a class="nav-item" routerLink="/socios" routerLinkActive="nav-item-ativo" [title]="recolhida ? 'Sócios' : ''">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          @if (!recolhida) { <span>Sócios</span> }
+        </a>
+      }
+
+    </nav>
+
+    <!-- RODAPÉ SIDEBAR -->
+    <div class="sidebar-footer">
+      <div class="usuario-info" *ngIf="!recolhida">
+        <div class="usuario-avatar">{{ inicialUsuario }}</div>
+        <div class="usuario-dados">
+          <span class="usuario-nome">{{ nomeUsuario }}</span>
+          <span class="usuario-perfil">{{ perfilUsuario }}</span>
+        </div>
+      </div>
+      <button class="btn-logout" (click)="logout()" [title]="'Sair'">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        @if (!recolhida) { <span>Sair</span> }
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- CONTEÚDO -->
+  <main class="conteudo" [class.conteudo-expandido]="recolhida">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="search-global">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Busca global (ex: folha maio)..." [(ngModel)]="termoBusca" (keydown.enter)="buscar()" />
+      </div>
+      <div class="topbar-acoes">
+        <div class="notif-wrapper">
+          <button class="btn-notif" (click)="toggleNotif()" [class.ativo]="menuNotifAberto">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            @if (notificacoes.length > 0) {
+              <span class="notif-badge">{{ notificacoes.length }}</span>
+            }
+          </button>
+          
+          @if (menuNotifAberto) {
+            <div class="notif-dropdown" (click)="$event.stopPropagation()">
+              <div class="nd-header">
+                <h3>Notificações</h3>
+              </div>
+              <div class="nd-body">
+                @if (notificacoes.length === 0) {
+                  <div class="nd-vazio">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ddd" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    <p>Tudo em dia! Nenhuma pendência próxima.</p>
+                  </div>
+                } @else {
+                  @for (n of notificacoes; track n.id) {
+                    <div class="nd-item" (click)="abrirNotificacao(n)">
+                      <div class="nd-bola"></div>
+                      <div class="nd-info">
+                        <strong>{{ n.nomeOriginal }}</strong>
+                        <p>Vence em {{ n.diasParaVencer }} dias</p>
+                      </div>
+                    </div>
+                  }
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </header>
+
+    <div class="main-scroll">
+      <router-outlet />
+    </div>
+
+  </main>
+
+</div>

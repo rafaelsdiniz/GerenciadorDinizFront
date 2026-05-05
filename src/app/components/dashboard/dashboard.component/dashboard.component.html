@@ -1,0 +1,374 @@
+<div class="dash">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-texto">
+      <span class="hero-saud">{{ saudacao }}{{ nomeUsuario ? ', ' + nomeUsuario : '' }}.</span>
+      <h1 class="hero-titulo">Visão geral da contabilidade</h1>
+      <span class="hero-data">{{ dataAtual }}</span>
+    </div>
+    <div class="hero-acoes">
+      <button class="btn-acao primaria" (click)="navegarPara('/arquivos')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Enviar arquivo
+      </button>
+      <button class="btn-acao" (click)="navegarPara('/obrigacoes-pendentes')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        Pendências
+      </button>
+      <button class="btn-acao ghost" (click)="carregarDados()" title="Atualizar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ALERTA SE HÁ VENCIDOS -->
+  @if (totalVencidosGeral > 0) {
+    <div class="alerta" (click)="navegarPara('/arquivos')">
+      <span class="alerta-icone">⚠</span>
+      <span><strong>{{ totalVencidosGeral }}</strong> arquivo(s) vencido(s) precisam de atenção.</span>
+      <span class="alerta-link">Ver →</span>
+    </div>
+  }
+
+  <!-- CARDS GLOBAIS -->
+  <div class="cards-row">
+    <div class="card card-clicavel" (click)="navegarPara('/empresas')">
+      <div class="card-top">
+        <span class="card-label">Empresas</span>
+        <div class="card-icon icon-blue">🏢</div>
+      </div>
+      <span class="card-valor">{{ totalEmpresas }}</span>
+    </div>
+    <div class="card card-clicavel" (click)="navegarPara('/arquivos')">
+      <div class="card-top">
+        <span class="card-label">Arquivos</span>
+        <div class="card-icon icon-red">📄</div>
+      </div>
+      <span class="card-valor">{{ totalArquivos }}</span>
+    </div>
+    <div class="card card-clicavel" (click)="navegarPara('/pastas')">
+      <div class="card-top">
+        <span class="card-label">Pastas</span>
+        <div class="card-icon icon-yellow">📁</div>
+      </div>
+      <span class="card-valor">{{ totalPastas }}</span>
+    </div>
+    @if (isAdmin) {
+      <div class="card card-clicavel" (click)="navegarPara('/usuarios')">
+        <div class="card-top">
+          <span class="card-label">Usuários</span>
+          <div class="card-icon icon-green">👥</div>
+        </div>
+        <span class="card-valor">{{ totalUsuarios }}</span>
+      </div>
+    }
+    <div class="card card-clicavel destaque" (click)="navegarPara('/obrigacoes-pendentes')">
+      <div class="card-top">
+        <span class="card-label">Obrigações em aberto</span>
+        <div class="card-icon icon-purple">⏰</div>
+      </div>
+      <span class="card-valor">{{ totalPendentesObrigGeral }}</span>
+    </div>
+    <div class="card">
+      <div class="card-top">
+        <span class="card-label">Armazenamento</span>
+        <div class="card-icon icon-teal">💾</div>
+      </div>
+      <span class="card-valor">{{ totalStorage }}</span>
+    </div>
+  </div>
+
+  <!-- GRÁFICOS DE SITUAÇÃO GERAL -->
+  @if (isAdmin && resumoEmpresas.length > 0) {
+    <div class="charts-row">
+      <!-- Chart 1: Saúde Geral -->
+      <div class="chart-card">
+        <h3 class="chart-titulo">Saúde Geral das Empresas</h3>
+        <div class="chart-container doughnut-container">
+          @if (chartDoughnutData) {
+            <canvas baseChart
+              [data]="chartDoughnutData"
+              [options]="chartDoughnutOptions"
+              type="doughnut">
+            </canvas>
+          }
+        </div>
+      </div>
+
+      <!-- Chart 2: Top Atrasos/Pendências -->
+      <div class="chart-card">
+        <h3 class="chart-titulo">Top Empresas (Pendências/Atrasos)</h3>
+        <div class="chart-container bar-container">
+          @if (chartBarData && chartBarData.labels && chartBarData.labels.length > 0) {
+            <canvas baseChart
+              [data]="chartBarData"
+              [options]="chartBarOptions"
+              type="bar">
+            </canvas>
+          } @else {
+            <div class="estado-vazio"><p>Todas as empresas estão em dia! 🎉</p></div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- LINHA: PRÓXIMOS VENCIMENTOS + ATIVIDADE RECENTE -->
+  <div class="linha-2col">
+
+    <!-- PRÓXIMOS VENCIMENTOS -->
+    <div class="painel">
+      <div class="painel-header">
+        <h2 class="painel-titulo">Próximos vencimentos (14 dias)</h2>
+        <a class="painel-link" (click)="navegarPara('/calendario')">Calendário →</a>
+      </div>
+      @if (carregando) {
+        <div class="estado-vazio"><span class="spinner"></span></div>
+      } @else if (proximosVencimentos.length === 0) {
+        <div class="onboarding-vazio-mini">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <p>Tudo em dia! Nada vencendo em breve. 🎉</p>
+        </div>
+      } @else {
+        <div class="vencs">
+          @for (v of proximosVencimentos; track v.id) {
+            <div class="venc-row" (click)="abrirArquivo(v.id)">
+              <span class="venc-pill" [ngClass]="classeDias(v.diasParaVencer)">
+                {{ rotuloDias(v.diasParaVencer) }}
+              </span>
+              <div class="venc-info">
+                <span class="venc-nome">{{ v.nome }}</span>
+                <span class="venc-meta">{{ v.descricao || '—' }} · {{ v.dataVencimento }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- ATIVIDADE RECENTE (admin) ou STATUS RÁPIDO (não-admin) -->
+    @if (isAdmin) {
+      <div class="painel">
+        <div class="painel-header">
+          <h2 class="painel-titulo">Atividade recente</h2>
+          <a class="painel-link" (click)="navegarPara('/logs')">Ver tudo →</a>
+        </div>
+        @if (logsRecentes.length === 0) {
+          <div class="onboarding-vazio-mini">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <p>Nenhuma atividade recente registrada.</p>
+          </div>
+        } @else {
+          <div class="logs">
+            @for (l of logsRecentes; track l.id) {
+              <div class="log-row">
+                <span class="log-acao a-{{ l.acao.toLowerCase() }}">{{ acaoLabel[l.acao] }}</span>
+                <div class="log-info">
+                  <span class="log-detalhe">{{ l.detalhes || (l.entidade + ' #' + l.idEntidade) }}</span>
+                  <span class="log-meta">{{ l.nomeUsuario || 'sistema' }} · {{ l.dataCriacao | date:'dd/MM HH:mm' }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="painel">
+        <div class="painel-header">
+          <h2 class="painel-titulo">Resumo da empresa</h2>
+        </div>
+        @if (metricas) {
+          <div class="resumo-mini">
+            <div class="rmini">
+              <span class="rmini-l">Vencidos</span>
+              <span class="rmini-v vermelho">{{ metricas.totalArquivosVencidos }}</span>
+            </div>
+            <div class="rmini">
+              <span class="rmini-l">Vencendo 7d</span>
+              <span class="rmini-v amarelo">{{ metricas.totalArquivosVencendo7Dias }}</span>
+            </div>
+            <div class="rmini">
+              <span class="rmini-l">Pendentes</span>
+              <span class="rmini-v">{{ metricas.totalObrigacoesPendentes }}</span>
+            </div>
+            <div class="rmini">
+              <span class="rmini-l">Taxa no prazo</span>
+              <span class="rmini-v verde">{{ formatarTaxa(metricas.taxaEntregaNoPrazo) }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- RESUMO TODAS AS EMPRESAS (admin) -->
+  @if (isAdmin && resumoEmpresas.length > 0) {
+    <div class="painel">
+      <div class="painel-header">
+        <h2 class="painel-titulo">Resumo por empresa</h2>
+        <a class="painel-link" (click)="navegarPara('/empresas')">Gerenciar →</a>
+      </div>
+      <div class="tabela-resumo-wrap">
+        <table class="tabela-resumo">
+          <thead>
+            <tr>
+              <th>Empresa</th>
+              <th class="num">Arquivos</th>
+              <th class="num">Vencidos</th>
+              <th class="num">Pendentes</th>
+              <th class="num">Vence 7d</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of resumoEmpresas; track r.id) {
+              <tr [class.linha-alerta]="r.vencidos > 0">
+                <td><strong>{{ r.nome }}</strong></td>
+                <td class="num">{{ r.total }}</td>
+                <td class="num">
+                  @if (r.vencidos > 0) {
+                    <span class="pill pill-vermelho">{{ r.vencidos }}</span>
+                  } @else { <span class="muted">0</span> }
+                </td>
+                <td class="num">
+                  @if (r.pendentes > 0) {
+                    <span class="pill pill-amarelo">{{ r.pendentes }}</span>
+                  } @else { <span class="muted">0</span> }
+                </td>
+                <td class="num">{{ r.vencendo7 }}</td>
+                <td class="num">
+                  <button class="btn-mini" (click)="idEmpresaSelecionada = r.id; carregarMetricas()">
+                    Detalhes
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- PAINEL CONTÁBIL POR EMPRESA -->
+  <div class="painel">
+    <div class="painel-header">
+      <h2 class="painel-titulo">Painel contábil por empresa</h2>
+      <select class="select-empresa" [(ngModel)]="idEmpresaSelecionada" (change)="carregarMetricas()">
+        @for (empresa of empresas; track empresa.id) {
+          <option [ngValue]="empresa.id">{{ empresa.nomeFantasia }}</option>
+        }
+      </select>
+    </div>
+
+    @if (carregandoMetricas) {
+      <div class="estado-vazio"><span class="spinner"></span></div>
+    } @else if (!metricas) {
+      <div class="estado-vazio"><p>Selecione uma empresa.</p></div>
+    } @else {
+      <div class="metricas-grid">
+        <div class="metrica-card metrica-vencidos">
+          <span class="metrica-label">Arquivos vencidos</span>
+          <span class="metrica-valor">{{ metricas.totalArquivosVencidos }}</span>
+        </div>
+        <div class="metrica-card metrica-vencendo">
+          <span class="metrica-label">Vencendo em 7 dias</span>
+          <span class="metrica-valor">{{ metricas.totalArquivosVencendo7Dias }}</span>
+        </div>
+        <div class="metrica-card">
+          <span class="metrica-label">Vencendo em 30 dias</span>
+          <span class="metrica-valor">{{ metricas.totalArquivosVencendo30Dias }}</span>
+        </div>
+        <div class="metrica-card metrica-taxa">
+          <span class="metrica-label">Taxa de entrega no prazo</span>
+          <span class="metrica-valor">{{ formatarTaxa(metricas.taxaEntregaNoPrazo) }}</span>
+          <small class="metrica-hint">últimos 12 meses</small>
+        </div>
+        <div class="metrica-card metrica-obrig">
+          <span class="metrica-label">Obrigações pendentes</span>
+          <span class="metrica-valor">{{ metricas.totalObrigacoesPendentes }}</span>
+        </div>
+        <div class="metrica-card metrica-obrig-vencidas">
+          <span class="metrica-label">Obrigações vencidas</span>
+          <span class="metrica-valor">{{ metricas.totalObrigacoesVencidas }}</span>
+        </div>
+      </div>
+
+      <div class="dist-grid">
+        <div class="dist-bloco">
+          <h3 class="dist-titulo">Distribuição por status</h3>
+          @if (distStatus.length === 0) {
+            <p class="dist-vazio">Sem arquivos.</p>
+          } @else {
+            @for (item of distStatus; track item.chave) {
+              <div class="dist-linha">
+                <div class="dist-label">
+                  <span class="dist-bullet" [style.background]="item.cor"></span>
+                  {{ item.label }}
+                </div>
+                <div class="dist-bar-wrap">
+                  <div class="dist-bar" [style.width.%]="item.percentual" [style.background]="item.cor"></div>
+                </div>
+                <span class="dist-valor">{{ item.total }} ({{ item.percentual }}%)</span>
+              </div>
+            }
+          }
+        </div>
+
+        <div class="dist-bloco">
+          <h3 class="dist-titulo">Top categorias fiscais</h3>
+          @if (distCategoria.length === 0) {
+            <p class="dist-vazio">Sem categorias.</p>
+          } @else {
+            @for (item of distCategoria; track item.chave) {
+              <div class="dist-linha">
+                <div class="dist-label">{{ item.label }}</div>
+                <div class="dist-bar-wrap">
+                  <div class="dist-bar" [style.width.%]="item.percentual" [style.background]="item.cor"></div>
+                </div>
+                <span class="dist-valor">{{ item.total }}</span>
+              </div>
+            }
+          }
+        </div>
+      </div>
+
+      <div class="atrasos-bloco">
+        <h3 class="dist-titulo">Top 5 maiores atrasos</h3>
+        @if (metricas.top5MaioresAtrasos.length === 0) {
+          <p class="dist-vazio">Nenhum arquivo vencido. 🎉</p>
+        } @else {
+          <table class="tabela-atrasos">
+            <thead>
+              <tr>
+                <th>Arquivo</th>
+                <th>Descrição</th>
+                <th>Dias de atraso</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (atraso of metricas.top5MaioresAtrasos; track atraso.idArquivo) {
+                <tr>
+                  <td>{{ atraso.nome }}</td>
+                  <td>{{ atraso.descricao || '—' }}</td>
+                  <td><span class="atraso-pill">{{ atraso.diasAtraso }}d</span></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    }
+  </div>
+
+</div>

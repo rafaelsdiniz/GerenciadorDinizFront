@@ -1,0 +1,324 @@
+/* ============================================================
+   DESIGN SYSTEM — Diniz Contabilidade
+   Tokens compartilhados por todos os componentes.
+   ============================================================ */
+
+:root {
+  /* === BRAND === */
+  --brand-50:  #eef1fa;
+  --brand-100: #d8def0;
+  --brand-200: #aebadc;
+  --brand-300: #7889bf;
+  --brand-400: #3d52a0;
+  --brand-500: #1a2d7a;
+  --brand-600: #142468;
+  --brand-700: #0d1b4b;
+  --brand-800: #0a1438;
+  --brand-900: #050a22;
+
+  --brand:        var(--brand-700);
+  --brand-light:  var(--brand-500);
+  --brand-dark:   var(--brand-800);
+
+  /* === ACCENT (dourado) === */
+  --accent-50:  #fdf8e9;
+  --accent-100: #fbedc4;
+  --accent-200: #f5d989;
+  --accent-300: #e8c45d;
+  --accent-400: #d4ac34;
+  --accent-500: #c9a961;
+  --accent-600: #b8952a;
+  --accent-700: #8a6e1e;
+
+  --accent: var(--accent-500);
+
+  /* === NEUTRAL === */
+  --bg:        #f4f6fb;
+  --surface:   #ffffff;
+  --surface-2: #fafbfd;
+  --surface-3: #f5f7fb;
+
+  --text:        #1a1f36;
+  --text-muted:  #6b7280;
+  --text-soft:   #9aa0b0;
+  --text-disabled: #c3c9d1;
+
+  --border:        #e7eaf0;
+  --border-strong: #d7dce3;
+  --border-soft:   #f0f2f6;
+
+  /* === SEMANTIC === */
+  --success:    #16a34a;
+  --success-bg: #e6f6e9;
+  --success-fg: #1b7d2d;
+
+  --warn:    #ea8a1a;
+  --warn-bg: #fff4e5;
+  --warn-fg: #b65b00;
+
+  --danger:    #dc2626;
+  --danger-bg: #fde8e8;
+  --danger-fg: #b42318;
+
+  --info:    #0ea5e9;
+  --info-bg: #e0f2fe;
+  --info-fg: #075985;
+
+  /* === RADIUS === */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 22px;
+  --radius-pill: 999px;
+
+  /* === SHADOWS (sombras realistas, layeradas) === */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 10px 24px rgba(15, 23, 42, 0.08), 0 4px 8px rgba(15, 23, 42, 0.04);
+  --shadow-xl: 0 20px 40px rgba(15, 23, 42, 0.12), 0 8px 16px rgba(15, 23, 42, 0.06);
+  --shadow-2xl: 0 30px 60px rgba(15, 23, 42, 0.18);
+  --shadow-brand: 0 8px 24px rgba(13, 27, 75, 0.18);
+  --shadow-focus: 0 0 0 3px rgba(13, 27, 75, 0.14);
+  --shadow-focus-danger: 0 0 0 3px rgba(220, 38, 38, 0.18);
+
+  /* === TIMING === */
+  --ease-out: cubic-bezier(0.22, 0.9, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --t-fast: 120ms;
+  --t-base: 180ms;
+  --t-slow: 280ms;
+
+  /* === Z === */
+  --z-sticky: 50;
+  --z-overlay: 200;
+  --z-panel: 201;
+  --z-modal: 202;
+  --z-dropdown: 400;
+  --z-toast: 600;
+}
+
+/* ============================================================
+   RESET / BASE
+   ============================================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  background-color: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+img, svg { display: block; max-width: 100%; }
+button { font-family: inherit; }
+
+/* foco acessível em qualquer elemento focável que não tenha estilo próprio */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--radius-sm);
+}
+
+/* seleção em cor de marca */
+::selection {
+  background: var(--brand-100);
+  color: var(--brand-700);
+}
+
+/* ============================================================
+   UTILITÁRIOS
+   ============================================================ */
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.25rem;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--t-base) var(--ease-out),
+              transform var(--t-fast) var(--ease-out),
+              box-shadow var(--t-base) var(--ease-out),
+              border-color var(--t-base) var(--ease-out);
+  font-family: inherit;
+}
+
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn:not(:disabled):active { transform: translateY(1px); }
+
+.btn-primary {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(13, 27, 75, 0.25);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--brand-light);
+  box-shadow: 0 6px 16px rgba(13, 27, 75, 0.32);
+}
+
+.btn-secondary {
+  background: var(--surface);
+  color: var(--text);
+  border: 1.5px solid var(--border-strong);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--surface-3);
+  border-color: var(--brand);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.btn-icon {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  background-color: var(--brand);
+  color: white;
+}
+.btn-icon:hover:not(:disabled) { background-color: var(--brand-light); }
+
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  transition: border-color var(--t-base), box-shadow var(--t-base), background var(--t-base);
+}
+.input:hover { border-color: var(--border-strong); }
+.input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: var(--shadow-focus);
+}
+.input::placeholder { color: var(--text-soft); }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ============================================================
+   SCROLLBAR — discreta, mas presente
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(13, 27, 75, 0.16);
+  border: 2px solid transparent;
+  border-radius: var(--radius-pill);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background-color: rgba(13, 27, 75, 0.28); }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* dentro da sidebar (fundo escuro) */
+.sidebar ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); }
+.sidebar ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.32); }
+
+/* ============================================================
+   ANIMAÇÕES BASE
+   ============================================================ */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.fade-in { animation: fadeIn var(--t-slow) var(--ease-out); }
+.slide-in { animation: slideIn var(--t-slow) var(--ease-out); }
+.slide-up { animation: slideUp var(--t-slow) var(--ease-out); }
+.scale-in { animation: scaleIn var(--t-base) var(--ease-spring); }
+
+/* skeleton loading */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-3) 0%,
+    var(--border-soft) 50%,
+    var(--surface-3) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* respeita preferência do usuário */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
