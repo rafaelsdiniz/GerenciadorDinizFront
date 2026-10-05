@@ -53,11 +53,6 @@
         <path d="M88 70 l6 6 10-11" fill="none" stroke="#0b1433" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
 
-      <ul class="feats">
-        <li><span class="feat-ico"><app-icon name="inbox" [size]="16" /></span>Comunicações do DEC da SEFAZ-TO</li>
-        <li><span class="feat-ico"><app-icon name="sparkles" [size]="16" /></span>Leitura de guias e assistente com IA</li>
-        <li><span class="feat-ico"><app-icon name="calendar-check" [size]="16" /></span>Prazos, certidões e relatórios</li>
-      </ul>
     </div>
   </section>
 
@@ -130,35 +125,28 @@
             Entrar
           }
         </button>
+
+        <p class="aviso-api">
+          <app-icon name="info" [size]="14" />
+          <span>A API está hospedada em um serviço gratuito por enquanto, então o primeiro login pode demorar uns 10 segundos.</span>
+        </p>
       </form>
 
       <section class="demo" aria-labelledby="demo-titulo">
-        <div class="demo-head">
-          <span class="demo-tag"><app-icon name="star" [size]="12" [stroke]="2.25" /> Banca avaliadora</span>
-          <h2 id="demo-titulo">Acesso para avaliação</h2>
-          <p>Clique num perfil para entrar. Os dados são fictícios.</p>
-        </div>
-        <div class="demo-list">
+        <h2 id="demo-titulo">Acesso de demonstração</h2>
+        <ul class="demo-list">
           @for (p of demo; track p.email) {
-            <button type="button" class="demo-item" (click)="entrarComo(p)" [disabled]="carregando">
-              <span class="demo-av" [attr.data-tom]="p.tom">{{ p.iniciais }}</span>
-              <span class="demo-txt">
-                <strong>{{ p.papel }} <small>· {{ p.detalhe }}</small></strong>
-                <span>{{ p.email }}</span>
-              </span>
-              @if (entrandoComo === p.email && carregando) {
-                <span class="spinner"></span>
-              } @else {
-                <app-icon name="arrow-right" [size]="16" [stroke]="2" class="demo-go" />
-              }
-            </button>
+            <li>
+              <button type="button" class="demo-item" (click)="entrarComo(p)" [disabled]="carregando"
+                      [title]="'Entrar como ' + p.papel + ' (' + p.detalhe + ')'">
+                <span class="demo-papel">{{ p.papel }} · {{ p.detalhe }}</span>
+                <span class="demo-email">{{ p.email }}</span>
+                @if (entrandoComo === p.email && carregando) { <span class="spinner"></span> }
+              </button>
+            </li>
           }
-        </div>
-        <div class="demo-senha">
-          <span>Senha de todos os perfis:</span>
-          <code>{{ senhaDemo }}</code>
-          <button type="button" class="link text-xs" (click)="copiarSenha()">{{ senhaCopiada ? 'Copiada' : 'Copiar' }}</button>
-        </div>
+        </ul>
+        <p class="demo-senha">Senha: <code>{{ senhaDemo }}</code> · clique num perfil para entrar</p>
       </section>
 
       <p class="foot">© {{ ano }} · Diniz Assessoria Contábil · Palmas-TO</p>
