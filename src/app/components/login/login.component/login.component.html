@@ -10,8 +10,11 @@
       <path d="M100 0 H78 C30 180 22 380 52 540 C80 690 78 850 40 1000 H100 Z" />
     </svg>
 
+    <span class="dots"></span>
+
     <div class="brand-inner">
       <img class="brand-logo" src="images/logo/logo-final.png" alt="" />
+      <h2 class="brand-title">Seu escritório e seus clientes<br><span>no mesmo painel.</span></h2>
 
       <!-- ilustração: pasta de documentos com guia aprovada e relógio de prazo -->
       <svg class="art" viewBox="0 0 360 300">
@@ -50,20 +53,32 @@
         <path d="M88 70 l6 6 10-11" fill="none" stroke="#0b1433" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
 
-      <p class="brand-text">
-        Documentos, prazos e obrigações de cada empresa da carteira, organizados num só lugar.
-      </p>
+      <ul class="feats">
+        <li><span class="feat-ico"><app-icon name="inbox" [size]="16" /></span>Comunicações do DEC da SEFAZ-TO</li>
+        <li><span class="feat-ico"><app-icon name="sparkles" [size]="16" /></span>Leitura de guias e assistente com IA</li>
+        <li><span class="feat-ico"><app-icon name="calendar-check" [size]="16" /></span>Prazos, certidões e relatórios</li>
+      </ul>
     </div>
   </section>
 
   <!-- ============ FORMULÁRIO ============ -->
   <section class="panel">
+    <div class="api-pill" [attr.data-estado]="api.estado()" role="status" aria-live="polite">
+      <span class="api-dot"></span>
+      @switch (api.estado()) {
+        @case ('pronto') { Servidor pronto }
+        @case ('lento') { Acordando o servidor… }
+        @case ('offline') { Servidor indisponível }
+        @default { Conectando ao servidor… }
+      }
+    </div>
+
     <div class="panel-inner">
       <div class="mobile-brand">
         <span class="mobile-mark"><img src="images/logo/logo-final.png" alt="Diniz" /></span>
       </div>
 
-      <h1 class="title">Bem-vindo de volta</h1>
+      <h1 class="title">Bem-vindo ao portal</h1>
       <p class="subtitle">Informe seus dados para acessar o portal.</p>
 
       <form class="form" (ngSubmit)="entrar()" novalidate>
@@ -117,8 +132,36 @@
         </button>
       </form>
 
-      <div class="divider-text"><span>Diniz Assessoria Contábil</span></div>
-      <p class="foot">© {{ ano }} · Acesso restrito a clientes e equipe do escritório</p>
+      <section class="demo" aria-labelledby="demo-titulo">
+        <div class="demo-head">
+          <span class="demo-tag"><app-icon name="star" [size]="12" [stroke]="2.25" /> Banca avaliadora</span>
+          <h2 id="demo-titulo">Acesso para avaliação</h2>
+          <p>Clique num perfil para entrar. Os dados são fictícios.</p>
+        </div>
+        <div class="demo-list">
+          @for (p of demo; track p.email) {
+            <button type="button" class="demo-item" (click)="entrarComo(p)" [disabled]="carregando">
+              <span class="demo-av" [attr.data-tom]="p.tom">{{ p.iniciais }}</span>
+              <span class="demo-txt">
+                <strong>{{ p.papel }} <small>· {{ p.detalhe }}</small></strong>
+                <span>{{ p.email }}</span>
+              </span>
+              @if (entrandoComo === p.email && carregando) {
+                <span class="spinner"></span>
+              } @else {
+                <app-icon name="arrow-right" [size]="16" [stroke]="2" class="demo-go" />
+              }
+            </button>
+          }
+        </div>
+        <div class="demo-senha">
+          <span>Senha de todos os perfis:</span>
+          <code>{{ senhaDemo }}</code>
+          <button type="button" class="link text-xs" (click)="copiarSenha()">{{ senhaCopiada ? 'Copiada' : 'Copiar' }}</button>
+        </div>
+      </section>
+
+      <p class="foot">© {{ ano }} · Diniz Assessoria Contábil · Palmas-TO</p>
     </div>
   </section>
 </main>

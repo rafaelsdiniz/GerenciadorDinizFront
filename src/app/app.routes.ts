@@ -122,6 +122,8 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    redirectTo: 'login'
+    title: 'Página não encontrada · Diniz',
+    loadComponent: () => import('./components/nao-encontrada/nao-encontrada.component')
+      .then(m => m.NaoEncontradaComponent)
   }
 ];
