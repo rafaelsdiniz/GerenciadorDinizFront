@@ -1,4 +1,4 @@
-import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
@@ -27,7 +27,12 @@ import { DecService } from '../../../services/dec.service';
 import { CertidaoService } from '../../../services/certidao.service';
 import { CertidaoResumoDTO } from '../../../models/certidao.dto';
 import { ComunicacaoDecDTO, TipoDecLabel, UrgenciaDecLabel, decPrecisaAtencao, tomUrgenciaDec } from '../../../models/comunicacao-dec.dto';
-import { BytesPipe, PrazoPipe, PrazoTomPipe, IniciaisPipe, AvatarCorPipe } from '../../../pipes/formatos.pipe';
+import { BytesPipe, PrazoPipe } from '../../../pipes/formatos.pipe';
+import { DashboardBannerComponent, Slide } from '../dashboard-banner/dashboard-banner.component';
+import {
+  GraficoBarras, GraficoCarteira, GraficoHistorico, GraficoRosca, documentosPorCategoria, historicoMensal,
+  opcoesBarrasHorizontais, opcoesColunas, opcoesRosca, saudeCarteira, situacaoDoMes, vencimentosPorSemana
+} from './dashboard-graficos';
 
 interface DistItem {
   chave: string;
@@ -57,35 +62,17 @@ interface Vencimento {
   diasParaVencer: number;
 }
 
-/** Campos novos da API (competência, responsável) — opcionais para compatibilidade. */
-type ObrigacaoComFluxo = ObrigacaoPendenteResponseDTO & {
-  competencia?: string | null;
-  responsavel?: string | null;
-  nomeEmpresa?: string | null;
-};
-
-interface Slide {
-  tom: 'danger' | 'primary' | 'success';
-  icone: string;
-  titulo: string;
-  texto: string;
-  cta: string;
-  rota: string;
-  queryParams?: Record<string, string | number>;
-}
-
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, BaseChartDirective, IconComponent,
-    BytesPipe, PrazoPipe, PrazoTomPipe, IniciaisPipe, AvatarCorPipe],
+  imports: [CommonModule, FormsModule, RouterModule, BaseChartDirective, IconComponent, DashboardBannerComponent,
+    BytesPipe, PrazoPipe],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
-export class DashboardComponent implements OnInit, OnDestroy {
+export class DashboardComponent implements OnInit {
 
   private readonly EMPRESA_KEY = 'dashboard.empresaSelecionada';
-  private readonly BANNER_KEY = 'dashboard.bannerFechado';
 
   dataAtual = '';
   dataCurta = '';
@@ -120,11 +107,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
   distStatus: DistItem[] = [];
   distCategoria: DistItem[] = [];
 
-  // banner (carrossel de alertas)
+  // banner (carrossel de destaques)
   slides: Slide[] = [];
-  slideAtual = 0;
-  bannerFechado = false;
-  private timerSlide: ReturnType<typeof setInterval> | null = null;
+  atualizadoEm: Date | null = null;
+
+  // gráficos do painel
+  grafVencimentos: GraficoBarras | null = null;
+  grafSituacao: GraficoRosca | null = null;
+  grafHistorico: GraficoHistorico | null = null;
+  grafCarteira: GraficoCarteira | null = null;
+  grafCategorias: (GraficoBarras & { chaves: string[] }) | null = null;
+  readonly opcoesVencimentos = opcoesColunas(() => this.navegarPara('/calendario'));
+  readonly opcoesSituacao = opcoesRosca(() => this.navegarPara('/obrigacoes-pendentes'));
+  readonly opcoesHistorico = opcoesColunas();
+  readonly opcoesCarteira = opcoesBarrasHorizontais(i => {
+    const id = this.grafCarteira?.ids[i];
+    if (id != null) this.verPainelEmpresa(id);
+  });
+  readonly opcoesCategorias = opcoesBarrasHorizontais(() => this.navegarPara('/arquivos'));
 
   // gráfico: distribuição por status da empresa selecionada
   chartStatusData: ChartConfiguration<'doughnut'>['data'] | undefined;
@@ -195,12 +195,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.nomeUsuario = this.extrairNomeUsuario();
     this.isAdmin = this.authService.isAdmin();
     this.idEmpresaUsuario = this.authService.getEmpresaId();
-    try { this.bannerFechado = sessionStorage.getItem(this.BANNER_KEY) === '1'; } catch {}
     this.carregarDados();
-  }
-
-  ngOnDestroy(): void {
-    this.pararCarrossel();
   }
 
   private calcularSaudacao(): string {
@@ -230,6 +225,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   carregarDados(): void {
+    this.atualizadoEm = null;
     this.carregando = true;
     this.carregandoObrig = true;
 
@@ -243,7 +239,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.idEmpresaSelecionada = valida ?? this.idEmpresaUsuario ?? data[0]?.id ?? null;
         }
         if (this.idEmpresaSelecionada != null) this.carregarMetricas();
-        this.atualizarResumoEmpresas();
+        this.atualizarDerivados();
       }
     });
 
@@ -293,6 +289,32 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.proximosVencimentos = this.calcularProximosVencimentos();
     this.atualizarResumoEmpresas();
     this.montarSlides();
+    this.montarGraficos();
+    if (!this.carregando && !this.carregandoObrig) this.atualizadoEm = new Date();
+  }
+
+  // ================= GRÁFICOS =================
+
+  private montarGraficos(): void {
+    const obrig = this.obrigacoesGeral;
+    this.grafVencimentos = vencimentosPorSemana(obrig);
+    this.grafSituacao = situacaoDoMes(obrig);
+    this.grafHistorico = historicoMensal(obrig);
+    this.grafCarteira = this.isAdmin && this.empresas.length ? saudeCarteira(obrig, this.empresas) : null;
+    this.grafCategorias = documentosPorCategoria(this.arquivos);
+  }
+
+  /** "Diniz Contabilidade · 05/10/2026" no banner (ou o nome da empresa do cliente). */
+  get contextoBanner(): string {
+    return `${this.isAdmin ? 'Diniz Contabilidade' : this.nomeEmpresaUsuario} · ${this.dataCurta}`;
+  }
+
+  get mesAtual(): string {
+    return new Date().toLocaleDateString('pt-BR', { month: 'long' });
+  }
+
+  pct(parte: number, total: number): number {
+    return total ? Math.round((parte / total) * 100) : 0;
   }
 
   // ================= INDICADORES =================
@@ -313,13 +335,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       ...this.arquivos.filter(a => a.status === StatusArquivo.VENCIDO).map(a => a.diasParaVencer ?? 0)
     ].filter(d => d < 0);
     return dias.length ? -Math.min(...dias) : 0;
-  }
-
-  /** Obrigações em que o cliente precisa enviar documentos e que ainda estão em aberto. */
-  get paraEnviar(): ObrigacaoComFluxo[] {
-    return (this.obrigacoesGeral as ObrigacaoComFluxo[])
-      .filter(o => o.responsavel === 'CLIENTE' && o.status !== 'ENTREGUE')
-      .sort((a, b) => (a.diasParaVencer ?? 0) - (b.diasParaVencer ?? 0));
   }
 
   get vencendo7(): Vencimento[] {
@@ -361,16 +376,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         obrigVencidas: obr.filter(o => o.status === 'VENCIDA' || (o.status === 'PENDENTE' && (o.diasParaVencer ?? 0) < 0)).length
       };
     }).sort((a, b) => (b.vencidos + b.obrigVencidas) - (a.vencidos + a.obrigVencidas) || b.pendentes - a.pendentes);
-  }
-
-  saudeEmpresa(r: ResumoEmpresa): 'danger' | 'warning' | 'success' {
-    if (r.vencidos > 0 || r.obrigVencidas > 0) return 'danger';
-    if (r.pendentes > 0 || r.vencendo7 > 0) return 'warning';
-    return 'success';
-  }
-
-  rotuloSaude(r: ResumoEmpresa): string {
-    return { danger: 'Com atraso', warning: 'Atenção', success: 'Em dia' }[this.saudeEmpresa(r)];
   }
 
   private calcularProximosVencimentos(): Vencimento[] {
@@ -475,32 +480,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       });
     }
     this.slides = s;
-    if (this.slideAtual >= s.length) this.slideAtual = 0;
-  }
-
-  get slide(): Slide | null {
-    return this.slides[this.slideAtual] ?? null;
-  }
-
-  irSlide(i: number): void {
-    if (!this.slides.length) return;
-    this.slideAtual = (i + this.slides.length) % this.slides.length;
-    this.iniciarCarrossel();
-  }
-
-  private iniciarCarrossel(): void {
-    this.pararCarrossel();
-    if (this.slides.length > 1) this.timerSlide = setInterval(() => this.irSlide(this.slideAtual + 1), 8000);
-  }
-
-  pararCarrossel(): void {
-    if (this.timerSlide) { clearInterval(this.timerSlide); this.timerSlide = null; }
-  }
-
-  fecharBanner(): void {
-    this.bannerFechado = true;
-    this.pararCarrossel();
-    try { sessionStorage.setItem(this.BANNER_KEY, '1'); } catch {}
   }
 
   abrirSlide(s: Slide): void {

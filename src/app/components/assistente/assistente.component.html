@@ -1,4 +1,4 @@
-@if (!aberto) {
+@if (!aberto && !naPagina) {
   <button #fab type="button" class="as-fab" [class.pulsar]="pulsar" [class.acima]="acimaFab"
           (click)="abrir()" aria-label="Abrir o Assistente Diniz" aria-haspopup="dialog">
     <app-icon name="sparkles" [size]="24" [stroke]="1.9" />
@@ -7,7 +7,7 @@
   </button>
 }
 
-@if (aberto) {
+@if (aberto && !naPagina) {
   <section class="as-panel" role="dialog" aria-modal="false" aria-labelledby="as-titulo" (keydown)="aoTeclarPainel($event)">
     <header class="as-head">
       <span class="as-avatar" aria-hidden="true"><app-icon name="sparkles" [size]="18" [stroke]="2" /></span>

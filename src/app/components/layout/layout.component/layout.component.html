@@ -11,10 +11,13 @@
         <div class="sb-section">
           <span class="sb-section-title">{{ secao.titulo }}</span>
           @for (item of secao.itens; track item.label) {
-            <a class="sb-item" [routerLink]="item.link" routerLinkActive="active"
+            <a class="sb-item" [class.sb-destaque]="item.destaque" [routerLink]="item.link" routerLinkActive="active"
                [attr.title]="recolhida ? item.label : null">
               <app-icon [name]="item.icon" [size]="18" />
               <span class="sb-label">{{ item.label }}</span>
+              @if (item.destaque) {
+                <span class="sb-tag" aria-hidden="true">{{ item.destaque }}</span>
+              }
               @if (item.badge && item.badge() > 0) {
                 <span class="sb-badge tnum">{{ item.badge() }}</span>
               }
@@ -47,6 +50,10 @@
       </form>
 
       <div class="topbar-actions">
+        <a class="btn-icon topbar-ia" routerLink="/assistente" routerLinkActive="active"
+           title="Assistente IA" aria-label="Assistente IA">
+          <app-icon name="sparkles" [size]="19" />
+        </a>
         <a class="btn-icon topbar-cal" routerLink="/calendario" title="Calendário de obrigações" aria-label="Calendário">
           <app-icon name="calendar" [size]="19" />
         </a>

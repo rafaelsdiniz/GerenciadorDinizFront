@@ -24,6 +24,8 @@ interface NavItem {
   link: (string | number)[];
   badge?: () => number;
   exact?: boolean;
+  /** item em destaque (ex.: Assistente IA): ícone dourado e selo pequeno com este texto */
+  destaque?: string;
 }
 
 interface NavSecao {
@@ -113,6 +115,7 @@ export class LayoutComponent implements OnInit {
         titulo: 'Acompanhamento',
         itens: [
           { label: 'Painel', icon: 'dashboard', link: ['/dashboard'] },
+          { label: 'Assistente IA', icon: 'sparkles', link: ['/assistente'], destaque: 'IA' },
           { label: 'Pendências', icon: 'list-checks', link: ['/obrigacoes-pendentes'], badge: () => this.obrigacoesVencidas.length },
           { label: 'Calendário', icon: 'calendar', link: ['/calendario'] },
           { label: 'Comunicações DEC', icon: 'inbox', link: ['/dec'], badge: () => this.decSemCiencia },

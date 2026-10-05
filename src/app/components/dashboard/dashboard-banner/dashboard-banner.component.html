@@ -1,0 +1,80 @@
+@if (fechado) {
+  <button type="button" class="hero-reabrir" (click)="reabrir()">
+    <app-icon name="sparkles" [size]="14" /> Mostrar destaques do dia
+  </button>
+} @else {
+  <div class="hero-wrap" (mouseenter)="parar()" (mouseleave)="iniciar()" (focusin)="parar()" (focusout)="iniciar()">
+    <section class="hero" [ngClass]="'tom-' + (slide?.tom ?? 'primary')" aria-roledescription="carrossel" aria-label="Destaques do dia">
+      <!-- ilustração -->
+      <div class="hero-art" aria-hidden="true">
+        <svg viewBox="0 0 220 160" class="hero-svg">
+          <g class="ln">
+            <path d="M22 40 L58 58" /><path d="M176 120 L200 140" /><path d="M40 128 L58 112" />
+          </g>
+          <circle cx="22" cy="40" r="5" class="node" />
+          <circle cx="40" cy="128" r="4" class="node" />
+          <rect x="196" y="136" width="10" height="10" rx="2" class="node-accent" />
+
+          <rect x="58" y="34" width="118" height="92" rx="12" class="card" />
+          <path d="M58 56 H176" class="card-line" />
+          <circle cx="70" cy="45" r="3" class="dot1" /><circle cx="80" cy="45" r="3" class="dot2" /><circle cx="90" cy="45" r="3" class="dot3" />
+
+          <rect x="70" y="68" width="54" height="6" rx="3" class="txt" />
+          <rect x="70" y="82" width="40" height="6" rx="3" class="txt soft" />
+          <rect x="70" y="96" width="48" height="6" rx="3" class="txt soft" />
+
+          <rect x="134" y="94" width="8" height="20" rx="2" class="bar b1" />
+          <rect x="146" y="82" width="8" height="32" rx="2" class="bar b2" />
+          <rect x="158" y="72" width="8" height="42" rx="2" class="bar b3" />
+
+          <circle cx="174" cy="36" r="17" class="badge" />
+          @switch (slide?.tom) {
+            @case ('success') { <path d="M166 36 l6 6 l11 -12" class="badge-ico" /> }
+            @case ('danger') { <path d="M174 27 v11 M174 44 v1" class="badge-ico" /> }
+            @default { <path d="M174 28 v8 l5 4" class="badge-ico" /> }
+          }
+        </svg>
+      </div>
+
+      <!-- conteúdo do destaque (recriado a cada troca para animar) -->
+      @for (s of (slide ? [slide] : []); track atual) {
+        <div class="hero-body">
+          <span class="hero-eyebrow">
+            <strong>Painel</strong>@if (contexto) { <span> · {{ contexto }}</span> }
+            <span class="hero-selo">{{ selo[s.tom] }}</span>
+          </span>
+          <h2 class="hero-title">{{ s.titulo }}</h2>
+          <p class="hero-text">{{ s.texto }}</p>
+          <button type="button" class="hero-cta" (click)="abrir.emit(s)">
+            <app-icon [name]="s.icone" [size]="16" [stroke]="2" /> {{ s.cta }}
+          </button>
+        </div>
+      }
+
+      <div class="hero-tools">
+        <button type="button" class="hero-tool" (click)="atualizar.emit()" [disabled]="carregando" title="Atualizar dados">
+          <app-icon name="refresh" [size]="14" [stroke]="2" [class.girando]="carregando" />
+          <span>{{ carregando ? 'Atualizando…' : (atualizadoEm ? 'Atualizado às ' + (atualizadoEm | date:'HH:mm') : 'Atualizar') }}</span>
+        </button>
+        <button type="button" class="hero-tool icon" (click)="fechar()" aria-label="Fechar destaques" title="Fechar">
+          <app-icon name="x" [size]="16" [stroke]="2" />
+        </button>
+      </div>
+    </section>
+
+    @if (slides.length > 1) {
+      <nav class="hero-nav" aria-label="Navegar entre destaques">
+        <button type="button" class="hero-arrow" (click)="ir(atual - 1)" aria-label="Destaque anterior">
+          <app-icon name="chevron-left" [size]="16" [stroke]="2" />
+        </button>
+        @for (s of slides; track $index) {
+          <button type="button" class="hero-dot" [class.on]="$index === atual" (click)="ir($index)"
+                  [attr.aria-label]="'Destaque ' + ($index + 1) + ': ' + s.titulo" [attr.aria-current]="$index === atual"></button>
+        }
+        <button type="button" class="hero-arrow" (click)="ir(atual + 1)" aria-label="Próximo destaque">
+          <app-icon name="chevron-right" [size]="16" [stroke]="2" />
+        </button>
+      </nav>
+    }
+  </div>
+}

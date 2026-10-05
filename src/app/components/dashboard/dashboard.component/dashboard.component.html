@@ -11,9 +11,6 @@
       </p>
     </div>
     <div class="page-actions">
-      <button class="btn-icon bordered" (click)="carregarDados()" title="Atualizar dados" aria-label="Atualizar dados">
-        <app-icon name="refresh" [size]="16" />
-      </button>
       <button class="btn btn-secondary" (click)="navegarPara('/calendario')">
         <app-icon name="calendar" [size]="16" /> Calendário
       </button>
@@ -22,6 +19,10 @@
       </button>
     </div>
   </header>
+
+  <!-- ============ DESTAQUES (banner) ============ -->
+  <app-dashboard-banner [slides]="slides" [contexto]="contextoBanner" [carregando]="carregando || carregandoObrig"
+                        [atualizadoEm]="atualizadoEm" (abrir)="abrirSlide($event)" (atualizar)="carregarDados()" />
 
   <!-- ============ INDICADORES ============ -->
   <section class="kpis">
@@ -133,190 +134,159 @@
     }
   </section>
 
-  <!-- ============ SITUAÇÃO DE HOJE ============ -->
-  <section class="card situacao">
-    <div class="card-header plain">
-      <h2 class="card-title">Situação de hoje</h2>
-      <button class="link text-sm row-sm" (click)="carregarDados()" title="Atualizar dados">
-        <app-icon name="refresh" [size]="13" [stroke]="2" /> {{ dataCurta }}
-      </button>
-    </div>
-    <div class="sit-body">
-      @if (carregando || carregandoObrig) {
-        <div class="sit-row"><span class="skeleton" style="width: 36px; height: 36px; border-radius: 8px"></span>
-          <div class="stack" style="flex: 1; gap: 6px"><span class="skeleton skeleton-line" style="width: 40%"></span><span class="skeleton skeleton-line" style="width: 65%"></span></div>
+  <!-- ============ GRÁFICOS ============ -->
+  <section class="charts">
+
+    <!-- vencimentos por semana -->
+    <article class="card chart-card span-2">
+      <header class="chart-head">
+        <div>
+          <h2 class="card-title">Vencimentos das próximas semanas</h2>
+          <p class="card-subtitle">Obrigações em aberto por semana e por quem entrega</p>
+        </div>
+        <a class="link text-sm" routerLink="/calendario">Calendário →</a>
+      </header>
+      @if (carregandoObrig) {
+        <div class="chart-box skeleton"></div>
+      } @else if (grafVencimentos && grafVencimentos.total) {
+        <ul class="chart-legend">
+          @for (l of grafVencimentos.legenda; track l.label) {
+            <li><i [style.background]="l.cor"></i>{{ l.label }} <strong>{{ l.total }}</strong></li>
+          }
+        </ul>
+        <div class="chart-box">
+          <canvas baseChart type="bar" [data]="grafVencimentos.data" [options]="opcoesVencimentos"
+                  aria-label="Gráfico de vencimentos por semana" role="img"></canvas>
         </div>
       } @else {
-        @for (s of slides.slice(0, 3); track s.titulo) {
-          <div class="sit-row" [ngClass]="'tone-' + s.tom">
-            <span class="icon-tile" [ngClass]="s.tom === 'primary' ? 'warning' : s.tom"><app-icon [name]="s.icone" [size]="18" /></span>
-            <div class="sit-text">
-              <strong>{{ s.titulo }}</strong>
-              <span>{{ s.texto }}</span>
-            </div>
-            <button class="btn btn-sm" [class.btn-primary]="s.tom === 'danger'" [class.btn-secondary]="s.tom !== 'danger'" (click)="abrirSlide(s)">
-              {{ s.cta }} <app-icon name="arrow-right" [size]="14" [stroke]="2" />
-            </button>
+        <div class="empty chart-empty">
+          <span class="empty-icon" style="background: var(--success-bg); color: var(--success-fg)"><app-icon name="calendar-check" [size]="22" /></span>
+          <span class="empty-title">Nada vencendo nas próximas semanas</span>
+          <span class="empty-text">Nenhuma obrigação em aberto vence nas próximas 6 semanas.</span>
+        </div>
+      }
+    </article>
+
+    <!-- situação do mês -->
+    <article class="card chart-card">
+      <header class="chart-head">
+        <div>
+          <h2 class="card-title">Obrigações de {{ mesAtual }}</h2>
+          <p class="card-subtitle">Vencimentos do mês e atrasos anteriores</p>
+        </div>
+        <a class="link text-sm" routerLink="/obrigacoes-pendentes">Ver →</a>
+      </header>
+      @if (carregandoObrig) {
+        <div class="chart-box skeleton"></div>
+      } @else if (grafSituacao && grafSituacao.total) {
+        <div class="donut-wrap">
+          <div class="donut-lg">
+            <canvas baseChart type="doughnut" [data]="grafSituacao.data" [options]="opcoesSituacao"
+                    aria-label="Gráfico de obrigações do mês por situação" role="img"></canvas>
+            <div class="donut-center"><strong>{{ grafSituacao.total }}</strong><span>obrigações</span></div>
+          </div>
+          <ul class="legend">
+            @for (l of grafSituacao.legenda; track l.label) {
+              <li [class.zero]="!l.total">
+                <span class="legend-dot" [style.background]="l.cor"></span>
+                <span class="legend-label">{{ l.label }}</span>
+                <span class="legend-val tnum">{{ l.total }}</span>
+                <span class="legend-pct tnum">{{ pct(l.total, grafSituacao.total) }}%</span>
+              </li>
+            }
+          </ul>
+        </div>
+      } @else {
+        <div class="empty chart-empty">
+          <span class="empty-icon"><app-icon name="pie-chart" [size]="22" /></span>
+          <span class="empty-title">Sem obrigações neste mês</span>
+        </div>
+      }
+    </article>
+
+    <!-- histórico de entregas -->
+    <article class="card chart-card">
+      <header class="chart-head">
+        <div>
+          <h2 class="card-title">Histórico de entregas</h2>
+          <p class="card-subtitle">Últimos 6 meses, por mês de vencimento</p>
+        </div>
+        @if (grafHistorico?.taxa != null) {
+          <span class="badge badge-soft" [ngClass]="grafHistorico!.taxa! >= 90 ? 'badge-success' : grafHistorico!.taxa! >= 70 ? 'badge-warning' : 'badge-danger'"
+                title="Entregues no prazo ÷ obrigações já resolvidas (entregues + vencidas)">
+            <app-icon name="trending-up" [size]="12" [stroke]="2.25" /> {{ grafHistorico!.taxa }}% no prazo
+          </span>
+        }
+      </header>
+      @if (carregandoObrig) {
+        <div class="chart-box skeleton"></div>
+      } @else if (grafHistorico && grafHistorico.total) {
+        <ul class="chart-legend compact">
+          @for (l of grafHistorico.legenda; track l.label) {
+            <li><i [style.background]="l.cor"></i>{{ l.label }}</li>
+          }
+        </ul>
+        <div class="chart-box">
+          <canvas baseChart type="bar" [data]="grafHistorico.data" [options]="opcoesHistorico"
+                  aria-label="Gráfico do histórico de entregas por mês" role="img"></canvas>
+        </div>
+      } @else {
+        <div class="empty chart-empty">
+          <span class="empty-icon"><app-icon name="bar-chart" [size]="22" /></span>
+          <span class="empty-title">Sem histórico ainda</span>
+        </div>
+      }
+    </article>
+
+    <!-- saúde da carteira (escritório) / documentos por categoria (cliente) -->
+    @if (isAdmin) {
+      <article class="card chart-card span-2">
+        <header class="chart-head">
+          <div>
+            <h2 class="card-title">Saúde da carteira</h2>
+            <p class="card-subtitle">Obrigações do mês por empresa · clique numa empresa para ver o painel contábil</p>
+          </div>
+          <a class="link text-sm" routerLink="/empresas">Carteira →</a>
+        </header>
+        @if (carregandoObrig || !grafCarteira) {
+          <div class="chart-box skeleton"></div>
+        } @else {
+          <ul class="chart-legend">
+            @for (l of grafCarteira.legenda; track l.label) {
+              <li><i [style.background]="l.cor"></i>{{ l.label }} <strong>{{ l.total }}</strong></li>
+            }
+          </ul>
+          <div class="chart-box" [style.height.px]="grafCarteira.altura">
+            <canvas baseChart type="bar" [data]="grafCarteira.data" [options]="opcoesCarteira"
+                    aria-label="Gráfico da situação das obrigações por empresa" role="img"></canvas>
           </div>
         }
-      }
-    </div>
+      </article>
+    } @else {
+      <article class="card chart-card span-2">
+        <header class="chart-head">
+          <div>
+            <h2 class="card-title">Documentos por categoria</h2>
+            <p class="card-subtitle">{{ totalArquivos }} documentos ativos de {{ nomeEmpresaUsuario }}</p>
+          </div>
+          <a class="link text-sm" routerLink="/arquivos">Arquivos →</a>
+        </header>
+        @if (carregando) {
+          <div class="chart-box skeleton"></div>
+        } @else if (grafCategorias && grafCategorias.total) {
+          <div class="chart-box">
+            <canvas baseChart type="bar" [data]="grafCategorias.data" [options]="opcoesCategorias"
+                    aria-label="Gráfico de documentos por categoria fiscal" role="img"></canvas>
+          </div>
+        } @else {
+          <div class="empty chart-empty">
+            <span class="empty-icon"><app-icon name="files" [size]="22" /></span>
+            <span class="empty-title">Nenhum documento enviado ainda</span>
+          </div>
+        }
+      </article>
+    }
   </section>
-
-  <!-- ============ AGENDA: vencimentos + documentos do cliente ============ -->
-  <section class="grid-main">
-    <article class="card">
-      <div class="card-header">
-        <div>
-          <h2 class="card-title">Próximos vencimentos</h2>
-          <p class="card-subtitle">Obrigações e documentos nos próximos 14 dias</p>
-        </div>
-        <a class="link text-sm" routerLink="/calendario">Ver calendário →</a>
-      </div>
-      @if (carregando || carregandoObrig) {
-        <div class="list">
-          @for (i of [1,2,3,4]; track i) {
-            <div class="list-item"><span class="skeleton" style="width: 36px; height: 36px"></span>
-              <div class="list-item-body stack" style="gap: 6px"><span class="skeleton skeleton-line" style="width: 55%"></span><span class="skeleton skeleton-line" style="width: 35%"></span></div>
-            </div>
-          }
-        </div>
-      } @else if (proximosVencimentos.length === 0) {
-        <div class="empty">
-          <span class="empty-icon" style="background: var(--success-bg); color: var(--success-fg)"><app-icon name="calendar-check" [size]="22" /></span>
-          <span class="empty-title">Nada vencendo em breve</span>
-          <span class="empty-text">Nenhuma obrigação ou documento vence nos próximos 14 dias.</span>
-        </div>
-      } @else {
-        <div class="list">
-          @for (v of proximosVencimentos; track v.tipo + v.id) {
-            <button class="list-item" (click)="abrirVencimento(v)">
-              <span class="date-chip" [ngClass]="'tone-' + (v.diasParaVencer | prazoTom)">
-                <strong>{{ v.dataVencimento | date:'dd' }}</strong>
-                <span>{{ v.dataVencimento | date:'MMM' }}</span>
-              </span>
-              <span class="list-item-body">
-                <span class="list-item-title truncate">{{ v.nome }}</span>
-                <span class="list-item-sub row-sm">
-                  <app-icon [name]="v.tipo === 'obrigacao' ? 'list-checks' : 'file-text'" [size]="12" />
-                  {{ v.tipo === 'obrigacao' ? 'Obrigação' : 'Arquivo' }}{{ v.detalhe ? ' · ' + v.detalhe : '' }}
-                </span>
-              </span>
-              <span class="badge" [ngClass]="'badge-' + (v.diasParaVencer | prazoTom)">{{ v.diasParaVencer | prazo }}</span>
-            </button>
-          }
-        </div>
-      }
-    </article>
-
-    <!-- documentos que dependem do cliente -->
-    <article class="card">
-      <div class="card-header">
-        <div>
-          <h2 class="card-title">
-            {{ isAdmin ? 'Aguardando documentos dos clientes' : 'O que você precisa enviar' }}
-            @if (paraEnviar.length) { <span class="count count-primary">{{ paraEnviar.length }}</span> }
-          </h2>
-          <p class="card-subtitle">
-            {{ isAdmin ? 'O que os clientes ainda não mandaram para o fechamento' : 'Documentos que o escritório precisa para fechar o mês' }}
-          </p>
-        </div>
-        <a class="link text-sm" routerLink="/obrigacoes-pendentes">Ver todos →</a>
-      </div>
-      @if (carregandoObrig) {
-        <div class="loading-block"><span class="spinner"></span></div>
-      } @else if (paraEnviar.length === 0) {
-        <div class="empty">
-          <span class="empty-icon" style="background: var(--success-bg); color: var(--success-fg)"><app-icon name="check" [size]="22" [stroke]="2" /></span>
-          <span class="empty-title">{{ isAdmin ? 'Nenhum documento pendente' : 'Nada para enviar agora' }}</span>
-          <span class="empty-text">{{ isAdmin ? 'Os clientes estão em dia com o envio de documentos.' : 'Quando o escritório precisar de algo, aparece aqui.' }}</span>
-        </div>
-      } @else {
-        <div class="list">
-          @for (o of paraEnviar.slice(0, 6); track o.id) {
-            <div class="list-item">
-              <span class="date-chip" [ngClass]="'tone-' + (o.diasParaVencer | prazoTom)">
-                <strong>{{ o.dataVencimento | date:'dd' }}</strong>
-                <span>{{ o.dataVencimento | date:'MMM' }}</span>
-              </span>
-              <div class="list-item-body">
-                <span class="list-item-title truncate">{{ o.nomeObrigacao || 'Documento' }}</span>
-                <span class="list-item-sub truncate">
-                  @if (o.competencia) { Competência {{ o.competencia }} }
-                  @if (isAdmin && o.nomeEmpresa) { · {{ o.nomeEmpresa }} }
-                </span>
-              </div>
-              @if (isAdmin) {
-                <span class="badge" [ngClass]="'badge-' + (o.diasParaVencer | prazoTom)">{{ o.diasParaVencer | prazo }}</span>
-              } @else {
-                <button class="btn btn-primary btn-sm" (click)="navegarPara('/obrigacoes-pendentes')">
-                  <app-icon name="upload" [size]="14" [stroke]="2" /> Enviar
-                </button>
-              }
-            </div>
-          }
-        </div>
-      }
-    </article>
-  </section>
-
-  <!-- ============ SAÚDE DA CARTEIRA (admin) ============ -->
-  @if (isAdmin && resumoEmpresas.length > 0) {
-    <section>
-      <div class="section-label">
-        <h2>Saúde da carteira</h2>
-        <span>{{ resumoEmpresas.length }} empresas · ordenadas por urgência</span>
-      </div>
-      <div class="card table-card">
-        <div class="table-wrap">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Empresa</th>
-                <th>Situação</th>
-                <th class="num">Arquivos</th>
-                <th class="num">Vencidos</th>
-                <th class="num">Obrig. vencidas</th>
-                <th class="num">Pendentes</th>
-                <th class="num">Vence em 7d</th>
-                <th class="col-actions">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (r of resumoEmpresas; track r.id) {
-                <tr class="clickable" [routerLink]="['/empresas', r.id]">
-                  <td>
-                    <div class="cell-entity">
-                      <span class="avatar avatar-square" [ngClass]="r.nome | avatarCor">{{ r.nome | iniciais }}</span>
-                      <span class="cell-main">{{ r.nome }}</span>
-                    </div>
-                  </td>
-                  <td><span class="badge badge-dot" [ngClass]="'badge-' + saudeEmpresa(r)">{{ rotuloSaude(r) }}</span></td>
-                  <td class="num">{{ r.total }}</td>
-                  <td class="num">@if (r.vencidos) { <span class="badge badge-danger">{{ r.vencidos }}</span> } @else { <span class="text-faint">0</span> }</td>
-                  <td class="num">@if (r.obrigVencidas) { <span class="badge badge-danger">{{ r.obrigVencidas }}</span> } @else { <span class="text-faint">0</span> }</td>
-                  <td class="num">@if (r.pendentes) { <span class="badge badge-warning">{{ r.pendentes }}</span> } @else { <span class="text-faint">0</span> }</td>
-                  <td class="num">{{ r.vencendo7 }}</td>
-                  <td class="col-actions">
-                    <div class="row-actions">
-                      <button class="btn-icon sm bordered" title="Ver painel contábil" aria-label="Ver painel contábil"
-                              (click)="$event.stopPropagation(); verPainelEmpresa(r.id)">
-                        <app-icon name="bar-chart" [size]="15" />
-                      </button>
-                      <a class="btn-icon sm bordered" [routerLink]="['/empresas', r.id]" title="Abrir empresa" aria-label="Abrir empresa"
-                         (click)="$event.stopPropagation()">
-                        <app-icon name="arrow-up-right" [size]="15" />
-                      </a>
-                    </div>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-  }
 
   <!-- ============ PAINEL CONTÁBIL POR EMPRESA ============ -->
   @if (painelAberto) {

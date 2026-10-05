@@ -20,6 +20,11 @@ export const routes: Routes = [
           .then(m => m.DashboardComponent)
       },
       {
+        path: 'assistente',
+        loadComponent: () => import('./components/assistente/pagina/assistente-pagina.component')
+          .then(m => m.AssistentePaginaComponent)
+      },
+      {
         path: 'empresas',
         canActivate: [adminGuard],
         loadComponent: () => import('./components/empresa/empresa-list/empresa-list.component')

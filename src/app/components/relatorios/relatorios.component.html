@@ -69,6 +69,94 @@
         }
       </div>
 
+      <!-- ======== filtros (no cliente: não refazem a consulta) ======== -->
+      <section class="rel-filtros" aria-labelledby="rel-filtros-t">
+        <div class="rel-filtros-head">
+          <h2 class="field-label" id="rel-filtros-t">
+            <app-icon name="filter" [size]="14" /> Filtros
+            @if (filtrosAtivos.length) { <span class="badge badge-primary" [attr.aria-label]="filtrosAtivos.length + ' ativos'">{{ filtrosAtivos.length }}</span> }
+          </h2>
+          @if (filtrosAtivos.length) {
+            <button type="button" class="btn btn-ghost btn-sm" (click)="limparFiltros()"><app-icon name="x" [size]="14" /> Limpar filtros</button>
+          }
+        </div>
+
+        <div class="rel-filtros-campos">
+          @if (tipo === 'mensal') {
+            <div class="field">
+              <label class="field-label" for="f-sit">Situação</label>
+              <select id="f-sit" class="select" [(ngModel)]="filtros.sit" (ngModelChange)="aplicarFiltros()">
+                <option value="">Todas</option>
+                @for (o of opcSituacao; track o.v) { <option [value]="o.v">{{ o.l }}</option> }
+              </select>
+            </div>
+          }
+
+          @if (tipo === 'carteira') {
+            <div class="field">
+              <label class="field-label" for="f-regime">Regime tributário</label>
+              <select id="f-regime" class="select" [(ngModel)]="filtros.regime" (ngModelChange)="aplicarFiltros()">
+                <option value="">Todos</option>
+                @for (o of opcRegime; track o.v) { <option [value]="o.v">{{ o.l }}</option> }
+              </select>
+            </div>
+          }
+
+          @if (tipo === 'pendencias' && isAdmin) {
+            <div class="field">
+              <label class="field-label" for="f-empresa">Empresa</label>
+              <select id="f-empresa" class="select" [(ngModel)]="filtros.empresa" (ngModelChange)="aplicarFiltros()">
+                <option [ngValue]="null">Todas</option>
+                @for (e of empresas; track e.id) { <option [ngValue]="e.id">{{ nomeEmpresa(e) }}</option> }
+              </select>
+            </div>
+          }
+
+          <div class="field">
+            <label class="field-label" for="f-resp">Responsável</label>
+            <select id="f-resp" class="select" [(ngModel)]="filtros.resp" (ngModelChange)="aplicarFiltros()">
+              <option value="">Todos</option>
+              @for (o of opcResp; track o.v) { <option [value]="o.v">{{ o.l }}</option> }
+            </select>
+          </div>
+
+          @if (tipo === 'carteira') {
+            <div class="field">
+              <label class="field-label" for="f-atencao">Situação da empresa</label>
+              <select id="f-atencao" class="select" [(ngModel)]="filtros.atencao" (ngModelChange)="aplicarFiltros()">
+                <option value="">Todas</option>
+                @for (o of opcAtencao; track o.v) { <option [value]="o.v">{{ o.l }}</option> }
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="f-ordem">Ordenar por</label>
+              <select id="f-ordem" class="select" [(ngModel)]="filtros.ordem" (ngModelChange)="aplicarFiltros()">
+                @for (o of opcOrdem; track o.v) { <option [value]="o.v">{{ o.l }}</option> }
+              </select>
+            </div>
+          }
+
+          @if (tipo === 'pendencias') {
+            <div class="field">
+              <label class="field-label" for="f-prazo">Prazo</label>
+              <select id="f-prazo" class="select" [(ngModel)]="filtros.prazo" (ngModelChange)="aplicarFiltros()">
+                <option value="">Todas</option>
+                @for (o of opcPrazo; track o.v) { <option [value]="o.v">{{ o.l }}</option> }
+              </select>
+            </div>
+          }
+        </div>
+
+        @if (tipo === 'mensal') {
+          <fieldset class="rel-secoes">
+            <legend class="field-label">Seções do relatório</legend>
+            @for (s of secoes; track s.id) {
+              <label class="check"><input type="checkbox" [(ngModel)]="filtros.secoes[s.id]"> {{ s.label }}</label>
+            }
+          </fieldset>
+        }
+      </section>
+
       <div class="footnote">
         <app-icon name="info" [size]="14" />
         <span>Para PDF, clique em <strong>Imprimir</strong> e escolha "Salvar como PDF" no destino.</span>
@@ -107,6 +195,9 @@
               }
             </div>
           </header>
+          @if (filtrosAtivos.length) {
+            <p class="sh-filtros"><strong>Filtros:</strong> {{ filtrosTexto }}</p>
+          }
 
           <!-- ======== RELATÓRIO MENSAL ======== -->
           @if (mensal; as m) {
@@ -131,7 +222,8 @@
 
             <p class="legend">Taxa no prazo = entregues no prazo ÷ obrigações já resolvidas (entregues + vencidas). Pendentes ainda no prazo não contam.</p>
 
-            <h3 class="sh-h">Obrigações da competência <small>{{ m.obrigacoes.length }}</small></h3>
+            @if (filtros.secoes.obrigacoes) {
+            <h3 class="sh-h">Obrigações da competência <small>{{ m.obrigacoes.length }}{{ m.obrigacoes.length < m.universo ? ' de ' + m.universo : '' }}</small></h3>
             @if (m.obrigacoes.length) {
               <div class="sh-scroll">
                 <table class="rt">
@@ -160,10 +252,14 @@
                   }
                 </table>
               </div>
+            } @else if (m.universo && filtrandoLinhas) {
+              <ng-container *ngTemplateOutlet="semResultado; context: { $implicit: 'Nenhuma obrigação com esses filtros' }" />
             } @else {
               <p class="sh-vazio">Nenhuma obrigação registrada para esta competência.</p>
             }
+            }
 
+            @if (filtros.secoes.arquivos) {
             <h3 class="sh-h">Documentos enviados no período <small>{{ m.arquivos.length }}</small></h3>
             @if (m.arquivos.length) {
               <div class="sh-scroll">
@@ -184,8 +280,9 @@
             } @else {
               <p class="sh-vazio">Nenhum documento enviado entre {{ movimento }}.</p>
             }
+            }
 
-            @if (m.certidoes) {
+            @if (m.certidoes && filtros.secoes.certidoes) {
               <h3 class="sh-h">Certidões <small>{{ m.certidoes.length }}</small></h3>
               @if (m.certidoes.length) {
                 <div class="sh-scroll">
@@ -209,6 +306,7 @@
               }
             }
 
+            @if (filtros.secoes.dec) {
             <h3 class="sh-h">Comunicações do DEC no período <small>{{ m.dec.length }}</small></h3>
             @if (m.dec.length) {
               <div class="sh-scroll">
@@ -233,11 +331,14 @@
             } @else {
               <p class="sh-vazio">Nenhuma comunicação do DEC disponibilizada entre {{ movimento }}.</p>
             }
+            }
 
-            <h3 class="sh-h">Observações</h3>
-            <ul class="sh-obs">
-              @for (o of observacoes; track $index) { <li>{{ o }}</li> }
-            </ul>
+            @if (filtros.secoes.obs) {
+              <h3 class="sh-h">Observações</h3>
+              <ul class="sh-obs">
+                @for (o of observacoes; track $index) { <li>{{ o }}</li> }
+              </ul>
+            }
           }
 
           <!-- ======== CARTEIRA ======== -->
@@ -252,6 +353,9 @@
               <div class="sh-kpi t-info"><span>DEC sem ciência</span><strong>{{ c.dec }}</strong></div>
             </div>
 
+            @if (!c.linhas.length && filtrandoLinhas) {
+              <ng-container *ngTemplateOutlet="semResultado; context: { $implicit: 'Nenhuma empresa com esses filtros' }" />
+            } @else {
             <h3 class="sh-h">Ranking de atenção <small>{{ c.ranking.length ? 'top ' + c.ranking.length : '' }}</small></h3>
             @if (c.ranking.length) {
               <ol class="rank">
@@ -269,7 +373,7 @@
               <p class="sh-vazio">Nenhuma empresa exige atenção nesta competência.</p>
             }
 
-            <h3 class="sh-h">Empresas da carteira <small>{{ c.linhas.length }}</small></h3>
+            <h3 class="sh-h">Empresas da carteira <small>{{ c.linhas.length }}{{ c.linhas.length < c.universo ? ' de ' + c.universo : '' }}</small></h3>
             <div class="sh-scroll">
               <table class="rt rt-num">
                 <thead><tr>
@@ -317,6 +421,7 @@
               <span><i class="s-pend"></i>Pendente</span><span><i class="s-venc"></i>Vencida</span>
             </div>
             <p class="legend">Taxa no prazo = entregues no prazo ÷ obrigações já resolvidas (entregues + vencidas). Pendentes ainda no prazo não contam.</p>
+            }
           }
 
           <!-- ======== PENDÊNCIAS ======== -->
@@ -348,11 +453,15 @@
                 </div>
               </div>
             } @empty {
+              @if (filtrandoLinhas) {
+                <ng-container *ngTemplateOutlet="semResultado; context: { $implicit: 'Nenhuma pendência com esses filtros' }" />
+              } @else {
               <div class="empty">
                 <div class="empty-icon"><app-icon name="check-circle" [size]="22" /></div>
                 <div class="empty-title">Nenhuma pendência em aberto</div>
                 <div class="empty-text">Todas as obrigações foram entregues. Bom trabalho!</div>
               </div>
+              }
             }
           }
 
@@ -373,3 +482,13 @@
     </section>
   </div>
 </div>
+
+<!-- estado vazio quando os filtros não deixam nada (o botão não sai na impressão) -->
+<ng-template #semResultado let-titulo>
+  <div class="empty compacto">
+    <div class="empty-icon"><app-icon name="filter" [size]="22" /></div>
+    <div class="empty-title">{{ titulo }}</div>
+    <div class="empty-text">Ajuste ou limpe os filtros para ver mais resultados.</div>
+    <button type="button" class="btn btn-secondary btn-sm no-print" (click)="limparFiltros()"><app-icon name="x" [size]="14" /> Limpar filtros</button>
+  </div>
+</ng-template>

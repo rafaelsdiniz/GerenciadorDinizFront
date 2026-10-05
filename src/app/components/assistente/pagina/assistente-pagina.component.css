@@ -1,0 +1,131 @@
+/* página ocupa a área de conteúdo inteira (viewport menos a topbar); só a conversa rola */
+:host {
+  display: block;
+  height: calc(100vh - var(--topbar-h));
+  height: calc(100dvh - var(--topbar-h));
+  --ap-col: 800px;
+  --ap-grad: linear-gradient(135deg, var(--navy-800) 0%, var(--primary) 100%);
+}
+.ap { position: relative; height: 100%; display: flex; flex-direction: column; background: var(--canvas); }
+.ap-coluna { width: 100%; max-width: var(--ap-col); margin: 0 auto; padding: 0 24px; }
+
+/* ---------- barra da página ---------- */
+.ap-barra {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  height: 56px; padding: 0 20px 0 24px; flex-shrink: 0; border-bottom: 1px solid var(--hairline);
+}
+.ap-id { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ap-id h1 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.01em; color: var(--ink); white-space: nowrap; }
+.ap-status {
+  display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: var(--radius-pill);
+  background: var(--canvas-sunken); color: var(--ink-mute); font-size: 12px; font-weight: 500; white-space: nowrap;
+}
+.ap-status.on { background: var(--success-bg); color: var(--success-fg); }
+.ap-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--warning); }
+.ap-status.on .ap-dot { background: var(--success); }
+.ap-nova { border: 1px solid var(--hairline-strong); flex-shrink: 0; }
+
+.ap-logo { display: grid; place-items: center; flex-shrink: 0; border-radius: 50%; background: var(--ap-grad); color: var(--accent); }
+.ap-logo.sm { width: 30px; height: 30px; box-shadow: 0 2px 6px rgba(19, 42, 130, .22); }
+.ap-logo.lg {
+  width: 64px; height: 64px; border-radius: 20px; margin-bottom: 18px;
+  box-shadow: 0 14px 30px rgba(19, 42, 130, .28), inset 0 0 0 1px rgba(255, 255, 255, .08);
+}
+.ap-logo.pulsa { animation: apPulsa 1.6s ease-in-out infinite; }
+@keyframes apPulsa { 50% { box-shadow: 0 0 0 6px rgba(61, 99, 224, .14); } }
+
+/* ---------- área rolável ---------- */
+.ap-rolagem { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scroll-padding-bottom: 24px; }
+.ap-lista { display: flex; flex-direction: column; gap: 28px; padding: 32px 0 40px; }
+
+/* ---------- boas-vindas ---------- */
+.ap-boas-vindas {
+  min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 48px 0 32px; animation: pageIn var(--t-slow) var(--ease-out);
+}
+.ap-coluna.vazia { min-height: 100%; display: flex; }
+.ap-coluna.vazia > .ap-boas-vindas { width: 100%; }
+.ap-boas-vindas h2 { margin: 0; font-size: clamp(24px, 4vw, 32px); font-weight: 600; letter-spacing: -.025em; color: var(--ink); }
+.ap-boas-vindas > p { margin: 10px 0 0; max-width: 520px; font-size: 15px; line-height: 1.6; color: var(--ink-mute); }
+
+.ap-sugestoes { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 32px; text-align: left; }
+.ap-card {
+  position: relative; display: flex; align-items: flex-start; gap: 12px; min-height: 76px; padding: 16px 40px 16px 16px;
+  border: 1px solid var(--hairline); border-radius: var(--radius-lg); background: var(--canvas); box-shadow: var(--shadow-1);
+  font: inherit; font-size: 14px; line-height: 1.45; color: var(--ink-2); text-align: left; cursor: pointer;
+  transition: border-color var(--t-fast), box-shadow var(--t-base), transform var(--t-base) var(--ease-out);
+}
+.ap-card:hover { border-color: var(--primary-200); box-shadow: var(--shadow-2); transform: translateY(-1px); }
+.ap-card:focus-visible { outline: none; border-color: var(--primary); box-shadow: var(--shadow-focus); }
+.ap-card.skeleton { border: 0; box-shadow: none; cursor: default; }
+.ap-card-ico {
+  width: 32px; height: 32px; flex-shrink: 0; border-radius: var(--radius-md); display: grid; place-items: center;
+  background: var(--primary-50); color: var(--primary);
+}
+.ap-card-txt { padding-top: 5px; font-weight: 500; }
+.ap-card-seta { position: absolute; top: 14px; right: 14px; color: var(--ink-faint); transition: color var(--t-fast); }
+.ap-card:hover .ap-card-seta { color: var(--accent-strong); }
+
+/* ---------- digitando ---------- */
+.ap-digitando { display: flex; align-items: center; gap: 14px; animation: fadeIn var(--t-base) var(--ease-out); }
+.ap-pontos { display: inline-flex; gap: 5px; }
+.ap-pontos i { width: 8px; height: 8px; border-radius: 50%; background: var(--primary-soft); animation: apPonto 1.2s infinite ease-in-out; }
+.ap-pontos i:nth-child(2) { animation-delay: .15s; }
+.ap-pontos i:nth-child(3) { animation-delay: .3s; }
+@keyframes apPonto { 0%, 80%, 100% { opacity: .3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-4px); } }
+.ap-digitando-txt { font-size: 13px; color: var(--ink-mute); }
+
+.ap-ir-fim {
+  position: absolute; left: 50%; bottom: calc(100% + 4px); transform: translateX(-50%); z-index: 2;
+  width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+  border: 1px solid var(--hairline-strong); background: var(--canvas); color: var(--ink-2); box-shadow: var(--shadow-2);
+  animation: fadeIn var(--t-base);
+}
+.ap-ir-fim:hover { color: var(--primary); }
+
+/* ---------- caixa de entrada ---------- */
+.ap-entrada { position: relative; flex-shrink: 0; padding: 8px 0 14px; background: linear-gradient(180deg, rgba(255, 255, 255, 0), var(--canvas) 18px); }
+.ap-campo {
+  display: flex; align-items: flex-end; gap: 10px; padding: 8px 8px 8px 18px;
+  border: 1px solid var(--hairline-input); border-radius: 24px; background: var(--canvas);
+  box-shadow: 0 6px 20px rgba(13, 27, 75, .07), 0 1px 3px rgba(13, 27, 75, .05);
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+.ap-campo:hover { border-color: var(--hairline-input-hover); }
+.ap-campo:focus-within { border-color: var(--primary); box-shadow: var(--shadow-focus), 0 6px 20px rgba(13, 27, 75, .07); }
+.ap-campo textarea {
+  flex: 1; min-width: 0; min-height: 40px; max-height: 156px; padding: 9px 0; border: 0; outline: 0; resize: none; overflow-y: hidden;
+  background: transparent; font: inherit; font-size: 15px; line-height: 1.5; color: var(--ink);
+}
+.ap-campo textarea::placeholder { color: var(--ink-faint); }
+.ap-enviar {
+  width: 40px; height: 40px; flex-shrink: 0; border: 0; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+  background: var(--primary); color: #fff; transition: background var(--t-fast), opacity var(--t-fast), transform var(--t-fast);
+}
+.ap-enviar:hover:not(:disabled) { background: var(--primary-hover); }
+.ap-enviar:active:not(:disabled) { transform: scale(.94); }
+.ap-enviar:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+.ap-enviar:disabled { background: var(--canvas-sunken); color: var(--ink-faint); cursor: not-allowed; }
+.ap-enviar .spinner { width: 16px; height: 16px; color: var(--ink-mute); }
+.ap-dica { display: flex; justify-content: center; gap: 12px; margin-top: 8px; font-size: 11.5px; color: var(--ink-mute); text-align: center; }
+.ap-limite { color: var(--danger-fg); font-weight: 600; }
+
+/* ---------- responsivo ---------- */
+@media (max-width: 640px) {
+  .ap-coluna { padding: 0 16px; }
+  .ap-barra { height: 52px; padding: 0 12px 0 16px; }
+  .ap-nova { padding: 0 9px; }
+  .ap-nova span, .ap-dica-tecla { display: none; }
+  .ap-sugestoes { grid-template-columns: 1fr; gap: 8px; margin-top: 24px; }
+  .ap-card { min-height: 0; padding: 12px 36px 12px 12px; }
+  .ap-boas-vindas { padding: 28px 0 20px; }
+  .ap-logo.lg { width: 54px; height: 54px; border-radius: 16px; margin-bottom: 14px; }
+  .ap-lista { gap: 22px; padding: 20px 0 28px; }
+  .ap-entrada { padding: 6px 0 10px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  .ap-campo { padding-left: 14px; border-radius: 22px; }
+  .ap-campo textarea { font-size: 16px; }
+}
+@media (max-width: 380px) {
+  .ap-status { display: none; }
+}
+@media print { .ap-entrada, .ap-ir-fim, .ap-nova { display: none; } :host { height: auto; } .ap-rolagem { overflow: visible; } }

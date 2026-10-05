@@ -1,0 +1,108 @@
+:host { display: block; }
+
+.hero {
+  position: relative; display: grid; grid-template-columns: minmax(220px, 26%) minmax(0, 1fr);
+  min-height: 210px; border-radius: var(--radius-lg); overflow: hidden; isolation: isolate;
+  color: #fff; box-shadow: var(--shadow-2);
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(201, 169, 97, .28), transparent 55%),
+    linear-gradient(120deg, var(--primary) 0%, var(--navy-800) 58%, var(--navy-900) 100%);
+}
+.hero.tom-danger {
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(225, 29, 72, .32), transparent 55%),
+    linear-gradient(120deg, var(--primary) 0%, var(--navy-800) 58%, var(--navy-900) 100%);
+}
+.hero.tom-success {
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(22, 163, 74, .32), transparent 55%),
+    linear-gradient(120deg, var(--primary) 0%, var(--navy-800) 58%, var(--navy-900) 100%);
+}
+
+/* ilustração: painel claro com borda diagonal */
+.hero-art {
+  display: flex; align-items: center; justify-content: center; padding: 20px 40px 20px 24px;
+  background: linear-gradient(160deg, #fdf8ec, var(--accent-bg));
+  clip-path: polygon(0 0, 100% 0, 84% 100%, 0 100%);
+}
+.hero-svg { width: 100%; max-width: 240px; height: auto; overflow: visible; }
+.hero-svg .ln path { stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; fill: none; }
+.hero-svg .node { fill: var(--ink); }
+.hero-svg .node-accent { fill: var(--accent-strong); }
+.hero-svg .card { fill: #fff; stroke: var(--ink); stroke-width: 3; }
+.hero-svg .card-line { stroke: var(--ink); stroke-width: 2.5; }
+.hero-svg .dot1 { fill: var(--danger); } .hero-svg .dot2 { fill: var(--warning); } .hero-svg .dot3 { fill: var(--success); }
+.hero-svg .txt { fill: var(--primary); } .hero-svg .txt.soft { fill: var(--primary-200); }
+.hero-svg .bar { fill: var(--accent-strong); transform-box: fill-box; transform-origin: bottom; animation: crescer .9s var(--ease-out) both; }
+.hero-svg .b2 { animation-delay: .12s; } .hero-svg .b3 { animation-delay: .24s; }
+.hero-svg .badge { fill: var(--accent-strong); stroke: #fff; stroke-width: 3; transition: fill var(--t-base); }
+.tom-danger .hero-svg .badge { fill: var(--danger); }
+.tom-success .hero-svg .badge { fill: var(--success); }
+.hero-svg .badge-ico { stroke: #fff; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+
+/* conteúdo */
+.hero-body {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 10px;
+  padding: 40px 48px 28px 8px; min-width: 0; animation: entrar var(--t-slow) var(--ease-out);
+}
+.hero-eyebrow { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; font-size: 12px; color: rgba(255, 255, 255, .8); }
+.hero-eyebrow strong { font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #fff; }
+.hero-selo {
+  padding: 2px 9px; border-radius: var(--radius-pill); font-size: 11px; font-weight: 600;
+  background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .24); color: #fff;
+}
+.tom-danger .hero-selo { background: rgba(225, 29, 72, .9); border-color: transparent; }
+.tom-success .hero-selo { background: rgba(22, 163, 74, .9); border-color: transparent; }
+.hero-title { margin: 0; font-size: clamp(19px, 1.6vw, 26px); font-weight: 650; line-height: 1.25; letter-spacing: -.01em; color: #fff; }
+.hero-text { margin: 0; max-width: 680px; font-size: 14.5px; line-height: 1.55; color: rgba(255, 255, 255, .84); }
+.hero-cta {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; height: 40px; padding: 0 20px;
+  border: 0; border-radius: var(--radius-pill); background: #fff; color: var(--primary);
+  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 6px 18px rgba(6, 11, 31, .25);
+  transition: transform var(--t-fast), box-shadow var(--t-fast);
+}
+.tom-danger .hero-cta { color: var(--danger-fg); }
+.hero-cta:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(6, 11, 31, .32); }
+.hero-cta:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* ferramentas (atualizar / fechar) */
+.hero-tools { position: absolute; top: 14px; right: 14px; display: flex; align-items: center; gap: 6px; }
+.hero-tool {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 0; border-radius: var(--radius-pill);
+  background: transparent; color: rgba(255, 255, 255, .86); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+}
+.hero-tool:hover:not(:disabled) { background: rgba(255, 255, 255, .12); color: #fff; }
+.hero-tool.icon { width: 30px; padding: 0; justify-content: center; }
+.girando { animation: girar 1s linear infinite; }
+
+/* navegação */
+.hero-nav { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; }
+.hero-arrow {
+  display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%;
+  border: 1.5px solid var(--hairline-strong); background: var(--canvas); color: var(--ink-2); cursor: pointer;
+}
+.hero-arrow:hover { border-color: var(--primary); color: var(--primary); }
+.hero-dot { width: 8px; height: 8px; padding: 0; border: 0; border-radius: var(--radius-pill); background: var(--hairline-strong); cursor: pointer; transition: width var(--t-base) var(--ease-out), background var(--t-base); }
+.hero-dot.on { width: 24px; background: var(--primary); }
+
+.hero-reabrir {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px;
+  border: 1px dashed var(--accent); border-radius: var(--radius-pill); background: var(--accent-bg);
+  color: var(--accent-fg); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+}
+
+@keyframes entrar { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
+@keyframes crescer { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes girar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .hero-body, .hero-svg .bar, .girando { animation: none; } }
+
+@media (max-width: 1024px) {
+  .hero-body { padding-right: 32px; padding-top: 52px; }
+}
+@media (max-width: 720px) {
+  .hero { grid-template-columns: minmax(0, 1fr); }
+  .hero-art { display: none; }
+  .hero-body { padding: 52px 20px 22px; }
+  .hero-tool span { display: none; }
+  .hero-tool { width: 30px; padding: 0; justify-content: center; }
+}

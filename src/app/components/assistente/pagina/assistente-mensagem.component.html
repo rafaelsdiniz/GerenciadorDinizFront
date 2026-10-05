@@ -1,0 +1,52 @@
+@if (m.papel === 'usuario') {
+  <div class="mu">
+    <span class="sr-only">Você:</span>
+    <div class="mu-bolha">{{ m.texto }}</div>
+  </div>
+} @else {
+  <div class="mb" [class.mb-erro]="m.erro">
+    <span class="mb-avatar" aria-hidden="true">
+      <app-icon [name]="m.erro ? 'alert-circle' : 'sparkles'" [size]="15" [stroke]="2" />
+    </span>
+    <div class="mb-corpo">
+      <span class="sr-only">Assistente:</span>
+      <div class="mb-md" [innerHTML]="m.html"></div>
+
+      @if (m.repetir) {
+        <button type="button" class="btn btn-sm btn-outline mb-retry" (click)="repetir.emit(m.repetir)" [disabled]="enviando">
+          <app-icon name="refresh" [size]="14" /> Tentar novamente
+        </button>
+      }
+
+      @if (m.acoes?.length) {
+        <div class="mb-acoes" role="group" aria-label="Atalhos sugeridos">
+          @for (a of m.acoes; track a.rotulo) {
+            <a class="mb-acao" [routerLink]="a.rota" [queryParams]="a.queryParams ?? null" (click)="irPara($event, a)">
+              {{ a.rotulo }} <app-icon name="arrow-right" [size]="14" />
+            </a>
+          }
+        </div>
+      }
+
+      @if (!m.erro) {
+        <div class="mb-rodape">
+          @if (m.fonte === 'IA') {
+            <span class="mb-selo ia" title="Resposta gerada pela IA com os dados da sua conta">
+              <app-icon name="sparkles" [size]="11" [stroke]="2.2" /> IA
+            </span>
+          } @else {
+            <span class="mb-selo" title="Resposta automática do sistema (sem IA)">
+              <app-icon name="zap" [size]="11" [stroke]="2.2" /> Modo local
+            </span>
+          }
+          @if (m.nota) { <span class="mb-nota">{{ m.nota }}</span> }
+          <button type="button" class="mb-copiar" (click)="copiar()"
+                  [attr.aria-label]="copiado ? 'Resposta copiada' : 'Copiar resposta'" [title]="copiado ? 'Copiado!' : 'Copiar resposta'">
+            <app-icon [name]="copiado ? 'check' : 'copy'" [size]="15" />
+            @if (copiado) { <span class="mb-copiado">Copiado</span> }
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+}

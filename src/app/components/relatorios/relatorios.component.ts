@@ -25,7 +25,7 @@ import { ToastService } from '../../shared/ui/toast.service';
 import { DocumentoPipe, PrazoPipe, PrazoTomPipe } from '../../pipes/formatos.pipe';
 import { decSemCiencia } from '../dec/dec.util';
 import {
-  Celula, Resumo, Situacao, Ym, baixarCsv, cnpjBr, competenciaDe, dataBr, moedaBr, resumir, situacaoDe, slug,
+  Celula, Resumo, Situacao, Ym, baixarCsv, cnpjBr, competenciaDe, dataBr, diasAte, moedaBr, resumir, situacaoDe, slug,
   valorGuiaDe, ymDaData, ymDe, ymExtenso, ymIntervalo, ymRotulo, ymSomar
 } from './relatorios.util';
 
@@ -46,6 +46,58 @@ const SITUACAO: Record<Situacao, { label: string; curto: string; tom: Tom }> = {
   pendente: { label: 'Pendente', curto: 'Pendente', tom: 'info' },
   vencida: { label: 'Vencida', curto: 'Vencida', tom: 'danger' }
 };
+
+/* ---------------- filtros (aplicados no cliente, sobre os dados já carregados) ---------------- */
+
+type Secao = 'obrigacoes' | 'arquivos' | 'certidoes' | 'dec' | 'obs';
+type Atencao = '' | 'atencao' | 'emDia';
+type Ordem = 'nome' | 'atencao' | 'taxa';
+type Prazo = '' | 'vencidas' | '7' | '30';
+
+interface Filtros {
+  sit: Situacao | '';
+  resp: ResponsavelObrigacao | '';
+  regime: RegimeTributario | '';
+  atencao: Atencao;
+  ordem: Ordem;
+  empresa: number | null;
+  prazo: Prazo;
+  secoes: Record<Secao, boolean>;
+}
+
+const filtrosPadrao = (): Filtros => ({
+  sit: '', resp: '', regime: '', atencao: '', ordem: 'nome', empresa: null, prazo: '',
+  secoes: { obrigacoes: true, arquivos: true, certidoes: true, dec: true, obs: true }
+});
+
+const SECOES: { id: Secao; label: string }[] = [
+  { id: 'obrigacoes', label: 'Obrigações' },
+  { id: 'arquivos', label: 'Documentos enviados' },
+  { id: 'certidoes', label: 'Certidões' },
+  { id: 'dec', label: 'Comunicações DEC' },
+  { id: 'obs', label: 'Observações' }
+];
+
+const OPC_SITUACAO: { v: Situacao; l: string }[] = [
+  { v: 'noPrazo', l: 'Entregue no prazo' }, { v: 'atraso', l: 'Com atraso' },
+  { v: 'pendente', l: 'Pendente' }, { v: 'vencida', l: 'Vencida' }
+];
+const OPC_RESP: { v: ResponsavelObrigacao; l: string }[] = [
+  { v: ResponsavelObrigacao.ESCRITORIO, l: 'Escritório' }, { v: ResponsavelObrigacao.CLIENTE, l: 'Cliente' }
+];
+const OPC_ATENCAO: { v: Atencao; l: string }[] = [{ v: 'atencao', l: 'Exigem atenção' }, { v: 'emDia', l: 'Em dia' }];
+const OPC_ORDEM: { v: Ordem; l: string }[] = [
+  { v: 'nome', l: 'Nome' }, { v: 'atencao', l: 'Mais atenção' }, { v: 'taxa', l: 'Menor taxa no prazo' }
+];
+const OPC_PRAZO: { v: Prazo; l: string }[] = [
+  { v: 'vencidas', l: 'Só vencidas' }, { v: '7', l: 'Vencem em até 7 dias' }, { v: '30', l: 'Vencem em até 30 dias' }
+];
+
+/** Dados brutos da última geração: os filtros remontam o relatório a partir daqui, sem nova requisição. */
+type Bruto =
+  | { tipo: 'mensal'; id: number; obrig: ObrigacaoPendenteResponseDTO[]; arq: ArquivoResponseDTO[]; dec: ComunicacaoDecDTO[]; cert: unknown }
+  | { tipo: 'carteira'; obrig: ObrigacaoPendenteResponseDTO[]; dec: ComunicacaoDecDTO[] }
+  | { tipo: 'pendencias'; obrig: ObrigacaoPendenteResponseDTO[] };
 
 interface LinhaObrig {
   o: ObrigacaoPendenteResponseDTO;
@@ -69,6 +121,8 @@ interface RelMensal {
   regime: string;
   resumo: Resumo;
   obrigacoes: LinhaObrig[];
+  /** obrigações da competência antes dos filtros */
+  universo: number;
   temValor: boolean;
   totalValor: number;
   arquivos: ArquivoResponseDTO[];
@@ -80,6 +134,8 @@ interface LinhaCarteira { empresa: EmpresaResponseDTO; r: Resumo; dec: number; s
 
 interface RelCarteira {
   linhas: LinhaCarteira[];
+  /** empresas antes dos filtros */
+  universo: number;
   total: Resumo;
   dec: number;
   empresasComVencidas: number;
@@ -132,6 +188,16 @@ export class RelatoriosComponent implements OnInit, OnDestroy {
   readonly statusDecLabel = StatusDecLabel;
   readonly skeleton = [1, 2, 3, 4, 5, 6];
   private seq = 0;
+
+  filtros: Filtros = filtrosPadrao();
+  private bruto: Bruto | null = null;
+  readonly secoes = SECOES;
+  readonly opcSituacao = OPC_SITUACAO;
+  readonly opcResp = OPC_RESP;
+  readonly opcRegime = (Object.keys(RegimeTributarioLabel) as RegimeTributario[]).map(v => ({ v, l: RegimeTributarioLabel[v] }));
+  readonly opcAtencao = OPC_ATENCAO;
+  readonly opcOrdem = OPC_ORDEM;
+  readonly opcPrazo = OPC_PRAZO;
 
   ngOnInit(): void {
     this.doc.body.classList.add('rel-print');
@@ -196,7 +262,73 @@ export class RelatoriosComponent implements OnInit, OnDestroy {
   escolherTipo(t: Tipo): void {
     if (this.tipo === t) return;
     this.tipo = t;
+    // mantém só os filtros que valem para o novo tipo (o responsável vale para todos)
+    const p = filtrosPadrao();
+    const f = this.filtros;
+    this.filtros = {
+      ...p,
+      resp: f.resp,
+      ...(t === 'mensal' ? { sit: f.sit, secoes: f.secoes } : {}),
+      ...(t === 'carteira' ? { regime: f.regime, atencao: f.atencao, ordem: f.ordem } : {}),
+      ...(t === 'pendencias' ? { empresa: f.empresa, prazo: f.prazo } : {})
+    };
     this.gerar();
+  }
+
+  // ---------------- filtros ----------------
+
+  /** Filtros ativos do tipo atual, em texto (painel, folha impressa e CSV). */
+  get filtrosAtivos(): { rotulo: string; valor: string }[] {
+    const f = this.filtros;
+    const a: { rotulo: string; valor: string }[] = [];
+    const add = (rotulo: string, valor: string | undefined) => { if (valor) a.push({ rotulo, valor }); };
+    if (this.tipo === 'mensal') add('Situação', OPC_SITUACAO.find(o => o.v === f.sit)?.l);
+    if (this.tipo === 'carteira') add('Regime', f.regime ? RegimeTributarioLabel[f.regime] : '');
+    if (this.tipo === 'pendencias' && this.isAdmin && f.empresa != null) {
+      add('Empresa', this.nomeEmpresa(this.empresas.find(e => e.id === f.empresa)));
+    }
+    add('Responsável', OPC_RESP.find(o => o.v === f.resp)?.l);
+    if (this.tipo === 'carteira') add('Situação', OPC_ATENCAO.find(o => o.v === f.atencao)?.l);
+    if (this.tipo === 'pendencias') add('Prazo', OPC_PRAZO.find(o => o.v === f.prazo)?.l);
+    if (this.tipo === 'mensal') add('Seções ocultas', SECOES.filter(s => !f.secoes[s.id]).map(s => s.label).join(', '));
+    return a;
+  }
+
+  get filtrosTexto(): string {
+    return this.filtrosAtivos.map(x => `${x.rotulo}: ${x.valor}`).join(' · ');
+  }
+
+  /** Há filtro que reduz a lista de obrigações (mensal) / empresas (carteira) / pendências? */
+  get filtrandoLinhas(): boolean {
+    return this.filtrosAtivos.some(x => x.rotulo !== 'Seções ocultas');
+  }
+
+  limparFiltros(): void {
+    this.filtros = filtrosPadrao();
+    this.aplicarFiltros();
+  }
+
+  /** Remonta o relatório a partir dos dados já carregados, aplicando os filtros (sem nova requisição). */
+  aplicarFiltros(): void {
+    this.mensal = this.carteira = this.pendencias = null;
+    const b = this.bruto;
+    if (b?.tipo === 'mensal') this.montarMensal(b.id, b.obrig, b.arq, b.dec, b.cert);
+    else if (b?.tipo === 'carteira') this.montarCarteira(b.obrig, b.dec);
+    else if (b?.tipo === 'pendencias') this.montarPendencias(b.obrig);
+  }
+
+  private passaResp(o: ObrigacaoPendenteResponseDTO): boolean {
+    const r = this.filtros.resp;
+    return !r || (o.responsavel === ResponsavelObrigacao.CLIENTE ? ResponsavelObrigacao.CLIENTE : ResponsavelObrigacao.ESCRITORIO) === r;
+  }
+
+  private passaPrazo(o: ObrigacaoPendenteResponseDTO): boolean {
+    const p = this.filtros.prazo;
+    if (!p) return true;
+    const sit = situacaoDe(o);
+    if (p === 'vencidas') return sit === 'vencida';
+    const dias = diasAte(o.dataVencimento);
+    return sit === 'pendente' && dias != null && dias <= +p;
   }
 
   mudarCompetencia(delta: number): void {
@@ -225,8 +357,8 @@ export class RelatoriosComponent implements OnInit, OnDestroy {
     const fim = <T>(fn: (dados: T) => void) => ({
       next: (dados: T) => {
         if (n !== this.seq) return;
-        this.mensal = this.carteira = this.pendencias = null;
         fn(dados);
+        this.aplicarFiltros();
         this.geradoEm = new Date();
         this.carregando = false;
       },
@@ -240,25 +372,25 @@ export class RelatoriosComponent implements OnInit, OnDestroy {
 
     if (this.tipo === 'mensal') {
       const id = this.idEmpresa;
-      if (id == null) { this.carregando = false; this.mensal = null; return; }
+      if (id == null) { this.carregando = false; this.mensal = null; this.bruto = null; return; }
       forkJoin({
         obrig: this.obrigacaoService.buscarPorEmpresa(id),
         arq: this.arquivoService.buscarPorEmpresa(id).pipe(catchError(() => of([] as ArquivoResponseDTO[]))),
         dec: this.decService.porEmpresa(id).pipe(catchError(() => of([] as ComunicacaoDecDTO[]))),
         cert: this.http.get<unknown>(`${environment.apiUrl}/certidoes/empresa/${id}`).pipe(catchError(() => of(null)))
       }).subscribe(fim<{ obrig: ObrigacaoPendenteResponseDTO[]; arq: ArquivoResponseDTO[]; dec: ComunicacaoDecDTO[]; cert: unknown }>(
-        d => this.montarMensal(id, d.obrig, d.arq, d.dec, d.cert)
+        d => (this.bruto = { tipo: 'mensal', id, ...d })
       ));
     } else if (this.tipo === 'carteira') {
       forkJoin({
         obrig: this.obrigacaoService.listar(),
         dec: this.decService.listar().pipe(catchError(() => of([] as ComunicacaoDecDTO[])))
-      }).subscribe(fim<{ obrig: ObrigacaoPendenteResponseDTO[]; dec: ComunicacaoDecDTO[] }>(d => this.montarCarteira(d.obrig, d.dec)));
+      }).subscribe(fim<{ obrig: ObrigacaoPendenteResponseDTO[]; dec: ComunicacaoDecDTO[] }>(d => (this.bruto = { tipo: 'carteira', ...d })));
     } else {
       const obrig$ = this.isAdmin
         ? this.obrigacaoService.listar()
         : this.obrigacaoService.buscarPorEmpresa(this.auth.getEmpresaId() ?? 0);
-      obrig$.subscribe(fim<ObrigacaoPendenteResponseDTO[]>(d => this.montarPendencias(d)));
+      obrig$.subscribe(fim<ObrigacaoPendenteResponseDTO[]>(obrig => (this.bruto = { tipo: 'pendencias', obrig })));
     }
   }
 
@@ -296,7 +428,9 @@ export class RelatoriosComponent implements OnInit, OnDestroy {
     const empresa = this.empresas.find(e => e.id === id);
     if (!empresa) return;
     const mesMovimento = ymSomar(this.competencia, 1);
-    const daComp = this.daCompetencia(obrig);
+    const todas = this.daCompetencia(obrig);
+    const sit = this.filtros.sit;
+    const daComp = todas.filter(o => (!sit || situacaoDe(o) === sit) && this.passaResp(o));
     const linhas = daComp.map(o => this.linha(o));
     const valores = linhas.map(l => l.valor).filter((v): v is number => v != null);
     this.mensal = {
@@ -304,6 +438,7 @@ export class RelatoriosComponent implements OnInit, OnDestroy {
       regime: empresa.regimeTributario ? RegimeTributarioLabel[empresa.regimeTributario as RegimeTributario] ?? empresa.regimeTributario : 'Não informado',
       resumo: resumir(daComp),
       obrigacoes: linhas,
+      universo: todas.length,
       temValor: valores.length > 0,
       totalValor: valores.reduce((s, v) => s + v, 0),
       arquivos: arq.filter(a => !a.excluidoEm && ymDaData(a.dataCriacao) === mesMovimento)
@@ -349,8 +484,10 @@ export class RelatoriosComponent implements OnInit, OnDestroy {
   }
 
   private montarCarteira(obrig: ObrigacaoPendenteResponseDTO[], dec: ComunicacaoDecDTO[]): void {
-    const daComp = this.daCompetencia(obrig);
-    const linhas: LinhaCarteira[] = this.empresas.map(empresa => {
+    const f = this.filtros;
+    const daComp = this.daCompetencia(obrig).filter(o => this.passaResp(o));
+    const empresas = this.empresas.filter(e => !f.regime || e.regimeTributario === f.regime);
+    let linhas: LinhaCarteira[] = empresas.map(empresa => {
       const r = resumir(daComp.filter(o => o.idEmpresa === empresa.id));
       const nDec = dec.filter(c => c.idEmpresa === empresa.id && decSemCiencia(c)).length;
       const score = r.vencidas * 3 + nDec * 2 + r.guiasAPagar * 2 + r.pendentes + r.atraso;
@@ -363,10 +500,16 @@ export class RelatoriosComponent implements OnInit, OnDestroy {
       ].filter(Boolean).join(' · ');
       return { empresa, r, dec: nDec, score, motivo };
     });
-    const total = resumir(daComp.filter(o => this.empresas.some(e => e.id === o.idEmpresa)));
+    if (f.atencao) linhas = linhas.filter(l => (l.score > 0) === (f.atencao === 'atencao'));
+    // this.empresas já vem em ordem alfabética; o sort é estável, então empates ficam por nome
+    if (f.ordem === 'atencao') linhas.sort((a, b) => b.score - a.score);
+    else if (f.ordem === 'taxa') linhas.sort((a, b) => (a.r.taxa ?? 101) - (b.r.taxa ?? 101));
+    const ids = new Set(linhas.map(l => l.empresa.id));
+    const total = resumir(daComp.filter(o => ids.has(o.idEmpresa)));
     const ranking = linhas.filter(l => l.score > 0).sort((a, b) => b.score - a.score).slice(0, 5);
     this.carteira = {
       linhas,
+      universo: this.empresas.length,
       total,
       dec: linhas.reduce((s, l) => s + l.dec, 0),
       empresasComVencidas: linhas.filter(l => l.r.vencidas > 0).length,
@@ -376,7 +519,9 @@ export class RelatoriosComponent implements OnInit, OnDestroy {
   }
 
   private montarPendencias(obrig: ObrigacaoPendenteResponseDTO[]): void {
-    const abertas = obrig.filter(o => o.status !== 'ENTREGUE')
+    const emp = this.isAdmin ? this.filtros.empresa : null;
+    const abertas = obrig.filter(o => o.status !== 'ENTREGUE' && (emp == null || o.idEmpresa === emp)
+        && this.passaResp(o) && this.passaPrazo(o))
       .sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento))
       .map(o => this.linha(o));
     const grupos = new Map<number, GrupoPend>();
@@ -418,8 +563,10 @@ export class RelatoriosComponent implements OnInit, OnDestroy {
     const r = m.resumo;
     const obs: string[] = [];
     const s = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
-    if (!r.total) obs.push(`Nenhuma obrigação registrada para a competência ${this.competenciaRotulo}.`);
-    else if (!r.vencidas && !r.atraso && !r.pendentes) obs.push('Todas as obrigações da competência foram entregues no prazo.');
+    const filtrado = r.total < m.universo || (!r.total && this.filtrandoLinhas);
+    if (filtrado) obs.push(`Leitura considerando apenas as obrigações filtradas (${r.total} de ${m.universo}).`);
+    if (!r.total) { if (!filtrado) obs.push(`Nenhuma obrigação registrada para a competência ${this.competenciaRotulo}.`); }
+    else if (!r.vencidas && !r.atraso && !r.pendentes) obs.push(`Todas as obrigações ${filtrado ? 'listadas' : 'da competência'} foram entregues no prazo.`);
     if (r.vencidas) obs.push(`${s(r.vencidas, 'obrigação vencida exige', 'obrigações vencidas exigem')} atenção imediata.`);
     if (r.pendentes) obs.push(`${s(r.pendentes, 'obrigação ainda está', 'obrigações ainda estão')} dentro do prazo, aguardando entrega.`);
     if (r.atraso) obs.push(`${s(r.atraso, 'entrega ocorreu', 'entregas ocorreram')} após o vencimento.`);
@@ -456,18 +603,33 @@ export class RelatoriosComponent implements OnInit, OnDestroy {
       const m = this.mensal;
       L.push(['Relatório mensal da empresa'], ['Empresa', m.empresa.razaoSocial], ['CNPJ', cnpjBr(m.empresa.cnpj)],
         ['Competência', this.competenciaRotulo], []);
-      L.push(['Obrigações', 'Responsável', 'Vencimento', 'Entrega', 'Status', 'Pagamento', ...(m.temValor ? ['Valor da guia (R$)'] : [])]);
-      m.obrigacoes.forEach(l => L.push([l.nome, l.responsavel, dataBr(l.o.dataVencimento), dataBr(l.o.dataEntrega),
-        SITUACAO[l.sit].label, l.pagamento, ...(m.temValor ? [l.valor] : [])]));
-      L.push([], ['Documentos enviados', 'Categoria', 'Enviado por', 'Data']);
-      m.arquivos.forEach(a => L.push([a.nomeOriginal || a.nome, this.categoria(a), a.nomeUsuario || '—', dataBr(a.dataCriacao)]));
-      if (m.certidoes) {
-        L.push([], ['Certidões', 'Órgão', 'Situação', 'Emissão', 'Validade']);
-        m.certidoes.forEach(c => L.push([c.nome, c.orgao, c.situacao, c.emissao, c.validade]));
+      const sec = this.filtros.secoes;
+      if (sec.obrigacoes) {
+        L.push(['Obrigações', 'Responsável', 'Vencimento', 'Entrega', 'Status', 'Pagamento', ...(m.temValor ? ['Valor da guia (R$)'] : [])]);
+        m.obrigacoes.forEach(l => L.push([l.nome, l.responsavel, dataBr(l.o.dataVencimento), dataBr(l.o.dataEntrega),
+          SITUACAO[l.sit].label, l.pagamento, ...(m.temValor ? [l.valor] : [])]));
+        if (m.temValor) L.push(['Total das guias', '', '', '', '', '', m.totalValor]);
+        L.push([]);
       }
-      L.push([], ['Comunicações DEC', 'Tipo', 'Disponibilizada em', 'Ciência', 'Status']);
-      m.dec.forEach(c => L.push([c.assunto, this.tipoDecLabel[c.tipo] ?? c.tipo, dataBr(c.disponibilizadaEm),
-        c.cienteEm ? dataBr(c.cienteEm) : 'Sem ciência', this.statusDecLabel[c.status] ?? c.status]));
+      if (sec.arquivos) {
+        L.push(['Documentos enviados', 'Categoria', 'Enviado por', 'Data']);
+        m.arquivos.forEach(a => L.push([a.nomeOriginal || a.nome, this.categoria(a), a.nomeUsuario || '—', dataBr(a.dataCriacao)]));
+        L.push([]);
+      }
+      if (m.certidoes && sec.certidoes) {
+        L.push(['Certidões', 'Órgão', 'Situação', 'Emissão', 'Validade']);
+        m.certidoes.forEach(c => L.push([c.nome, c.orgao, c.situacao, c.emissao, c.validade]));
+        L.push([]);
+      }
+      if (sec.dec) {
+        L.push(['Comunicações DEC', 'Tipo', 'Disponibilizada em', 'Ciência', 'Status']);
+        m.dec.forEach(c => L.push([c.assunto, this.tipoDecLabel[c.tipo] ?? c.tipo, dataBr(c.disponibilizadaEm),
+          c.cienteEm ? dataBr(c.cienteEm) : 'Sem ciência', this.statusDecLabel[c.status] ?? c.status]));
+      }
+      if (sec.obs) {
+        L.push([], ['Observações']);
+        this.observacoes.forEach(o => L.push([o]));
+      }
     } else if (this.carteira) {
       L.push(['Relatório da carteira'], ['Competência', this.competenciaRotulo], []);
       L.push(['Empresa', 'CNPJ', 'Obrigações', 'Entregues', 'Pendentes', 'Vencidas', 'Taxa no prazo (%)', 'Guias aguardando pagamento', 'DEC sem ciência']);
@@ -481,6 +643,7 @@ export class RelatoriosComponent implements OnInit, OnDestroy {
       this.pendencias.grupos.forEach(g => g.itens.forEach(l =>
         L.push([g.nome, l.nome, l.competencia, l.responsavel, dataBr(l.o.dataVencimento), SITUACAO[l.sit].label])));
     } else return;
+    if (this.filtrosAtivos.length) L.splice(1, 0, ['Filtros', this.filtrosTexto]);
     L.push([], rodape);
     baixarCsv(`${this.nomeArquivo()}.csv`, L);
     this.toast.success('CSV exportado', 'Abra no Excel ou Planilhas Google.');

@@ -1,0 +1,83 @@
+<section class="ap" aria-labelledby="ap-titulo">
+  <header class="ap-barra">
+    <div class="ap-id">
+      <span class="ap-logo sm" aria-hidden="true"><app-icon name="sparkles" [size]="15" [stroke]="2" /></span>
+      <h1 id="ap-titulo">Assistente Diniz</h1>
+      <span class="ap-status" [class.on]="conversa.ia()"
+            [title]="conversa.ia() ? 'IA conectada: responde com os dados da sua conta' : 'IA indisponível: respostas automáticas do sistema'">
+        <span class="ap-dot"></span>{{ conversa.ia() ? 'IA conectada' : 'Modo local' }}
+      </span>
+    </div>
+    <button type="button" class="btn btn-sm btn-ghost ap-nova" (click)="novaConversa()"
+            [disabled]="!mensagens.length && !enviando" title="Começar uma nova conversa">
+      <app-icon name="plus" [size]="16" /> <span>Nova conversa</span>
+    </button>
+  </header>
+
+  <div #rolagem class="ap-rolagem" (scroll)="aoRolar()">
+    <div class="ap-coluna" [class.vazia]="!mensagens.length && !enviando">
+      @if (!mensagens.length && !enviando) {
+        <div class="ap-boas-vindas">
+          <span class="ap-logo lg" aria-hidden="true"><app-icon name="sparkles" [size]="30" [stroke]="1.9" /></span>
+          <h2>{{ saudacao }}{{ conversa.nome() ? ', ' + conversa.nome() : '' }}!</h2>
+          <p>Como posso ajudar hoje? Pergunte sobre prazos, guias, documentos, comunicações da SEFAZ
+             ou como usar o portal. Respondo com os dados da sua conta.</p>
+
+          <div class="ap-sugestoes" role="group" aria-label="Sugestões de perguntas">
+            @if (conversa.carregandoStatus() && !conversa.status()) {
+              @for (i of [1, 2, 3, 4]; track i) { <span class="ap-card skeleton" aria-hidden="true"></span> }
+            } @else {
+              @for (s of conversa.sugestoes(); track s; let i = $index) {
+                <button type="button" class="ap-card" (click)="usarSugestao(s)">
+                  <span class="ap-card-ico"><app-icon [name]="icones[i % icones.length]" [size]="17" /></span>
+                  <span class="ap-card-txt">{{ s }}</span>
+                  <app-icon name="arrow-up-right" [size]="15" class="ap-card-seta" />
+                </button>
+              }
+            }
+          </div>
+        </div>
+      } @else {
+        <div class="ap-lista" role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversa com o assistente">
+          @for (m of mensagens; track m.id) {
+            <app-assistente-mensagem [m]="m" [enviando]="enviando" (repetir)="repetir($event)" />
+          }
+          @if (enviando) {
+            <div class="ap-digitando" role="status">
+              <span class="ap-logo sm pulsa" aria-hidden="true"><app-icon name="sparkles" [size]="15" [stroke]="2" /></span>
+              <span class="ap-pontos" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="ap-digitando-txt">Digitando…</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <footer class="ap-entrada">
+    @if (longeDoFim) {
+      <button type="button" class="ap-ir-fim" (click)="irParaFim(true)" aria-label="Ir para a última mensagem">
+        <app-icon name="arrow-down" [size]="18" />
+      </button>
+    }
+    <form class="ap-coluna" (ngSubmit)="enviar()">
+      <div class="ap-campo">
+        <label for="ap-texto" class="sr-only">Sua pergunta</label>
+        <textarea #campo id="ap-texto" name="pergunta" rows="1" [maxlength]="max" [(ngModel)]="texto"
+                  (keydown)="aoTeclar($event)" (input)="ajustarAltura()" enterkeyhint="send"
+                  placeholder="Pergunte algo ao assistente…" autocomplete="off"></textarea>
+        <button type="submit" class="ap-enviar" [disabled]="!podeEnviar"
+                [attr.aria-label]="enviando ? 'Aguardando resposta' : 'Enviar pergunta'">
+          @if (enviando) { <span class="spinner" aria-hidden="true"></span> }
+          @else { <app-icon name="send" [size]="18" [stroke]="2" /> }
+        </button>
+      </div>
+      <div class="ap-dica">
+        <span><span class="ap-dica-tecla">Enter envia · Shift+Enter quebra linha · </span>A IA pode errar: confira os dados importantes.</span>
+        @if (texto.length > max - 200) {
+          <span class="tnum" [class.ap-limite]="texto.length > max - 50">{{ texto.length }}/{{ max }}</span>
+        }
+      </div>
+    </form>
+  </footer>
+</section>

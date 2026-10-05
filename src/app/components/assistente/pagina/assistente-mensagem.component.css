@@ -1,0 +1,70 @@
+:host { display: block; animation: slideUp var(--t-base) var(--ease-out); }
+
+/* ---------- usuário: bolha à direita ---------- */
+.mu { display: flex; justify-content: flex-end; }
+.mu-bolha {
+  max-width: min(85%, 600px); padding: 11px 16px; border-radius: 20px 20px 6px 20px;
+  background: var(--primary-50); color: var(--ink); border: 1px solid var(--primary-100);
+  font-size: 15px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+
+/* ---------- assistente: texto corrido com avatar ---------- */
+.mb { display: flex; gap: 14px; align-items: flex-start; }
+.mb-avatar {
+  width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; margin-top: 1px;
+  background: linear-gradient(135deg, var(--navy-800), var(--primary)); color: var(--accent);
+  box-shadow: 0 2px 6px rgba(19, 42, 130, .22);
+}
+.mb-corpo { flex: 1; min-width: 0; }
+.mb-md { font-size: 15px; line-height: 1.7; color: var(--ink); overflow-wrap: anywhere; }
+.mb-md ::ng-deep :is(p, ul, ol) { margin: 0; }
+.mb-md ::ng-deep :is(p, ul, ol) + :is(p, ul, ol) { margin-top: 12px; }
+.mb-md ::ng-deep :is(ul, ol) { padding-left: 22px; }
+.mb-md ::ng-deep li + li { margin-top: 5px; }
+.mb-md ::ng-deep li::marker { color: var(--primary-soft); }
+.mb-md ::ng-deep strong { font-weight: 600; color: var(--ink); }
+
+.mb-erro .mb-avatar { background: var(--danger-bg); color: var(--danger-fg); box-shadow: none; }
+.mb-erro .mb-corpo {
+  padding: 10px 14px; border-radius: var(--radius-lg); background: var(--danger-bg);
+  border: 1px solid var(--danger-200); color: var(--danger-fg);
+}
+.mb-erro .mb-md { color: var(--danger-fg); font-size: 14.5px; line-height: 1.55; }
+.mb-retry { margin-top: 10px; }
+
+/* ---------- ações sugeridas ---------- */
+.mb-acoes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.mb-acao {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px 7px 14px; border-radius: var(--radius-pill);
+  background: var(--canvas); color: var(--primary); font-size: 13.5px; font-weight: 500; text-decoration: none;
+  border: 1px solid var(--primary-100); box-shadow: var(--shadow-1);
+  transition: background var(--t-fast), border-color var(--t-fast), transform var(--t-fast);
+}
+.mb-acao:hover { background: var(--primary-50); border-color: var(--primary-200); }
+.mb-acao:hover app-icon { transform: translateX(2px); }
+.mb-acao app-icon { transition: transform var(--t-fast); }
+.mb-acao:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+
+/* ---------- rodapé: selo + copiar ---------- */
+.mb-rodape { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 10px; min-height: 30px; }
+.mb-selo {
+  display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: var(--radius-pill);
+  font-size: 11px; font-weight: 600; letter-spacing: .02em; background: var(--neutral-bg); color: var(--neutral-fg);
+}
+.mb-selo.ia { background: var(--accent-bg); color: var(--accent-fg); border: 1px solid var(--accent-200); }
+.mb-nota { font-size: 12px; color: var(--ink-mute); }
+.mb-copiar {
+  display: inline-flex; align-items: center; gap: 5px; height: 30px; min-width: 30px; padding: 0 7px; margin-left: -2px;
+  border: 0; border-radius: var(--radius-md); background: none; color: var(--ink-mute); cursor: pointer; font: inherit; font-size: 12px;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.mb-copiar:hover { background: var(--canvas-sunken); color: var(--ink); }
+.mb-copiar:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+.mb-copiado { color: var(--success-fg); font-weight: 500; }
+
+@media (max-width: 640px) {
+  .mb { gap: 10px; }
+  .mb-avatar { width: 26px; height: 26px; }
+  .mu-bolha { max-width: 88%; }
+  .mb-md, .mu-bolha { font-size: 15px; }
+}

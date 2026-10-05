@@ -58,6 +58,15 @@ function hojeIso(): string {
   return `${ymDe(d)}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/** Dias corridos de hoje até a data ISO (negativo se já passou); null se a data for inválida. */
+export function diasAte(iso: string | null | undefined): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso ?? '');
+  if (!m) return null;
+  const h = new Date();
+  const hoje = Date.UTC(h.getFullYear(), h.getMonth(), h.getDate());
+  return Math.round((Date.UTC(+m[1], +m[2] - 1, +m[3]) - hoje) / 86400000);
+}
+
 /** Situação efetiva: um PENDENTE com vencimento passado conta como vencida. */
 export type Situacao = 'noPrazo' | 'atraso' | 'pendente' | 'vencida';
 
