@@ -1,0 +1,149 @@
+<div class="drawer-backdrop" (click)="fechar.emit()"></div>
+<aside class="drawer drawer-dec" role="dialog" aria-modal="true" aria-labelledby="dec-det-titulo">
+  <div class="modal-header">
+    <div class="det-head">
+      <span class="icon-tile" [ngClass]="tomUrgencia"><app-icon name="mail" [size]="18" /></span>
+      <div class="min0">
+        <span class="eyebrow">Detalhes da comunicação</span>
+        <h2 class="modal-title" id="dec-det-titulo">{{ c.assunto || 'Comunicação sem assunto' }}</h2>
+        <p class="modal-subtitle truncate">{{ c.nomeEmpresa || c.razaoSocial || (c.cnpj | documento) }}</p>
+      </div>
+    </div>
+    <button type="button" class="btn-icon sm" (click)="fechar.emit()" aria-label="Fechar" title="Fechar (Esc)">
+      <app-icon name="x" [size]="18" />
+    </button>
+  </div>
+
+  <div class="modal-body stack-lg">
+    <div class="det-badges">
+      <span class="badge badge-outline">{{ tipoLabel[c.tipo] || c.tipo }}</span>
+      <span class="badge badge-dot" [ngClass]="'badge-' + tomUrgencia">Urgência {{ (urgenciaLabel[c.urgencia] || c.urgencia).toLowerCase() }}</span>
+      <span class="badge" [ngClass]="'badge-' + tomStatus" title="Status de acompanhamento no DEC">{{ statusLabel[c.status] || c.status }}</span>
+      @if (c.cienteEm) { <span class="badge badge-success"><app-icon name="eye" [size]="12" /> Ciente</span> }
+      @else if (!c.encerrada) { <span class="badge badge-neutral"><app-icon name="eye-off" [size]="12" /> Sem ciência</span> }
+    </div>
+
+    @if (c.motivo) {
+      <div [ngClass]="classeAlerta" role="note">
+        <app-icon [name]="iconeUrgencia" [size]="16" />
+        <div>
+          <div class="alert-title">Por que esta urgência</div>
+          {{ c.motivo }}
+        </div>
+      </div>
+    }
+
+    <dl class="dl det-dl">
+      <div class="span-2">
+        <dt>Empresa</dt>
+        <dd>
+          {{ c.nomeEmpresa || c.razaoSocial || '—' }}
+          @if (c.idEmpresa == null) { <span class="tag tag-novo">não cadastrada no Gerenciador</span> }
+          @if (c.nomeEmpresa && c.razaoSocial && c.razaoSocial !== c.nomeEmpresa) { <span class="cell-sub">{{ c.razaoSocial }}</span> }
+        </dd>
+      </div>
+      <div><dt>CNPJ</dt><dd class="tnum">{{ c.cnpj | documento }}</dd></div>
+      <div><dt>Protocolo nº</dt><dd class="tnum">{{ c.numero || '—' }}</dd></div>
+      @if (c.remetente) { <div class="span-2"><dt>Remetente</dt><dd>{{ c.remetente }}</dd></div> }
+    </dl>
+
+    <section>
+      <div class="section-label"><h2>Prazos</h2></div>
+      <ol class="timeline det-tl">
+        <li class="tl-item">
+          <span class="tl-icon tone-primary"><app-icon name="inbox" [size]="14" /></span>
+          <div class="tl-body">
+            <div class="tl-text"><strong>Disponibilizada no DEC</strong></div>
+            <div class="tl-detail">Data em que a SEFAZ publicou a comunicação</div>
+          </div>
+          <span class="tl-time tnum">{{ c.disponibilizadaEm | date:'dd/MM/yyyy' }}</span>
+        </li>
+
+        <li class="tl-item">
+          @if (c.cienteEm) {
+            <span class="tl-icon tone-success"><app-icon name="check" [size]="14" /></span>
+            <div class="tl-body">
+              <div class="tl-text"><strong>Ciência registrada</strong></div>
+              <div class="tl-detail">A empresa tomou ciência formal no DEC</div>
+            </div>
+            <span class="tl-time tnum">{{ c.cienteEm | date:'dd/MM/yyyy' }}</span>
+          } @else if (c.cienciaTacitaEm) {
+            <span class="tl-icon" [ngClass]="'tone-' + tomTacita"><app-icon name="clock" [size]="14" /></span>
+            <div class="tl-body">
+              <div class="tl-text">
+                <strong>{{ (diasTacita ?? 0) < 0 ? 'Ciência tácita ocorrida' : 'Ciência tácita prevista' }}</strong>
+                <span class="badge tl-badge" [ngClass]="'badge-' + tomTacita">{{ relTacita }}</span>
+              </div>
+              <div class="tl-detail">
+                {{ (diasTacita ?? 0) < 0 ? 'Ninguém abriu a comunicação; a ciência passou a valer automaticamente.' : 'Se ninguém abrir no DEC até esta data, a ciência passa a valer automaticamente.' }}
+              </div>
+            </div>
+            <span class="tl-time tnum">{{ c.cienciaTacitaEm | date:'dd/MM/yyyy' }}</span>
+          } @else {
+            <span class="tl-icon"><app-icon name="eye-off" [size]="14" /></span>
+            <div class="tl-body">
+              <div class="tl-text"><strong>Aguardando ciência</strong></div>
+              <div class="tl-detail">Nenhuma ciência registrada no DEC</div>
+            </div>
+          }
+        </li>
+
+        @if (c.prazoRespostaEm || c.diasParaResposta) {
+          <li class="tl-item">
+            <span class="tl-icon" [ngClass]="c.prazoRespostaEm && !c.encerrada ? 'tone-' + (c.prazoRespostaEm | prazoTom) : ''">
+              <app-icon name="calendar-clock" [size]="14" />
+            </span>
+            <div class="tl-body">
+              <div class="tl-text">
+                <strong>Prazo de resposta</strong>
+                @if (c.prazoRespostaEm && !c.encerrada) {
+                  <span class="badge tl-badge" [ngClass]="'badge-' + (c.prazoRespostaEm | prazoTom)">{{ c.prazoRespostaEm | prazo }}</span>
+                }
+              </div>
+              <div class="tl-detail">
+                @if (c.diasParaResposta) { {{ c.diasParaResposta }} dias após a ciência }
+                @else { Data limite para responder à SEFAZ }
+              </div>
+            </div>
+            <span class="tl-time tnum">{{ c.prazoRespostaEm ? (c.prazoRespostaEm | date:'dd/MM/yyyy') : 'Após a ciência' }}</span>
+          </li>
+        }
+      </ol>
+    </section>
+
+    <section>
+      <div class="section-label"><h2>Conteúdo</h2></div>
+      @if (c.corpo) {
+        <div class="det-corpo" tabindex="0" aria-label="Conteúdo da comunicação">{{ c.corpo }}</div>
+      } @else {
+        <div class="det-vazio">
+          <app-icon name="file-text" [size]="18" />
+          <span>Conteúdo completo disponível no DEC</span>
+        </div>
+      }
+      @if (c.temInteiroTeor) {
+        <p class="footnote"><app-icon name="paperclip" [size]="14" /> Inteiro teor (PDF) disponível no DEC</p>
+      }
+    </section>
+
+    <p class="footnote det-ro">
+      <app-icon name="lock" [size]="14" />
+      <span>Somente leitura — atualizações acontecem no DEC Monitor@if (c.sincronizadaEm) { · sincronizada em <span class="tnum">{{ c.sincronizadaEm | date:'dd/MM/yyyy HH:mm' }}</span> }</span>
+    </p>
+  </div>
+
+  <div class="modal-footer">
+    @if (podeCadastrar && c.idEmpresa == null) {
+      <button type="button" class="btn btn-ghost" (click)="cadastrar()" title="Abrir o cadastro de empresa com este CNPJ preenchido">
+        <app-icon name="plus" [size]="16" /> Cadastrar no Gerenciador
+      </button>
+    }
+    <span class="spacer"></span>
+    <button type="button" class="btn btn-secondary" (click)="fechar.emit()">Fechar</button>
+    @if (c.link) {
+      <a class="btn btn-primary" [href]="c.link" target="_blank" rel="noopener noreferrer">
+        <app-icon name="external-link" [size]="16" /> Abrir no DEC
+      </a>
+    }
+  </div>
+</aside>

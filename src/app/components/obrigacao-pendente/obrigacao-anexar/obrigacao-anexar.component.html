@@ -1,0 +1,98 @@
+<div class="modal-backdrop" (click)="tentarFechar()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="anexar-titulo" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="min0">
+        <h2 class="modal-title" id="anexar-titulo">{{ titulo }}</h2>
+        <p class="modal-subtitle truncate">
+          {{ obrigacao.nomeObrigacao || 'Obrigação' }}
+          @if (obrigacao.competencia) { · Competência {{ obrigacao.competencia }} }
+          @if (empresa) { · {{ empresa }} }
+        </p>
+      </div>
+      <button type="button" class="btn-icon sm" (click)="tentarFechar()" [disabled]="enviando" aria-label="Fechar" title="Fechar (Esc)">
+        <app-icon name="x" [size]="18" />
+      </button>
+    </div>
+
+    <form class="modal-body stack-lg" id="form-anexar" (ngSubmit)="enviar()">
+      <div class="alert alert-info">
+        <app-icon name="info" [size]="14" />
+        <span>Ao enviar, o arquivo fica vinculado a esta obrigação e ela é <strong>marcada como entregue</strong> hoje.</span>
+      </div>
+
+      <div>
+        @if (!arquivo) {
+          <div class="dropzone" role="button" tabindex="0"
+               [class.is-over]="arrastando" [class.is-invalid]="erroArquivo" [class.is-disabled]="enviando"
+               (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)"
+               (click)="!enviando && inputArquivo.click()" (keydown.enter)="!enviando && inputArquivo.click()"
+               (keydown.space)="$event.preventDefault(); !enviando && inputArquivo.click()"
+               [attr.aria-label]="cliente ? 'Selecionar documento' : 'Selecionar guia'">
+            <span class="icon-tile lg"><app-icon name="upload-cloud" [size]="22" /></span>
+            <div class="dz-text">
+              <strong>{{ arrastando ? 'Solte o arquivo aqui' : 'Arraste o arquivo ou clique para selecionar' }}</strong>
+              <span>PDF, XML, planilhas, documentos ou imagens · até 50 MB</span>
+            </div>
+          </div>
+        } @else {
+          <div class="file-chip" [class.is-busy]="enviando"
+               (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
+            <span class="icon-tile sm" [ngClass]="visual?.tom || ''"><app-icon [name]="visual?.icone || 'file'" [size]="15" /></span>
+            <div class="fchip-text">
+              <span class="fchip-name truncate" [title]="arquivo.name">{{ arquivo.name }}</span>
+              <span class="fchip-meta tnum">{{ visual?.ext }} · {{ arquivo.size | bytes }}</span>
+            </div>
+            @if (enviando) {
+              <span class="spinner"></span>
+            } @else {
+              <button type="button" class="btn btn-ghost btn-sm" (click)="inputArquivo.click()">Trocar</button>
+              <button type="button" class="btn-icon sm" (click)="remover()" aria-label="Remover arquivo" title="Remover">
+                <app-icon name="x" [size]="16" />
+              </button>
+            }
+          </div>
+        }
+        <input #inputArquivo type="file" class="sr-only" tabindex="-1" (change)="onInput($event)"
+               accept=".pdf,.xml,.xls,.xlsx,.csv,.ods,.doc,.docx,.odt,.txt,.jpg,.jpeg,.png,.zip" />
+        @if (erroArquivo) {
+          <span class="field-error mt-sm"><app-icon name="alert-circle" [size]="14" /> {{ erroArquivo }}</span>
+        }
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="anexar-pasta">Pasta de destino <span class="req">*</span></label>
+        @if (carregandoPastas) {
+          <span class="skeleton sk-input"></span>
+        } @else if (!pastas.length) {
+          <span class="field-error"><app-icon name="alert-circle" [size]="14" /> Esta empresa ainda não tem pastas. Crie uma pasta na área de Arquivos.</span>
+        } @else {
+          <select id="anexar-pasta" class="select" name="pasta" [(ngModel)]="idPasta" [disabled]="enviando" required>
+            @for (f of pastas; track f.id) { <option [ngValue]="f.id">{{ f.caminho }}</option> }
+          </select>
+          <span class="field-hint">Sugerida conforme o tipo da obrigação — altere se preferir.</span>
+        }
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="anexar-desc">Descrição <span class="text-faint">(opcional)</span></label>
+        <input id="anexar-desc" class="input" name="descricao" [(ngModel)]="descricao" [disabled]="enviando" maxlength="255"
+               [placeholder]="cliente ? 'Ex.: extrato de setembro, conta principal' : 'Ex.: guia com juros e multa'" />
+      </div>
+
+      @if (erro) {
+        <div class="alert alert-danger" role="alert">
+          <app-icon name="alert-triangle" [size]="16" />
+          <span>{{ erro }}</span>
+        </div>
+      }
+    </form>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="tentarFechar()" [disabled]="enviando">Cancelar</button>
+      <button type="submit" form="form-anexar" class="btn btn-primary" [disabled]="!podeEnviar">
+        @if (enviando) { <span class="spinner"></span> Enviando… }
+        @else { <app-icon name="upload" [size]="16" /> {{ cliente ? 'Enviar e marcar entregue' : 'Anexar e marcar entregue' }} }
+      </button>
+    </div>
+  </div>
+</div>

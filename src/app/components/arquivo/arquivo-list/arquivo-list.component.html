@@ -1,222 +1,229 @@
-<div class="page-wrapper">
+<div class="page">
 
-  <!-- HEADER -->
-  <div class="page-header">
-    <div class="header-left">
-      <h1 class="page-titulo">Arquivos</h1>
-      <span class="page-subtitulo">{{ arquivosFiltrados.length }} arquivo(s) encontrado(s)</span>
+  <header class="page-header">
+    <div class="page-header-text">
+      <h1 class="page-title">Arquivos</h1>
+      <p class="page-subtitle tnum">
+        {{ arquivosFiltrados.length }} de {{ arquivos.length }} {{ arquivos.length === 1 ? 'arquivo' : 'arquivos' }}
+      </p>
     </div>
-    <button class="btn-novo" (click)="abrirFormUpload()">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-        <polyline points="17 8 12 3 7 8"/>
-        <line x1="12" y1="3" x2="12" y2="15"/>
-      </svg>
-      Upload
-    </button>
-  </div>
+    <div class="page-actions">
+      <button class="btn btn-primary" (click)="abrirFormUpload()">
+        <app-icon name="upload" [size]="16" [stroke]="2" /> Enviar arquivo
+      </button>
+    </div>
+  </header>
 
   <!-- FILTROS -->
-  <div class="filtros-wrapper">
-    <div class="input-busca-wrapper">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-      <input
-        type="text"
-        placeholder="Buscar arquivo..."
-        [(ngModel)]="termoBusca"
-        (input)="filtrar()"
-      />
+  <div class="filter-card">
+    <div class="filter-row">
+      <div class="input-icon search">
+        <app-icon name="search" [size]="16" />
+        <input class="input" type="search" placeholder="Buscar por nome ou descrição" [(ngModel)]="termoBusca" (ngModelChange)="filtrar()" aria-label="Buscar arquivos" />
+      </div>
+      <select class="select" [(ngModel)]="idEmpresaFiltro" (ngModelChange)="onEmpresaChange()" aria-label="Empresa">
+        <option [ngValue]="null">Todas as empresas</option>
+        @for (empresa of empresas; track empresa.id) { <option [ngValue]="empresa.id">{{ empresa.nomeFantasia }}</option> }
+      </select>
+      <select class="select" [(ngModel)]="idPastaFiltro" (ngModelChange)="filtrar()" aria-label="Pasta">
+        <option [ngValue]="null">Todas as pastas</option>
+        @for (pasta of pastasFiltradas; track pasta.id) { <option [ngValue]="pasta.id">{{ pasta.nome }}</option> }
+      </select>
+      <select class="select" [(ngModel)]="categoriaFiltro" (ngModelChange)="filtrar()" aria-label="Categoria">
+        <option [ngValue]="''">Todas as categorias</option>
+        @for (c of categoriaList; track c) { <option [ngValue]="c">{{ categoriaLabel[c] }}</option> }
+      </select>
     </div>
-
-    <select class="select-filtro" [(ngModel)]="idEmpresaFiltro" (change)="onEmpresaChange()">
-      <option [ngValue]="null">Todas as empresas</option>
-      @for (empresa of empresas; track empresa.id) {
-        <option [ngValue]="empresa.id">{{ empresa.nomeFantasia }}</option>
-      }
-    </select>
-
-    <select class="select-filtro" [(ngModel)]="idPastaFiltro" (change)="filtrar()">
-      <option [ngValue]="null">Todas as pastas</option>
-      @for (pasta of pastasFiltradas; track pasta.id) {
-        <option [ngValue]="pasta.id">{{ pasta.nome }}</option>
-      }
-    </select>
-
-    <select class="select-filtro" [(ngModel)]="statusFiltro" (change)="filtrar()">
-      <option [ngValue]="''">Todos status</option>
+    <div class="filter-chips" role="group" aria-label="Filtrar por status">
+      <button type="button" class="chip" [class.active]="!statusFiltro" (click)="setStatus('')">
+        Todos <span class="count tnum">{{ arquivos.length }}</span>
+      </button>
       @for (s of statusList; track s) {
-        <option [ngValue]="s">{{ statusLabel[s] }}</option>
+        <button type="button" class="chip" [class.active]="statusFiltro === s" (click)="setStatus(s)"
+                [class.chip-success]="s === 'ENTREGUE'" [class.chip-warning]="s === 'PENDENTE'" [class.chip-danger]="s === 'VENCIDO'">
+          {{ statusLabel[s] }} <span class="count tnum">{{ contarStatus(s) }}</span>
+        </button>
       }
-    </select>
-
-    <select class="select-filtro" [(ngModel)]="categoriaFiltro" (change)="filtrar()">
-      <option [ngValue]="''">Todas categorias</option>
-      @for (c of categoriaList; track c) {
-        <option [ngValue]="c">{{ categoriaLabel[c] }}</option>
-      }
-    </select>
+    </div>
   </div>
 
   <!-- TABELA -->
-  <div class="tabela-wrapper">
-    @if (carregando) {
-      <div class="estado-vazio">
-        <span class="spinner"></span>
-        <p>Carregando arquivos...</p>
-      </div>
-    } @else if (arquivosFiltrados.length === 0) {
-      <div class="estado-vazio">
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-        </svg>
-        <p>Nenhum arquivo encontrado.</p>
-      </div>
-    } @else {
-      <table class="tabela">
+  <div class="card table-card">
+    <div class="table-wrap">
+      <table class="table">
         <thead>
           <tr>
-            <th>Nome</th>
+            <th>Arquivo</th>
             <th>Categoria</th>
             <th>Status</th>
             <th>Vencimento</th>
-            <th>Tamanho</th>
-            <th>Pasta</th>
-            <th>Empresa</th>
-            <th></th>
+            <th class="num">Tamanho</th>
+            <th>Pasta / Empresa</th>
+            <th class="col-actions">Ações</th>
           </tr>
         </thead>
         <tbody>
-          @for (arquivo of arquivosFiltrados; track arquivo.id) {
-            <tr>
-              <td class="td-nome">
-                <div class="td-nome-wrapper">
-                  <span class="icone-tipo" [class]="'icone-' + arquivo.tipoArquivo.toLowerCase()">
-                    {{ arquivo.tipoArquivo }}
-                  </span>
-                  <div class="td-nome-info">
-                    <span>{{ arquivo.nomeOriginal }}</span>
-                    @if (arquivo.descricao) {
-                      <small class="td-descricao">{{ arquivo.descricao }}</small>
-                    }
-                  </div>
-                </div>
-              </td>
-              <td>
-                @if (arquivo.categoriaFiscal) {
-                  {{ categoriaLabel[arquivo.categoriaFiscal] }}
-                } @else { — }
-              </td>
-              <td>
-                @if (arquivo.status) {
-                  <span [class]="badgeStatusClasse(arquivo.status)">
-                    {{ statusLabel[arquivo.status] }}
-                  </span>
-                } @else { — }
-              </td>
-              <td>{{ textoVencimento(arquivo) }}</td>
-              <td>{{ formatarTamanho(arquivo.tamanho) }}</td>
-              <td>{{ getNomePasta(arquivo.idPasta) }}</td>
-              <td>{{ getNomeEmpresa(arquivo.idEmpresa) }}</td>
-              <td class="td-acoes">
-                <div class="menu-wrapper">
-                  <button class="btn-menu" (click)="toggleMenu(arquivo.id!, $event); $event.stopPropagation()">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
-                    </svg>
-                  </button>
-                  @if (menuAbertoId === arquivo.id) {
-                    <div class="menu-dropdown" [style.top.px]="menuPosicao.top" [style.right.px]="menuPosicao.right">
-                      <button (click)="download(arquivo)">Download</button>
-                      <button (click)="copiarLink(arquivo)">Copiar link</button>
-                      <button (click)="abrirAlterarStatus(arquivo)">Alterar status</button>
-                      <button (click)="abrirAlterarVencimento(arquivo)">Alterar vencimento</button>
-                      <button class="btn-deletar" (click)="confirmarDelete(arquivo)">Mover para lixeira</button>
+          @if (carregando) {
+            @for (r of skeletonRows; track r) {
+              <tr>
+                <td><div class="cell-entity"><span class="icon-tile sm skeleton"></span><span class="skeleton skeleton-line sk-1"></span></div></td>
+                <td><span class="skeleton skeleton-line sk-2"></span></td>
+                <td><span class="skeleton skeleton-line sk-2"></span></td>
+                <td><span class="skeleton skeleton-line sk-2"></span></td>
+                <td><span class="skeleton skeleton-line sk-2"></span></td>
+                <td><span class="skeleton skeleton-line sk-1"></span></td>
+                <td class="col-actions"><span class="skeleton skeleton-line sk-3"></span></td>
+              </tr>
+            }
+          } @else {
+            @for (arquivo of paginaItens; track arquivo.id) {
+              <tr>
+                <td>
+                  <div class="cell-entity">
+                    <span class="tag">{{ arquivo.tipoArquivo }}</span>
+                    <div class="truncate nome">
+                      <span class="cell-main truncate" [title]="arquivo.nomeOriginal">{{ arquivo.nomeOriginal }}</span>
+                      @if (arquivo.descricao) { <span class="cell-sub truncate">{{ arquivo.descricao }}</span> }
                     </div>
-                  }
-                </div>
-              </td>
-            </tr>
+                  </div>
+                </td>
+                <td>{{ arquivo.categoriaFiscal ? categoriaLabel[arquivo.categoriaFiscal] : '—' }}</td>
+                <td>
+                  @if (arquivo.status) {
+                    <span class="badge badge-dot" [ngClass]="badgeStatus(arquivo.status)">{{ statusLabel[arquivo.status] }}</span>
+                  } @else { <span class="text-faint">—</span> }
+                </td>
+                <td class="nowrap">
+                  @if (arquivo.dataVencimento) {
+                    <span class="tnum">{{ arquivo.dataVencimento | date:'dd/MM/yyyy' }}</span>
+                    @if (arquivo.status !== 'ENTREGUE' && arquivo.status !== 'ARQUIVADO') {
+                      <span class="cell-sub" [ngClass]="'text-' + (arquivo.diasParaVencer ?? arquivo.dataVencimento | prazoTom)">
+                        {{ arquivo.diasParaVencer ?? arquivo.dataVencimento | prazo }}
+                      </span>
+                    }
+                  } @else { <span class="text-faint">—</span> }
+                </td>
+                <td class="num">{{ arquivo.tamanho | bytes }}</td>
+                <td>
+                  <span class="cell-main fw-400">{{ getNomePasta(arquivo.idPasta) }}</span>
+                  <span class="cell-sub">{{ getNomeEmpresa(arquivo.idEmpresa) }}</span>
+                </td>
+                <td class="col-actions">
+                  <div class="row-actions">
+                    <button class="btn-icon sm bordered" (click)="download(arquivo)" title="Baixar" aria-label="Baixar arquivo"><app-icon name="download" [size]="15" /></button>
+                    <button class="btn-icon sm bordered" [class.active]="menuAbertoId === arquivo.id" (click)="toggleMenu(arquivo.id!, $event)"
+                            [disabled]="deletandoId === arquivo.id" title="Mais ações" aria-label="Mais ações" aria-haspopup="menu">
+                      @if (deletandoId === arquivo.id) { <span class="spinner sp-sm"></span> } @else { <app-icon name="more-horizontal" [size]="15" /> }
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
           }
         </tbody>
       </table>
+    </div>
+
+    @if (!carregando && arquivosFiltrados.length === 0) {
+      <div class="empty">
+        <span class="empty-icon"><app-icon [name]="temFiltro ? 'search' : 'file'" [size]="22" /></span>
+        <p class="empty-title">{{ temFiltro ? 'Nenhum arquivo encontrado' : 'Nenhum arquivo enviado' }}</p>
+        <p class="empty-text">{{ temFiltro ? 'Ajuste a busca ou limpe os filtros.' : 'Envie guias, notas e documentos para começar.' }}</p>
+        @if (temFiltro) {
+          <button class="btn btn-secondary" (click)="limparFiltros()"><app-icon name="x" [size]="15" /> Limpar filtros</button>
+        } @else {
+          <button class="btn btn-secondary" (click)="abrirFormUpload()"><app-icon name="upload" [size]="15" /> Enviar arquivo</button>
+        }
+      </div>
+    }
+
+    @if (!carregando && arquivosFiltrados.length > 0) {
+      <app-paginador [total]="arquivosFiltrados.length" rotulo="arquivos" [(pagina)]="pagina" [(porPagina)]="porPagina" />
     }
   </div>
-
 </div>
 
-<!-- PAINEL UPLOAD -->
+<!-- MENU DE AÇÕES -->
+@for (arquivo of paginaItens; track arquivo.id) {
+  @if (menuAbertoId === arquivo.id) {
+    <div class="menu menu-fixed" role="menu" [style.top.px]="menuPosicao.top" [style.right.px]="menuPosicao.right" (click)="$event.stopPropagation()">
+      <button class="menu-item" role="menuitem" (click)="download(arquivo)"><app-icon name="download" [size]="15" /> Baixar</button>
+      <button class="menu-item" role="menuitem" (click)="copiarLink(arquivo)"><app-icon name="link" [size]="15" /> Copiar link</button>
+      <div class="menu-sep"></div>
+      <button class="menu-item" role="menuitem" (click)="abrirAlterarStatus(arquivo)"><app-icon name="check-circle" [size]="15" /> Alterar status</button>
+      <button class="menu-item" role="menuitem" (click)="abrirAlterarVencimento(arquivo)"><app-icon name="calendar-clock" [size]="15" /> Alterar vencimento</button>
+      <div class="menu-sep"></div>
+      <button class="menu-item danger" role="menuitem" (click)="confirmarDelete(arquivo)"><app-icon name="trash" [size]="15" /> Mover para lixeira</button>
+    </div>
+  }
+}
+
+<!-- UPLOAD (o formulário renderiza o próprio modal) -->
 @if (painelAberto) {
-  <div class="overlay" (click)="fecharPainel()"></div>
-  <div class="painel-lateral" [class.painel-aberto]="painelAberto">
-    <app-arquivo-form
-      [empresas]="empresas"
-      [pastas]="pastas"
-      (fechar)="fecharPainel()"
-      (salvo)="onArquivoSalvo()"
-    />
-  </div>
+  <app-arquivo-form
+    [empresas]="empresas"
+    [pastas]="pastas"
+    [idEmpresaInicial]="idEmpresaFiltro"
+    [idPastaInicial]="idPastaFiltro"
+    (fechar)="fecharPainel()"
+    (salvo)="onArquivoSalvo()"
+    (parcial)="carregar()"
+  />
 }
 
 <!-- MODAL ALTERAR STATUS -->
 @if (arquivoStatus) {
-  <div class="overlay" (click)="cancelarAlterarStatus()"></div>
-  <div class="modal-confirmacao">
-    <h3>Alterar status</h3>
-    <div class="campo-modal">
-      <label>{{ arquivoStatus.nomeOriginal }}</label>
-      <select [(ngModel)]="novoStatus">
-        <option [ngValue]="''" disabled>Selecione...</option>
-        @for (s of statusList; track s) {
-          <option [ngValue]="s">{{ statusLabel[s] }}</option>
-        }
-      </select>
-    </div>
-    <div class="modal-acoes">
-      <button class="btn-cancelar" (click)="cancelarAlterarStatus()">Cancelar</button>
-      <button class="btn-primario" (click)="alterarStatus()" [disabled]="salvando || !novoStatus">
-        @if (salvando) { <span class="spinner-sm"></span> } @else { Salvar }
-      </button>
-    </div>
+  <div class="modal-backdrop" (click)="cancelarAlterarStatus()">
+    <form class="modal modal-sm" role="dialog" aria-modal="true" (click)="$event.stopPropagation()" (ngSubmit)="alterarStatus()">
+      <div class="modal-header">
+        <div class="truncate">
+          <h2 class="modal-title">Alterar status</h2>
+          <p class="modal-subtitle truncate">{{ arquivoStatus.nomeOriginal }}</p>
+        </div>
+        <button type="button" class="btn-icon" (click)="cancelarAlterarStatus()" aria-label="Fechar"><app-icon name="x" [size]="18" /></button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label class="field-label" for="al-status">Novo status</label>
+          <select id="al-status" name="status" class="select" [(ngModel)]="novoStatus">
+            <option [ngValue]="''" disabled>Selecione…</option>
+            @for (s of statusList; track s) { <option [ngValue]="s">{{ statusLabel[s] }}</option> }
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="cancelarAlterarStatus()" [disabled]="salvando">Cancelar</button>
+        <button type="submit" class="btn btn-primary" [disabled]="salvando || !novoStatus">
+          @if (salvando) { <span class="spinner"></span> Salvando… } @else { Salvar }
+        </button>
+      </div>
+    </form>
   </div>
 }
 
 <!-- MODAL ALTERAR VENCIMENTO -->
 @if (arquivoVencimento) {
-  <div class="overlay" (click)="cancelarAlterarVencimento()"></div>
-  <div class="modal-confirmacao">
-    <h3>Alterar vencimento</h3>
-    <div class="campo-modal">
-      <label>{{ arquivoVencimento.nomeOriginal }}</label>
-      <input type="date" [(ngModel)]="novaDataVencimento" />
-    </div>
-    <div class="modal-acoes">
-      <button class="btn-cancelar" (click)="cancelarAlterarVencimento()">Cancelar</button>
-      <button class="btn-primario" (click)="alterarVencimento()" [disabled]="salvando || !novaDataVencimento">
-        @if (salvando) { <span class="spinner-sm"></span> } @else { Salvar }
-      </button>
-    </div>
+  <div class="modal-backdrop" (click)="cancelarAlterarVencimento()">
+    <form class="modal modal-sm" role="dialog" aria-modal="true" (click)="$event.stopPropagation()" (ngSubmit)="alterarVencimento()">
+      <div class="modal-header">
+        <div class="truncate">
+          <h2 class="modal-title">Alterar vencimento</h2>
+          <p class="modal-subtitle truncate">{{ arquivoVencimento.nomeOriginal }}</p>
+        </div>
+        <button type="button" class="btn-icon" (click)="cancelarAlterarVencimento()" aria-label="Fechar"><app-icon name="x" [size]="18" /></button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label class="field-label" for="al-venc">Nova data de vencimento</label>
+          <input id="al-venc" name="vencimento" class="input" type="date" [(ngModel)]="novaDataVencimento" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="cancelarAlterarVencimento()" [disabled]="salvando">Cancelar</button>
+        <button type="submit" class="btn btn-primary" [disabled]="salvando || !novaDataVencimento">
+          @if (salvando) { <span class="spinner"></span> Salvando… } @else { Salvar }
+        </button>
+      </div>
+    </form>
   </div>
-}
-
-<!-- MODAL DELETE -->
-@if (arquivoParaDeletar) {
-  <div class="overlay" (click)="cancelarDelete()"></div>
-  <div class="modal-confirmacao">
-    <h3>Mover para lixeira</h3>
-    <p>Mover <strong>{{ arquivoParaDeletar.nomeOriginal }}</strong> para a lixeira? Você pode restaurá-lo depois.</p>
-    <div class="modal-acoes">
-      <button class="btn-cancelar" (click)="cancelarDelete()">Cancelar</button>
-      <button class="btn-confirmar-delete" (click)="deletar()" [disabled]="deletando">
-        @if (deletando) { <span class="spinner-sm"></span> } @else { Mover }
-      </button>
-    </div>
-  </div>
-}
-
-<!-- TOAST -->
-@if (toastVisivel) {
-  <div class="toast">{{ toastMensagem }}</div>
 }

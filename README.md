@@ -1,59 +1,69 @@
-# GerenciadorDinizFront
+# Gerenciador Diniz — Front-end
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.2.2.
+Interface web do **Gerenciador Diniz**, portal que reúne documentos, prazos e obrigações fiscais entre o
+escritório Diniz Assessoria Contábil e as empresas clientes, com as comunicações da SEFAZ-TO (DEC) integradas.
 
-## Development server
+- **Demonstração:** https://gerenciador-diniz.vercel.app
+- **API e documentação completa** (funcionalidades, arquitetura, logins de demonstração):
+  [GerenciadorDeArquivosDiniz](https://github.com/rafaelsdiniz/GerenciadorDeArquivosDiniz)
 
-To start a local development server, run:
+**Logins de demonstração** (senha `123456`): escritório `rafael@diniz.com.br` · cliente `maria@paoquente.com.br`.
+Dentro do sistema, abra **Como usar** no menu lateral para o roteiro de teste.
 
-```bash
-ng serve
-```
+![Painel](docs/prints/painel.png)
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Telas
 
-## Code scaffolding
+| | |
+|---|---|
+| ![Pendências](docs/prints/pendencias.png) | ![Arquivos](docs/prints/arquivos.png) |
+| ![Calendário](docs/prints/calendario.png) | ![Empresa](docs/prints/empresa.png) |
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Tecnologias
 
-```bash
-ng generate component component-name
-```
+- Angular 20 (componentes standalone, controle de fluxo `@if/@for`, lazy loading por rota)
+- Design system próprio em CSS (tokens, componentes globais) — ver [DESIGN.md](DESIGN.md)
+- Chart.js / ng2-charts, JSZip, FileSaver
+- Ícones Lucide (ISC) e fonte Inter
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Rodando localmente
 
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+Pré-requisitos: Node.js 20+ e a [API](https://github.com/rafaelsdiniz/GerenciadorDeArquivosDiniz) rodando em `http://localhost:8080`.
 
 ```bash
-ng test
+npm install --legacy-peer-deps
+npm start
 ```
 
-## Running end-to-end tests
+Acesse http://localhost:4200.
 
-For end-to-end (e2e) testing, run:
+O endereço da API fica em `src/environments/environment.ts` (desenvolvimento) e
+`src/environments/environment.prod.ts` (produção).
+
+Build de produção:
 
 ```bash
-ng e2e
+npx ng build --configuration production
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## Publicação
 
-## Additional Resources
+Vercel, com `vercel.json` (instalação com `--legacy-peer-deps`, saída `dist/GerenciadorDinizFront/browser`
+e redirecionamento das rotas para o `index.html`).
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## Estrutura
+
+```
+src/app/
+  components/   telas (painel, pendências, calendário, arquivos, empresas, DEC, ajuda…)
+  services/     chamadas à API
+  models/       contratos (DTOs) e enums
+  shared/       ícones, toasts, diálogo de confirmação, paginação, campos aprimorados
+  pipes/        formatação (CNPJ/CPF, telefone, prazos, tamanhos)
+src/styles.css  design system (tokens e componentes)
+```
+
+## Créditos
+
+Referência de design: [awesome-claude-design](https://github.com/VoltAgent/awesome-claude-design) (MIT), adaptada às
+cores da marca Diniz. Desenvolvimento com apoio do assistente de IA Claude Code (Anthropic), registrado nos commits.

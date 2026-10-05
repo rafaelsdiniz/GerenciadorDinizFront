@@ -19,4 +19,8 @@ export interface ArquivoResponseDTO {
   idUsuario: number;
   idPasta: number;
   idObrigacaoPendente: number | null;
+  /** data/hora do envio */
+  dataCriacao?: string | null;
+  /** quem enviou */
+  nomeUsuario?: string | null;
 }

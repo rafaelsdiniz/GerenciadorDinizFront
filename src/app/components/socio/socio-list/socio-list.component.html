@@ -1,129 +1,202 @@
-    <div class="page-wrapper">
+<div class="page">
 
-    <!-- HEADER -->
-    <div class="page-header">
-        <div class="header-left">
-        <h1 class="page-titulo">Sócios</h1>
-        <span class="page-subtitulo">{{ socios.length }} sócio(s) cadastrado(s)</span>
-        </div>
-        <button class="btn-novo" (click)="abrirFormNovo()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        Novo Sócio
-        </button>
+  <header class="page-header">
+    <div class="page-header-text">
+      <h1 class="page-title">Sócios</h1>
+      <p class="page-subtitle">Quadro societário das empresas clientes: CPF, participação no capital e administração.</p>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-primary" (click)="abrirFormNovo()" title="Novo sócio (atalho: N)">
+        <app-icon name="plus" [size]="16" [stroke]="2" />
+        Novo sócio
+      </button>
+    </div>
+  </header>
+
+  <div class="section-label">
+    <h2>Quadro societário</h2>
+    @if (!carregando) {
+      <span class="tnum">
+        {{ socios.length }} {{ socios.length === 1 ? 'sócio' : 'sócios' }} ·
+        {{ totalEmpresas }} {{ totalEmpresas === 1 ? 'empresa' : 'empresas' }}
+      </span>
+    }
+  </div>
+
+  <!-- FILTROS -->
+  <div class="filter-card">
+    <div class="input-icon search">
+      <app-icon name="search" [size]="16" />
+      <input #busca class="input" type="search" placeholder="Buscar por nome, CPF ou empresa"
+             [(ngModel)]="termoBusca" (ngModelChange)="filtrar()" aria-label="Buscar sócios" />
+      @if (!termoBusca) { <span class="kbd search-kbd" aria-hidden="true">/</span> }
     </div>
 
-    <!-- BARRA DE BUSCA -->
-    <div class="barra-busca">
-        <div class="input-busca-wrapper">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input
-            type="text"
-            placeholder="Buscar sócio..."
-            [(ngModel)]="termoBusca"
-            (input)="filtrar()"
-        />
-        </div>
-    </div>
+    <select class="select" [(ngModel)]="filtroEmpresa" (ngModelChange)="filtrar()" aria-label="Filtrar por empresa">
+      <option [ngValue]="null">Todas as empresas</option>
+      @for (e of empresas; track e.id) { <option [ngValue]="e.id">{{ e.nomeFantasia }}</option> }
+    </select>
 
-    <!-- TABELA -->
-    <div class="tabela-wrapper">
-        @if (carregando) {
-        <div class="estado-vazio">
-            <span class="spinner"></span>
-            <p>Carregando sócios...</p>
-        </div>
-        } @else if (sociosFiltrados.length === 0) {
-        <div class="estado-vazio">
-            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-            </svg>
-            <p>Nenhum sócio encontrado.</p>
-        </div>
-        } @else {
-        <table class="tabela">
-            <thead>
-            <tr>
-                <th>Nome</th>
-                <th>CPF</th>
-                <th>Empresa</th>
-                <th></th>
-            </tr>
-            </thead>
-            <tbody>
-            @for (socio of sociosFiltrados; track socio.id) {
-                <tr>
-                <td class="td-nome">{{ socio.nome }}</td>
-                <td>{{ formatarCpf(socio.cpf) }}</td>
-                <td>{{ getNomeEmpresa(socio.idEmpresa) }}</td>
-                <td class="td-acoes">
-                    <div class="menu-wrapper">
-                    <button class="btn-menu" (click)="toggleMenu(socio.id!, $event); $event.stopPropagation()">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                        <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
-                        </svg>
-                    </button>
-                    @if (menuAbertoId === socio.id) {
-                        <div class="menu-dropdown" [style.top.px]="menuPosicao.top" [style.right.px]="menuPosicao.right">
-                        <button (click)="verDetalhes(socio)">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                            </svg>
-                            Ver detalhes
-                        </button>
-                        <button (click)="abrirFormEdicao(socio)">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                            </svg>
-                            Editar
-                        </button>
-                        <button class="btn-deletar" (click)="confirmarDelete(socio)">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                            </svg>
-                            Deletar
-                        </button>
-                        </div>
-                    }
-                    </div>
-                </td>
-                </tr>
+    <div class="filter-chips" role="group" aria-label="Filtrar por função">
+      <button type="button" class="chip" [class.active]="filtroFuncao === 'TODOS'" [attr.aria-pressed]="filtroFuncao === 'TODOS'" (click)="setFuncao('TODOS')">
+        Todos <span class="count tnum">{{ totalBase }}</span>
+      </button>
+      <button type="button" class="chip chip-info" [class.active]="filtroFuncao === 'ADMIN'" [attr.aria-pressed]="filtroFuncao === 'ADMIN'" (click)="setFuncao('ADMIN')">
+        <app-icon name="shield-check" [size]="14" /> Administradores <span class="count tnum">{{ totalAdmins }}</span>
+      </button>
+      <button type="button" class="chip" [class.active]="filtroFuncao === 'OUTROS'" [attr.aria-pressed]="filtroFuncao === 'OUTROS'" (click)="setFuncao('OUTROS')">
+        Demais sócios <span class="count tnum">{{ totalOutros }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- RESUMO DA EMPRESA FILTRADA -->
+  @if (filtroEmpresa != null && !carregando && totalBase > 0) {
+    <div class="card resumo">
+      <span class="icon-tile" [class]="tomSoma"><app-icon name="pie-chart" [size]="18" /></span>
+      <div class="resumo-text">
+        <strong>{{ getNomeEmpresa(filtroEmpresa) }}</strong>
+        <span class="text-sm text-mute">
+          @switch (tomSoma) {
+            @case ('success') { Participações somam 100% do capital. }
+            @case ('danger') { As participações ultrapassam 100%. Revise os percentuais. }
+            @default { Faltam {{ (100 - somaParticipacao) | number:'1.0-2' }}% para completar o capital social. }
+          }
+        </span>
+      </div>
+      <div class="resumo-bar">
+        <div class="progress" [class]="tomSoma"><span [style.width.%]="somaParticipacao > 100 ? 100 : somaParticipacao"></span></div>
+        <span class="tnum fw-600">{{ somaParticipacao | number:'1.0-2' }}%</span>
+      </div>
+    </div>
+  }
+
+  <!-- TABELA -->
+  <div class="card table-card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th [attr.aria-sort]="ariaSort('nome')">
+              <button type="button" class="th-sort" (click)="ordenarPor('nome')">Sócio <app-icon [name]="sortIcon('nome')" [size]="13" /></button>
+            </th>
+            <th>CPF</th>
+            <th [attr.aria-sort]="ariaSort('empresa')">
+              <button type="button" class="th-sort" (click)="ordenarPor('empresa')">Empresa <app-icon [name]="sortIcon('empresa')" [size]="13" /></button>
+            </th>
+            <th [attr.aria-sort]="ariaSort('participacao')">
+              <button type="button" class="th-sort" (click)="ordenarPor('participacao')">Participação <app-icon [name]="sortIcon('participacao')" [size]="13" /></button>
+            </th>
+            <th>Função</th>
+            <th class="col-actions">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (carregando) {
+            @for (r of skeletonRows; track r) {
+              <tr>
+                <td><div class="cell-entity"><span class="avatar skeleton"></span><span class="skeleton skeleton-line sk-w40"></span></div></td>
+                <td><span class="skeleton skeleton-line sk-w30 sk-block"></span></td>
+                <td><span class="skeleton skeleton-line sk-w50 sk-block"></span></td>
+                <td><span class="skeleton skeleton-line sk-w30 sk-block"></span></td>
+                <td><span class="skeleton skeleton-line sk-w30 sk-block"></span></td>
+                <td class="col-actions"><span class="skeleton skeleton-line sk-actions"></span></td>
+              </tr>
             }
-            </tbody>
-        </table>
-        }
+          } @else {
+            @for (s of paginaItens; track s.id) {
+              <tr class="clickable" (click)="verDetalhes(s)">
+                <td>
+                  <div class="cell-entity">
+                    <span class="avatar" [class]="(s.nome | avatarCor)">{{ s.nome | iniciais }}</span>
+                    <span class="cell-main truncate">{{ s.nome }}</span>
+                  </div>
+                </td>
+                <td class="nowrap"><span class="tnum">{{ s.cpf | documento }}</span></td>
+                <td>
+                  <span class="cell-main fw-400">{{ getNomeEmpresa(s.idEmpresa) }}</span>
+                  @if (empresa(s.idEmpresa)?.cnpj; as cnpj) { <span class="cell-sub"><span class="tnum">{{ cnpj | documento }}</span></span> }
+                </td>
+                <td>
+                  @if (s.participacao != null) {
+                    <div class="part">
+                      <span class="tnum part-val">{{ s.participacao | number:'1.0-2' }}%</span>
+                      <div class="progress"><span [style.width.%]="s.participacao > 100 ? 100 : s.participacao"></span></div>
+                    </div>
+                  } @else {
+                    <span class="text-faint">Não informada</span>
+                  }
+                </td>
+                <td>
+                  @if (s.administrador) {
+                    <span class="badge badge-primary"><app-icon name="shield-check" [size]="12" [stroke]="2" /> Administrador</span>
+                  } @else {
+                    <span class="badge badge-neutral">Sócio</span>
+                  }
+                </td>
+                <td class="col-actions" (click)="$event.stopPropagation()">
+                  <div class="row-actions">
+                    <button class="btn-icon sm bordered" (click)="verDetalhes(s)" title="Ver detalhes" aria-label="Ver detalhes de {{ s.nome }}">
+                      <app-icon name="eye" [size]="15" />
+                    </button>
+                    <button class="btn-icon sm bordered" (click)="abrirFormEdicao(s)" title="Editar" aria-label="Editar {{ s.nome }}">
+                      <app-icon name="pencil" [size]="15" />
+                    </button>
+                    <button class="btn-icon sm bordered danger" (click)="confirmarDelete(s)" [disabled]="deletandoId === s.id" title="Excluir" aria-label="Excluir {{ s.nome }}">
+                      @if (deletandoId === s.id) { <span class="spinner sp-sm"></span> } @else { <app-icon name="trash" [size]="15" /> }
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
     </div>
 
-    </div>
-
-    <!-- PAINEL LATERAL -->
-    @if (painelAberto) {
-    <div class="overlay" (click)="fecharPainel()"></div>
-    <div class="painel-lateral" [class.painel-aberto]="painelAberto">
-        <app-socio-form
-        [socio]="socioSelecionado"
-        [modo]="modoPainel"
-        [empresas]="empresas"
-        (fechar)="fecharPainel()"
-        (salvo)="onSocioSalvo()"
-        />
-    </div>
-    }
-
-    <!-- MODAL CONFIRMAÇÃO DELETE -->
-    @if (socioParaDeletar) {
-    <div class="overlay" (click)="cancelarDelete()"></div>
-    <div class="modal-confirmacao">
-        <h3>Deletar sócio</h3>
-        <p>Tem certeza que deseja deletar <strong>{{ socioParaDeletar.nome }}</strong>? Esta ação não pode ser desfeita.</p>
-        <div class="modal-acoes">
-        <button class="btn-cancelar" (click)="cancelarDelete()">Cancelar</button>
-        <button class="btn-confirmar-delete" (click)="deletar()" [disabled]="deletando">
-            @if (deletando) { <span class="spinner-sm"></span> } @else { Deletar }
-        </button>
+    @if (!carregando && sociosFiltrados.length === 0) {
+      @if (erroCarregar) {
+        <div class="empty">
+          <span class="empty-icon"><app-icon name="alert-triangle" [size]="22" /></span>
+          <p class="empty-title">Não foi possível carregar os sócios</p>
+          <p class="empty-text">Verifique sua conexão com o servidor e tente novamente.</p>
+          <button class="btn btn-secondary" (click)="carregar()"><app-icon name="refresh" [size]="15" /> Tentar novamente</button>
         </div>
-    </div>
+      } @else if (temFiltro) {
+        <div class="empty">
+          <span class="empty-icon"><app-icon name="search" [size]="22" /></span>
+          <p class="empty-title">Nenhum sócio encontrado</p>
+          <p class="empty-text">Nenhum sócio corresponde aos filtros aplicados. Ajuste a busca ou limpe os filtros.</p>
+          <button class="btn btn-secondary" (click)="limparFiltros()"><app-icon name="x" [size]="15" /> Limpar filtros</button>
+        </div>
+      } @else {
+        <div class="empty">
+          <span class="empty-icon"><app-icon name="handshake" [size]="22" /></span>
+          <p class="empty-title">Nenhum sócio cadastrado</p>
+          <p class="empty-text">Cadastre os sócios das empresas com CPF e participação para manter o quadro societário em dia.</p>
+          <button class="btn btn-secondary" (click)="abrirFormNovo()"><app-icon name="plus" [size]="15" /> Cadastrar sócio</button>
+        </div>
+      }
     }
+
+    @if (!carregando && sociosFiltrados.length > 0) {
+      <app-paginador [total]="sociosFiltrados.length" rotulo="sócios" [(pagina)]="pagina" [(porPagina)]="porPagina" />
+    }
+  </div>
+
+  <p class="footnote">
+    <app-icon name="info" [size]="15" />
+    <span>Filtre por empresa para conferir se as participações somam 100% do capital social. <strong>Administrador</strong> indica o sócio que responde legalmente pela empresa.</span>
+  </p>
+</div>
+
+@if (painelAberto) {
+  <app-socio-form
+    [socio]="socioSelecionado"
+    [modo]="modoPainel"
+    [empresas]="empresas"
+    [socios]="socios"
+    (fechar)="fecharPainel()"
+    (salvo)="onSocioSalvo()"
+  />
+}

@@ -3,11 +3,12 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ObrigacaoRecorrenteRequestDTO } from '../models/obrigacao-recorrente-request.dto';
 import { ObrigacaoRecorrenteResponseDTO } from '../models/obrigacao-recorrente-response.dto';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ObrigacaoRecorrenteService {
 
-  private readonly API = 'http://localhost:8080/obrigacoes-recorrentes';
+  private readonly API = `${environment.apiUrl}/obrigacoes-recorrentes`;
 
   constructor(private http: HttpClient) {}
 

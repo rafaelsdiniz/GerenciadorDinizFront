@@ -1,141 +1,329 @@
-<div class="page-wrapper">
+<div class="page">
 
-  <!-- HEADER -->
-  <div class="page-header">
-    <div class="header-left">
-      <h1 class="page-titulo">Empresas</h1>
-      <span class="page-subtitulo">{{ empresas.length }} empresa(s) cadastrada(s)</span>
+  <!-- ================= HEADER ================= -->
+  <header class="page-header">
+    <div class="page-header-text">
+      <h1 class="page-title">Empresas</h1>
+      <p class="page-subtitle">
+        @if (carregando) { Carregando clientes… }
+        @else {
+          <span class="tnum">{{ empresas.length }}</span> {{ empresas.length === 1 ? 'cliente cadastrado' : 'clientes cadastrados' }}
+          @if (qtdAtencao > 0) { · <span class="text-danger fw-500"><span class="tnum">{{ qtdAtencao }}</span> {{ qtdAtencao === 1 ? 'precisa' : 'precisam' }} de atenção</span> }
+        }
+      </p>
     </div>
-    <button class="btn-novo" (click)="abrirFormNovo()">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-      </svg>
-      Nova Empresa
-    </button>
-  </div>
-
-  <!-- BARRA DE BUSCA -->
-  <div class="barra-busca">
-    <div class="input-busca-wrapper">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-      <input
-        type="text"
-        placeholder="Buscar empresa..."
-        [(ngModel)]="termoBusca"
-        (input)="filtrar()"
-      />
-    </div>
-  </div>
-
-  <!-- TABELA -->
-  <div class="tabela-wrapper">
-    @if (carregando) {
-      <div class="estado-vazio">
-        <span class="spinner"></span>
-        <p>Carregando empresas...</p>
-      </div>
-    } @else if (empresasFiltradas.length === 0) {
-      <div class="estado-vazio">
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-        </svg>
-        <p>Nenhuma empresa encontrada.</p>
-      </div>
-    } @else {
-      <table class="tabela">
-        <thead>
-          <tr>
-            <th>Nome Fantasia</th>
-            <th>Razão Social</th>
-            <th>CNPJ</th>
-            <th>Telefone</th>
-            <th>Email</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (empresa of empresasFiltradas; track empresa.id) {
-            <tr [class.linha-ativa]="empresaSelecionada?.id === empresa.id">
-              <td class="td-nome">
-                <a class="link-nome" (click)="abrirPerfil(empresa)">{{ empresa.nomeFantasia }}</a>
-              </td>
-              <td>{{ empresa.razaoSocial }}</td>
-              <td>{{ formatarCnpj(empresa.cnpj) }}</td>
-              <td>{{ empresa.telefone }}</td>
-              <td>{{ empresa.email }}</td>
-              <td class="td-acoes">
-                <div class="menu-wrapper">
-                  <button class="btn-menu" (click)="toggleMenu(empresa.id!, $event); $event.stopPropagation()">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
-                    </svg>
-                  </button>
-                  @if (menuAbertoId === empresa.id) {
-                    <div class="menu-dropdown" [style.top.px]="menuPosicao.top" [style.right.px]="menuPosicao.right">
-                      <button (click)="abrirPerfil(empresa)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-                        </svg>
-                        Ver perfil
-                      </button>
-                      <button (click)="verDetalhes(empresa)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                        </svg>
-                        Visualização rápida
-                      </button>
-                      <button (click)="abrirFormEdicao(empresa)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                        Editar
-                      </button>
-                      <button class="btn-deletar" (click)="confirmarDelete(empresa)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                        </svg>
-                        Deletar
-                      </button>
-                    </div>
-                  }
-                </div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    }
-  </div>
-
-</div>
-
-<!-- PAINEL LATERAL (FORM / DETALHES) -->
-@if (painelAberto) {
-  <div class="overlay" (click)="fecharPainel()"></div>
-  <div class="painel-lateral" [class.painel-aberto]="painelAberto">
-    <app-empresa-form
-      [empresa]="empresaSelecionada"
-      [modo]="modoPainel"
-      (fechar)="fecharPainel()"
-      (salvo)="onEmpresaSalva()"
-      (deletado)="onEmpresaDeletada()"
-    />
-  </div>
-}
-
-<!-- MODAL CONFIRMAÇÃO DELETE -->
-@if (empresaParaDeletar) {
-  <div class="overlay" (click)="cancelarDelete()"></div>
-  <div class="modal-confirmacao">
-    <h3>Deletar empresa</h3>
-    <p>Tem certeza que deseja deletar <strong>{{ empresaParaDeletar.nomeFantasia }}</strong>? Esta ação não pode ser desfeita.</p>
-    <div class="modal-acoes">
-      <button class="btn-cancelar" (click)="cancelarDelete()">Cancelar</button>
-      <button class="btn-confirmar-delete" (click)="deletar()" [disabled]="deletando">
-        @if (deletando) { <span class="spinner-sm"></span> } @else { Deletar }
+    <div class="page-actions">
+      <button type="button" class="btn btn-secondary" (click)="carregar()" [disabled]="carregando" title="Atualizar lista">
+        <app-icon name="refresh" [size]="16" /> <span class="el-hide-sm">Atualizar</span>
+      </button>
+      <button type="button" class="btn btn-primary" (click)="abrirFormNovo()" title="Nova empresa (N)">
+        <app-icon name="plus" [size]="16" [stroke]="2" /> Nova empresa
       </button>
     </div>
-  </div>
+  </header>
+
+  <!-- ================= KPIs (filtros de atenção) ================= -->
+  <section class="grid-4 el-kpis" aria-label="Resumo da carteira">
+    <button type="button" class="kpi" (click)="limparFiltros()">
+      <div class="kpi-head"><span class="kpi-label">Clientes</span><span class="icon-tile sm"><app-icon name="building" [size]="15" /></span></div>
+      <div class="kpi-main">
+        <span class="kpi-value">{{ carregando ? '–' : empresas.length }}</span>
+        @if (!carregando) { <span class="badge badge-soft badge-success">{{ qtdAtivas }} {{ qtdAtivas === 1 ? 'ativa' : 'ativas' }}</span> }
+      </div>
+      <div class="kpi-foot"><span>Carteira do escritório</span><span class="kpi-link">Ver todas →</span></div>
+    </button>
+
+    <button type="button" class="kpi" [class.is-urgent]="qtdVencidas > 0" [class.active]="filtroAtencao === 'vencidas'" (click)="setAtencao('vencidas')">
+      <div class="kpi-head"><span class="kpi-label">Com obrigações vencidas</span><span class="icon-tile sm danger"><app-icon name="alert-triangle" [size]="15" /></span></div>
+      <div class="kpi-main">
+        <span class="kpi-value">{{ carregandoObrigacoes ? '–' : qtdVencidas }}</span>
+        @if (qtdVencidas > 0) {
+          <span class="badge badge-soft badge-danger">Urgente</span>
+          <span class="badge badge-soft badge-danger tnum">{{ totalObrigacoesVencidas }} {{ totalObrigacoesVencidas === 1 ? 'obrigação' : 'obrigações' }}</span>
+        }
+      </div>
+      <div class="kpi-foot"><span>{{ qtdVencidas > 0 ? 'Clientes com prazos em atraso' : 'Nenhum atraso na carteira' }}</span><span class="kpi-link">Resolver →</span></div>
+    </button>
+
+    <button type="button" class="kpi" [class.active]="filtroAtencao === 'vencendo'" (click)="setAtencao('vencendo')">
+      <div class="kpi-head"><span class="kpi-label">Vencendo em 7 dias</span><span class="icon-tile sm warning"><app-icon name="calendar-clock" [size]="15" /></span></div>
+      <div class="kpi-main">
+        <span class="kpi-value">{{ carregandoObrigacoes ? '–' : qtdVencendo }}</span>
+        @if (qtdVencendo > 0) { <span class="badge badge-soft badge-warning">Esta semana</span> }
+      </div>
+      <div class="kpi-foot"><span>Clientes com prazos próximos</span><span class="kpi-link">Ver →</span></div>
+    </button>
+
+    <button type="button" class="kpi" [class.active]="filtroAtencao === 'irregular'" (click)="setAtencao('irregular')">
+      <div class="kpi-head"><span class="kpi-label">Cadastro a revisar</span><span class="icon-tile sm neutral"><app-icon name="file-text" [size]="15" /></span></div>
+      <div class="kpi-main">
+        <span class="kpi-value">{{ carregando ? '–' : qtdIrregular }}</span>
+        @if (qtdIrregular > 0) { <span class="badge badge-soft badge-warning">Revisar</span> }
+      </div>
+      <div class="kpi-foot"><span>Situação irregular ou sem regime</span><span class="kpi-link">Revisar →</span></div>
+    </button>
+  </section>
+
+  <!-- ================= FILTROS ================= -->
+  <section class="filter-card">
+      <div class="input-icon search el-search">
+        <app-icon name="search" [size]="16" />
+        <input #buscaInput class="input" type="search" placeholder="Buscar por nome, CNPJ ou e-mail"
+               [(ngModel)]="termoBusca" (ngModelChange)="onBusca()" aria-label="Buscar empresas" />
+        @if (!termoBusca) { <span class="kbd el-kbd">/</span> }
+      </div>
+
+      <div class="filter-chips" role="group" aria-label="Filtrar por regime">
+        <button type="button" class="chip" [class.active]="filtroRegime === null" (click)="setRegime(null)">
+          Todos <span class="count">{{ empresas.length }}</span>
+        </button>
+        @for (r of regimesPresentes; track r) {
+          <button type="button" class="chip chip-info" [class.active]="filtroRegime === r" (click)="setRegime(r)">
+            {{ regimeLabel[r] }} <span class="count">{{ qtdRegime(r) }}</span>
+          </button>
+        }
+        @if (qtdRegime('SEM') > 0) {
+          <button type="button" class="chip chip-warning" [class.active]="filtroRegime === 'SEM'" (click)="setRegime('SEM')">
+            Sem regime <span class="count">{{ qtdRegime('SEM') }}</span>
+          </button>
+        }
+      </div>
+
+      <div class="el-tools">
+        <select class="select input-sm" [(ngModel)]="filtroSituacao" (ngModelChange)="onBusca()" aria-label="Situação cadastral">
+          <option [ngValue]="null">Todas as situações</option>
+          @for (s of situacoes; track s) { <option [ngValue]="s">{{ situacaoLabel[s] }}</option> }
+        </select>
+        <select class="select input-sm" [ngModel]="ordem" (ngModelChange)="ordem = $event; ordemAsc = true; filtrar()" aria-label="Ordenar por">
+          <option value="atencao">Precisam de atenção</option>
+          <option value="nome">Nome (A–Z)</option>
+          <option value="regime">Regime</option>
+          <option value="cnpj">CNPJ</option>
+        </select>
+        <div class="segmented" role="group" aria-label="Modo de exibição">
+          <button type="button" [class.active]="visao === 'lista'" (click)="setVisao('lista')" title="Lista" aria-label="Exibir em lista">
+            <app-icon name="list" [size]="16" />
+          </button>
+          <button type="button" [class.active]="visao === 'grade'" (click)="setVisao('grade')" title="Cartões" aria-label="Exibir em cartões">
+            <app-icon name="grid" [size]="16" />
+          </button>
+        </div>
+      </div>
+  </section>
+
+  <!-- ================= TABELA / GRADE ================= -->
+  <section class="card table-card">
+
+    @if (carregando) {
+      <!-- skeleton -->
+      <div class="table-wrap">
+        <table class="table">
+          <tbody>
+            @for (s of skeletonRows; track s) {
+              <tr>
+                <td><div class="cell-entity"><span class="skeleton el-sk-av"></span><div class="stack el-sk-text"><span class="skeleton skeleton-line" style="width: 70%"></span><span class="skeleton skeleton-line" style="width: 45%"></span></div></div></td>
+                <td><span class="skeleton skeleton-line el-sk-w"></span></td>
+                <td><span class="skeleton skeleton-line el-sk-w"></span></td>
+                <td><span class="skeleton skeleton-line el-sk-w"></span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else if (empresas.length === 0) {
+      <div class="empty">
+        <span class="empty-icon"><app-icon name="building" [size]="22" /></span>
+        <span class="empty-title">Nenhuma empresa cadastrada</span>
+        <span class="empty-text">Cadastre os clientes do escritório para organizar arquivos, sócios e obrigações de cada um.</span>
+        <button type="button" class="btn btn-primary" (click)="abrirFormNovo()"><app-icon name="plus" [size]="16" /> Cadastrar empresa</button>
+      </div>
+    } @else if (empresasFiltradas.length === 0) {
+      <div class="empty">
+        <span class="empty-icon"><app-icon name="search" [size]="22" /></span>
+        <span class="empty-title">Nenhuma empresa encontrada</span>
+        <span class="empty-text">Nenhum cliente corresponde à busca e aos filtros selecionados.</span>
+        <button type="button" class="btn btn-secondary" (click)="limparFiltros()"><app-icon name="x" [size]="16" /> Limpar filtros</button>
+      </div>
+    } @else if (visao === 'lista') {
+
+      <!-- ===== LISTA ===== -->
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th class="sortable" (click)="ordenar('nome')" [attr.aria-sort]="ordem === 'nome' ? (ordemAsc ? 'ascending' : 'descending') : null">
+                <span class="el-th">Empresa <app-icon [name]="iconeOrdem('nome')" [size]="13" /></span>
+              </th>
+              <th class="sortable" (click)="ordenar('cnpj')"><span class="el-th">CNPJ <app-icon [name]="iconeOrdem('cnpj')" [size]="13" /></span></th>
+              <th class="sortable" (click)="ordenar('regime')"><span class="el-th">Regime <app-icon [name]="iconeOrdem('regime')" [size]="13" /></span></th>
+              <th class="sortable" (click)="ordenar('atencao')"><span class="el-th">Obrigações <app-icon [name]="iconeOrdem('atencao')" [size]="13" /></span></th>
+              <th>Contato</th>
+              <th class="col-actions"><span class="sr-only">Ações</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (empresa of empresasPagina; track empresa.id) {
+              <tr class="clickable" [class.selected]="menuAbertoId === empresa.id" (click)="abrirPerfil(empresa)">
+                <td>
+                  <div class="cell-entity">
+                    <span class="avatar avatar-square" [ngClass]="empresa.nomeFantasia | avatarCor">{{ empresa.nomeFantasia | iniciais }}</span>
+                    <div class="el-ent-text">
+                      <span class="cell-main truncate">{{ empresa.nomeFantasia }}</span>
+                      <span class="cell-sub truncate">{{ empresa.razaoSocial }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="tnum nowrap el-left">{{ empresa.cnpj | documento }}</td>
+                <td>
+                  @if (empresa.regimeTributario) { <span class="badge badge-info">{{ regimeLabel[empresa.regimeTributario] }}</span> }
+                  @else { <span class="badge badge-warning">Sem regime</span> }
+                  @if (empresa.situacaoCadastral) {
+                    <span class="cell-sub el-sit"><span class="dot" [ngClass]="situacaoTom(empresa.situacaoCadastral).replace('badge-', '')"></span>{{ situacaoLabel[empresa.situacaoCadastral] }}</span>
+                  }
+                </td>
+                <td>
+                  @if (resumoDe(empresa); as r) {
+                    <div class="el-obr">
+                      @if (r.vencidas > 0) {
+                        <span class="badge badge-danger tnum"><app-icon name="alert-triangle" [size]="12" /> {{ r.vencidas }} {{ r.vencidas === 1 ? 'vencida' : 'vencidas' }}</span>
+                      }
+                      @if (r.proxima) {
+                        <span class="badge tnum" [ngClass]="'badge-' + (r.proxima.dataVencimento | prazoTom)" [title]="(r.proxima.nomeObrigacao || 'Obrigação') + ' — ' + (r.proxima.dataVencimento | date:'dd/MM/yyyy')">
+                          {{ r.proxima.dataVencimento | prazo }}
+                        </span>
+                      } @else if (r.vencidas === 0) {
+                        <span class="badge badge-success">Em dia</span>
+                      }
+                    </div>
+                  } @else if (carregandoObrigacoes) {
+                    <span class="skeleton skeleton-line el-sk-w"></span>
+                  } @else {
+                    <span class="badge badge-success">Em dia</span>
+                  }
+                </td>
+                <td>
+                  <span class="tnum nowrap el-contato">{{ empresa.telefone | telefone }}</span>
+                  <span class="cell-sub truncate el-email">{{ empresa.email }}</span>
+                </td>
+                <td class="col-actions" (click)="$event.stopPropagation()">
+                  <div class="row-actions">
+                    <button type="button" class="btn-icon sm bordered" (click)="abrirPerfil(empresa)" title="Abrir perfil" aria-label="Abrir perfil">
+                      <app-icon name="arrow-up-right" [size]="16" />
+                    </button>
+                    <button type="button" class="btn-icon sm bordered" (click)="abrirFormEdicao(empresa)" title="Editar" aria-label="Editar empresa">
+                      <app-icon name="pencil" [size]="15" />
+                    </button>
+                    <button type="button" class="btn-icon sm bordered" [class.active]="menuAbertoId === empresa.id" (click)="toggleMenu(empresa.id, $event)"
+                            title="Mais ações" aria-label="Mais ações" aria-haspopup="menu" [attr.aria-expanded]="menuAbertoId === empresa.id">
+                      <app-icon name="more-horizontal" [size]="16" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+    } @else {
+
+      <!-- ===== GRADE ===== -->
+      <div class="el-grid">
+        @for (empresa of empresasPagina; track empresa.id) {
+          <article class="card card-interactive el-card" (click)="abrirPerfil(empresa)" tabindex="0" (keydown.enter)="abrirPerfil(empresa)">
+            <div class="el-card-head">
+              <span class="avatar avatar-lg avatar-square" [ngClass]="empresa.nomeFantasia | avatarCor">{{ empresa.nomeFantasia | iniciais }}</span>
+              <div class="el-ent-text">
+                <span class="cell-main truncate">{{ empresa.nomeFantasia }}</span>
+                <span class="cell-sub truncate">{{ empresa.razaoSocial }}</span>
+              </div>
+              <button type="button" class="btn-icon sm" (click)="toggleMenu(empresa.id, $event)" title="Mais ações" aria-label="Mais ações">
+                <app-icon name="more-horizontal" [size]="16" />
+              </button>
+            </div>
+            <div class="row wrap">
+              @if (empresa.situacaoCadastral) {
+                <span class="badge badge-dot" [ngClass]="situacaoTom(empresa.situacaoCadastral)">{{ situacaoLabel[empresa.situacaoCadastral] }}</span>
+              }
+              @if (empresa.regimeTributario) { <span class="badge badge-info">{{ regimeLabel[empresa.regimeTributario] }}</span> }
+            </div>
+            <ul class="el-card-info">
+              <li><app-icon name="hash" [size]="14" /><span class="tnum">{{ empresa.cnpj | documento }}</span></li>
+              <li><app-icon name="phone" [size]="14" /><span class="tnum">{{ empresa.telefone | telefone }}</span></li>
+              <li><app-icon name="mail" [size]="14" /><span class="truncate">{{ empresa.email }}</span></li>
+            </ul>
+            <div class="el-card-foot">
+              @if (resumoDe(empresa); as r) {
+                @if (r.vencidas > 0) { <span class="badge badge-danger tnum">{{ r.vencidas }} {{ r.vencidas === 1 ? 'vencida' : 'vencidas' }}</span> }
+                @if (r.proxima) {
+                  <span class="badge tnum" [ngClass]="'badge-' + (r.proxima.dataVencimento | prazoTom)">{{ r.proxima.dataVencimento | prazo }}</span>
+                } @else if (r.vencidas === 0) { <span class="badge badge-success">Em dia</span> }
+              } @else { <span class="badge badge-success">Em dia</span> }
+              <span class="spacer"></span>
+              <span class="link text-sm">Abrir →</span>
+            </div>
+          </article>
+        }
+      </div>
+    }
+
+    <!-- rodapé com paginação -->
+    @if (!carregando && empresasFiltradas.length > 0) {
+      <footer class="table-footer el-footer">
+        <span>Mostrando <strong class="tnum">{{ inicio }}</strong> a <strong class="tnum">{{ fim }}</strong> de <strong class="tnum">{{ empresasFiltradas.length }}</strong> {{ empresasFiltradas.length === 1 ? 'empresa' : 'empresas' }}</span>
+        <div class="table-footer-right">
+          <label class="rows-per-page">
+            <span class="el-hide-sm">Linhas por página</span>
+            <select class="select" [(ngModel)]="porPagina" (ngModelChange)="mudarPorPagina()" aria-label="Linhas por página">
+              @for (n of opcoesPorPagina; track n) { <option [ngValue]="n">{{ n }}</option> }
+            </select>
+          </label>
+          <nav class="pagination" aria-label="Paginação">
+            <button type="button" class="page-btn nav" (click)="irPara(pagina - 1)" [disabled]="pagina === 1" aria-label="Página anterior">
+              <app-icon name="chevron-left" [size]="16" />
+            </button>
+            @for (p of paginas; track $index) {
+              @if (p === 0) { <span class="page-btn" aria-hidden="true">…</span> }
+              @else {
+                <button type="button" class="page-btn tnum" [class.active]="p === pagina" (click)="irPara(p)" [attr.aria-current]="p === pagina ? 'page' : null">{{ p }}</button>
+              }
+            }
+            <button type="button" class="page-btn nav" (click)="irPara(pagina + 1)" [disabled]="pagina === totalPaginas" aria-label="Próxima página">
+              <app-icon name="chevron-right" [size]="16" />
+            </button>
+          </nav>
+        </div>
+      </footer>
+    }
+  </section>
+</div>
+
+<!-- ================= MENU "MAIS AÇÕES" (fixo, fora da tabela p/ não ser cortado) ================= -->
+@if (menuAbertoId !== null) {
+  @for (empresa of empresasPagina; track empresa.id) {
+    @if (empresa.id === menuAbertoId) {
+      <div class="menu el-menu" role="menu" [style.top.px]="menuPosicao.top" [style.right.px]="menuPosicao.right" (click)="$event.stopPropagation()">
+        <div class="menu-label truncate">{{ empresa.nomeFantasia }}</div>
+        <button type="button" class="menu-item" role="menuitem" (click)="abrirPerfil(empresa)"><app-icon name="building" [size]="16" /> Abrir perfil</button>
+        <button type="button" class="menu-item" role="menuitem" (click)="verDetalhes(empresa)"><app-icon name="eye" [size]="16" /> Visualização rápida</button>
+        <button type="button" class="menu-item" role="menuitem" (click)="abrirFormEdicao(empresa)"><app-icon name="pencil" [size]="16" /> Editar dados</button>
+        <button type="button" class="menu-item" role="menuitem" (click)="copiarCnpj(empresa)"><app-icon name="copy" [size]="16" /> Copiar CNPJ</button>
+        <a class="menu-item" role="menuitem" [href]="'mailto:' + empresa.email" (click)="fecharMenu()"><app-icon name="mail" [size]="16" /> Enviar e-mail</a>
+        <div class="menu-sep"></div>
+        <button type="button" class="menu-item danger" role="menuitem" (click)="confirmarDelete(empresa)"><app-icon name="trash" [size]="16" /> Excluir empresa</button>
+      </div>
+    }
+  }
+}
+
+<!-- ================= MODAL FORM / VISUALIZAÇÃO ================= -->
+@if (painelAberto) {
+  <app-empresa-form
+    [empresa]="empresaSelecionada"
+    [modo]="modoPainel"
+    [preenchimento]="preenchimento"
+    (fechar)="fecharPainel()"
+    (salvo)="onEmpresaSalva()"
+    (deletado)="onEmpresaDeletada()"
+  />
 }

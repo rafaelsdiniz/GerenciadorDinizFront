@@ -1,501 +1,611 @@
-@if (carregando) {
-  <div class="estado">
-    <span class="spinner"></span>
-    <p>Carregando dados da empresa...</p>
-  </div>
-} @else if (erro || !empresa) {
-  <div class="estado">
-    <p class="erro">{{ erro || 'Empresa não encontrada.' }}</p>
-    <button class="btn-secundario" (click)="voltar()">Voltar</button>
-  </div>
-} @else {
+<div class="page">
 
-  <!-- STICKY BAR (aparece ao rolar) -->
-  <div class="sticky-bar" [class.visivel]="scrolled">
-    <div class="sticky-inner">
-      <div class="sticky-empresa">
-        <div class="avatar-mini">{{ empresa.nomeFantasia.charAt(0) }}</div>
-        <span class="sticky-nome">{{ empresa.nomeFantasia }}</span>
-        <span class="sticky-cnpj">{{ formatarCnpj(empresa.cnpj) }}</span>
+  <!-- ================= NAVEGAÇÃO ================= -->
+  @if (isAdmin) {
+    <nav class="breadcrumb" aria-label="Você está em">
+      <a routerLink="/empresas">Empresas</a>
+      <span class="sep">/</span>
+      <span class="current truncate">{{ empresa?.nomeFantasia || 'Empresa' }}</span>
+    </nav>
+  } @else {
+    <p class="eyebrow ed-eyebrow">Minha empresa</p>
+  }
+
+  @if (carregando) {
+    <!-- ================= SKELETON ================= -->
+    <section class="card ed-hero" aria-busy="true">
+      <div class="ed-hero-main">
+        <span class="skeleton ed-sk-avatar"></span>
+        <div class="stack ed-id">
+          <span class="skeleton skeleton-line" style="width: 120px"></span>
+          <span class="skeleton" style="width: 60%; height: 28px"></span>
+          <span class="skeleton skeleton-line" style="width: 40%"></span>
+        </div>
       </div>
-      <nav class="sticky-tabs">
-        @for (aba of abas; track aba.id) {
-          <button
-            class="sticky-tab"
-            [class.ativo]="abaAtual === aba.id"
-            (click)="mudarAba(aba.id)"
-          >{{ aba.label }}</button>
-        }
-      </nav>
+    </section>
+    <div class="grid-4 ed-kpis">
+      @for (i of [1, 2, 3, 4]; track i) { <div class="kpi"><span class="skeleton skeleton-line" style="width: 50%"></span><span class="skeleton" style="width: 40%; height: 32px"></span></div> }
     </div>
-  </div>
 
-  <div class="perfil">
+  } @else if (erro || !empresa) {
+    <!-- ================= ERRO ================= -->
+    <section class="card">
+      <div class="empty">
+        <span class="empty-icon ed-empty-danger"><app-icon name="alert-circle" [size]="22" /></span>
+        <span class="empty-title">Não foi possível abrir a empresa</span>
+        <span class="empty-text">{{ erro || 'Empresa não encontrada.' }}</span>
+        <div class="row">
+          <button type="button" class="btn btn-secondary" (click)="voltar()"><app-icon name="arrow-left" [size]="16" /> Voltar</button>
+          @if (idRota) {
+            <button type="button" class="btn btn-primary" (click)="carregar(idRota)"><app-icon name="refresh" [size]="16" /> Tentar novamente</button>
+          }
+        </div>
+      </div>
+    </section>
 
-    <!-- HEADER -->
-    <header class="cabecalho">
-      <button class="btn-voltar" (click)="voltar()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-        Voltar
-      </button>
+  } @else {
 
-      <div class="cab-topo">
-        <div class="cab-identidade">
-          <div class="avatar-empresa">{{ empresa.nomeFantasia.charAt(0) }}</div>
-          <div class="cab-info">
-            <h1 class="nome-fantasia">{{ empresa.nomeFantasia }}</h1>
-            <p class="razao-social">{{ empresa.razaoSocial }}</p>
-            <div class="linha-cnpj">
-              <span class="cnpj-texto">CNPJ {{ formatarCnpj(empresa.cnpj) }}</span>
-              <button class="btn-copiar-inline" (click)="copiar(formatarCnpj(empresa.cnpj), 'cnpj-header')" title="Copiar CNPJ">
-                @if (copiado === 'cnpj-header') {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                } @else {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                }
+    <!-- ================= CABEÇALHO ================= -->
+    <section class="card ed-hero">
+      <div class="ed-hero-main">
+        <span class="avatar avatar-xl avatar-square ed-avatar" [ngClass]="empresa.nomeFantasia | avatarCor">{{ empresa.nomeFantasia | iniciais }}</span>
+
+        <div class="ed-id">
+          <div class="row wrap ed-badges">
+            @if (empresa.situacaoCadastral) {
+              <span class="badge badge-dot" [ngClass]="situacaoTom()">{{ situacaoLabel[empresa.situacaoCadastral] }}</span>
+            }
+            @if (empresa.regimeTributario) { <span class="badge badge-info">{{ regimeLabel[empresa.regimeTributario] }}</span> }
+            @if (empresa.naturezaJuridica) { <span class="badge badge-outline">{{ naturezaLabel[empresa.naturezaJuridica] }}</span> }
+          </div>
+          <h1 class="page-title ed-nome">{{ empresa.nomeFantasia }}</h1>
+          <p class="ed-razao">{{ empresa.razaoSocial }}</p>
+
+          <div class="ed-meta">
+            <span class="ed-meta-item">
+              <app-icon name="hash" [size]="14" />
+              <span class="tnum">{{ empresa.cnpj | documento }}</span>
+              <button type="button" class="btn-icon sm ed-copy" (click)="copiar(doc(empresa.cnpj), 'cnpj', 'CNPJ')" title="Copiar CNPJ" aria-label="Copiar CNPJ">
+                <app-icon [name]="copiado === 'cnpj' ? 'check' : 'copy'" [size]="14" />
               </button>
-            </div>
-            <div class="badges">
-              @if (empresa.situacaoCadastral) {
-                <span [class]="situacaoClasse()">{{ situacaoLabel[empresa.situacaoCadastral] }}</span>
-              }
-              @if (empresa.naturezaJuridica) {
-                <span class="badge-tag">{{ naturezaLabel[empresa.naturezaJuridica] }}</span>
-              }
-              @if (empresa.regimeTributario) {
-                <span class="badge-tag badge-regime">{{ regimeLabel[empresa.regimeTributario] }}</span>
-              }
-            </div>
+            </span>
+            @if (empresa.telefone) {
+              <a class="ed-meta-item" [href]="'tel:' + empresa.telefone"><app-icon name="phone" [size]="14" /><span class="tnum">{{ empresa.telefone | telefone }}</span></a>
+            }
+            @if (empresa.email) {
+              <a class="ed-meta-item" [href]="'mailto:' + empresa.email"><app-icon name="mail" [size]="14" /><span class="truncate">{{ empresa.email }}</span></a>
+            }
+            @if (empresa.endereco?.cidade) {
+              <span class="ed-meta-item"><app-icon name="map-pin" [size]="14" />{{ empresa.endereco?.cidade }}{{ empresa.endereco?.uf ? '/' + empresa.endereco?.uf : '' }}</span>
+            }
           </div>
         </div>
 
-        <!-- QUICK ACTIONS -->
-        <div class="quick-actions">
-          <button class="qa-btn" (click)="verArquivos()" title="Ver arquivos da empresa">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-            </svg>
-            Arquivos
-          </button>
-          <button class="qa-btn" (click)="verObrigacoes()" title="Ver obrigações">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-            </svg>
-            Obrigações
-          </button>
-          <button class="qa-btn" (click)="verCalendario()" title="Abrir calendário">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-            Calendário
-          </button>
-        </div>
-      </div>
-
-      <!-- STATS -->
-      <div class="stats">
-        <div class="stat">
-          <span class="stat-label">Arquivos ativos</span>
-          <span class="stat-valor">{{ statsArquivosAtivos }}</span>
-        </div>
-        <div class="stat" [class.stat-alerta]="statsArquivosVencidos > 0">
-          <span class="stat-label">Arquivos vencidos</span>
-          <span class="stat-valor">{{ statsArquivosVencidos }}</span>
-        </div>
-        <div class="stat" [class.stat-alerta]="statsObrigacoesVencidas > 0">
-          <span class="stat-label">Obrigações vencidas</span>
-          <span class="stat-valor">{{ statsObrigacoesVencidas }}</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Pendentes</span>
-          <span class="stat-valor">{{ statsObrigacoesPendentes }}</span>
-        </div>
-        <div class="stat stat-doc">
-          <span class="stat-label">Documentação</span>
-          <span class="stat-valor">{{ percentualChecklist }}%</span>
-          <div class="stat-barra"><div class="stat-fill" [style.width.%]="percentualChecklist"></div></div>
-        </div>
-      </div>
-    </header>
-
-    <!-- TABS -->
-    <nav class="tabs">
-      @for (aba of abas; track aba.id) {
-        <button class="tab" [class.ativo]="abaAtual === aba.id" (click)="abaAtual = aba.id">
-          @switch (aba.icone) {
-            @case ('home') {
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            }
-            @case ('file') {
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            }
-            @case ('user') {
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            }
-            @case ('check') {
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            }
+        <div class="ed-actions">
+          <button type="button" class="btn btn-secondary" (click)="verObrigacoes()"><app-icon name="calendar-check" [size]="16" /> Obrigações</button>
+          @if (isAdmin) {
+            <button type="button" class="btn btn-secondary" (click)="verArquivos()"><app-icon name="folder" [size]="16" /> Arquivos</button>
+            <button type="button" class="btn btn-primary" (click)="abrirEdicao()"><app-icon name="pencil" [size]="16" /> Editar empresa</button>
+          } @else {
+            <button type="button" class="btn btn-primary" (click)="verArquivos()"><app-icon name="folder" [size]="16" /> Ver arquivos</button>
           }
-          <span>{{ aba.label }}</span>
+          <div class="ed-menu-anchor">
+            <button type="button" class="btn-icon bordered" [class.active]="menuAberto" (click)="toggleMenu($event)"
+                    title="Mais ações" aria-label="Mais ações" aria-haspopup="menu" [attr.aria-expanded]="menuAberto">
+              <app-icon name="more-horizontal" [size]="18" />
+            </button>
+            @if (menuAberto) {
+              <div class="menu ed-menu" role="menu" (click)="$event.stopPropagation()">
+                <button type="button" class="menu-item" role="menuitem" (click)="verCalendario(); menuAberto = false"><app-icon name="calendar" [size]="16" /> Abrir calendário</button>
+                <button type="button" class="menu-item" role="menuitem" (click)="copiar(doc(empresa.cnpj), 'cnpj', 'CNPJ'); menuAberto = false"><app-icon name="copy" [size]="16" /> Copiar CNPJ</button>
+                <button type="button" class="menu-item" role="menuitem" (click)="mudarAba('checklist')"><app-icon name="list-checks" [size]="16" /> Ver checklist</button>
+                @if (isAdmin) {
+                  <button type="button" class="menu-item" role="menuitem" (click)="gerenciarSocios()"><app-icon name="users" [size]="16" /> Gerenciar sócios</button>
+                  <div class="menu-sep"></div>
+                  <button type="button" class="menu-item danger" role="menuitem" (click)="excluir()"><app-icon name="trash" [size]="16" /> Excluir empresa</button>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= KPIs ================= -->
+    <section class="grid-4 ed-kpis" aria-label="Indicadores da empresa">
+      <button type="button" class="kpi" (click)="verArquivos()">
+        <div class="kpi-head"><span class="kpi-label">Arquivos</span><span class="icon-tile sm"><app-icon name="folder" [size]="15" /></span></div>
+        <div class="kpi-main">
+          <span class="kpi-value">{{ statsArquivosAtivos }}</span>
+          @if (statsArquivosVencidos > 0) { <span class="badge badge-soft badge-danger tnum">{{ statsArquivosVencidos }} {{ statsArquivosVencidos === 1 ? 'vencido' : 'vencidos' }}</span> }
+        </div>
+        <div class="kpi-foot"><span>Documentos ativos</span><span class="kpi-link">Abrir →</span></div>
+      </button>
+
+      <button type="button" class="kpi" [class.is-urgent]="statsObrigacoesVencidas > 0" (click)="verObrigacoes()">
+        <div class="kpi-head"><span class="kpi-label">Obrigações vencidas</span><span class="icon-tile sm danger"><app-icon name="alert-triangle" [size]="15" /></span></div>
+        <div class="kpi-main">
+          <span class="kpi-value">{{ statsObrigacoesVencidas }}</span>
+          @if (statsObrigacoesVencidas > 0) { <span class="badge badge-soft badge-danger">Urgente</span> }
+          @else { <span class="badge badge-soft badge-success">Em dia</span> }
+        </div>
+        <div class="kpi-foot"><span>{{ statsObrigacoesVencidas > 0 ? 'Regularize para evitar multas' : 'Nenhuma em atraso' }}</span><span class="kpi-link">Resolver →</span></div>
+      </button>
+
+      <button type="button" class="kpi" (click)="verCalendario()">
+        <div class="kpi-head"><span class="kpi-label">Obrigações pendentes</span><span class="icon-tile sm warning"><app-icon name="calendar-clock" [size]="15" /></span></div>
+        <div class="kpi-main">
+          <span class="kpi-value">{{ statsObrigacoesPendentes }}</span>
+          @if (proximaObrigacao) {
+            <span class="badge badge-soft" [ngClass]="'badge-' + (proximaObrigacao.dataVencimento | prazoTom)">{{ proximaObrigacao.dataVencimento | prazo }}</span>
+          }
+        </div>
+        <div class="kpi-foot">
+          <span class="truncate">
+            @if (proximaObrigacao) { Próxima: <span class="tnum">{{ proximaObrigacao.dataVencimento | date:'dd/MM' }}</span> · {{ proximaObrigacao.nomeObrigacao || 'Obrigação' }} }
+            @else { Nada a vencer }
+          </span>
+          <span class="kpi-link">Calendário →</span>
+        </div>
+      </button>
+
+      <button type="button" class="kpi" (click)="mudarAba('checklist')">
+        <div class="kpi-head"><span class="kpi-label">Documentação</span><span class="icon-tile sm" [ngClass]="tomChecklist"><app-icon name="list-checks" [size]="15" /></span></div>
+        <div class="kpi-main">
+          <span class="kpi-value">{{ percentualChecklist }}%</span>
+          @if (itensChecklistFaltando.length > 0) {
+            <span class="badge badge-soft badge-warning tnum">{{ itensChecklistFaltando.length }} {{ itensChecklistFaltando.length === 1 ? 'pendência' : 'pendências' }}</span>
+          } @else { <span class="badge badge-soft badge-success">Completa</span> }
+        </div>
+        <div class="progress" [ngClass]="tomChecklist"><span [style.width.%]="percentualChecklist"></span></div>
+        <div class="kpi-foot"><span class="tnum">{{ itensChecklistOk }} de {{ checklist.length }} itens</span><span class="kpi-link">Checklist →</span></div>
+      </button>
+    </section>
+
+    <!-- ================= ABAS ================= -->
+    <nav class="tabs ed-tabs" role="tablist">
+      @for (aba of abas; track aba.id) {
+        <button type="button" class="tab" role="tab" [class.active]="abaAtual === aba.id" [attr.aria-selected]="abaAtual === aba.id" (click)="mudarAba(aba.id)">
+          <app-icon [name]="aba.icone" [size]="16" />
+          {{ aba.label }}
+          @if (aba.id === 'socios') { <span class="count">{{ socios.length }}</span> }
+          @if (aba.id === 'dec' && decQtdSemCiencia > 0) {
+            <span class="count" [class.count-danger]="decAtencao.length > 0" title="Comunicações sem ciência">{{ decQtdSemCiencia }}</span>
+          }
           @if (aba.id === 'checklist') {
-            <span class="tab-badge" [class.tab-badge-ok]="itensChecklistFaltando.length === 0">
-              {{ itensChecklistOk }}/{{ checklist.length }}
-            </span>
+            <span class="count" [class.count-danger]="itensChecklistFaltando.length > 0">{{ itensChecklistOk }}/{{ checklist.length }}</span>
           }
         </button>
       }
     </nav>
 
-    <!-- CONTEÚDO DA ABA -->
-    <div class="conteudo">
+    <!-- ========== VISÃO GERAL ========== -->
+    @if (abaAtual === 'visao') {
+      <div class="ed-overview">
+        <div class="stack-lg">
 
-      <!-- ========== VISÃO GERAL ========== -->
-      @if (abaAtual === 'visao') {
-        <div class="grid-visao">
-
-          <!-- destaque: próxima obrigação -->
-          @if (proximaObrigacao) {
-            <div class="destaque destaque-proxima">
-              <div class="destaque-label">Próximo vencimento</div>
-              <p class="destaque-titulo">{{ proximaObrigacao.nomeObrigacao || 'Obrigação' }}</p>
-              <p class="destaque-data">
-                {{ formatarData(proximaObrigacao.dataVencimento) }}
-                @if (proximaObrigacao.diasParaVencer != null) {
-                  @if (proximaObrigacao.diasParaVencer === 0) {
-                    <span class="chip chip-hoje">hoje</span>
-                  } @else if (proximaObrigacao.diasParaVencer <= 7) {
-                    <span class="chip chip-urgente">em {{ proximaObrigacao.diasParaVencer }} dia(s)</span>
-                  } @else {
-                    <span class="chip">em {{ proximaObrigacao.diasParaVencer }} dia(s)</span>
-                  }
-                }
-              </p>
-              <button class="destaque-link" (click)="verCalendario()">Ver no calendário →</button>
+          @if (statsObrigacoesVencidas > 0) {
+            <div class="alert alert-danger ed-alert" role="alert">
+              <app-icon name="alert-triangle" [size]="18" />
+              <div class="ed-alert-text">
+                <div class="alert-title">{{ statsObrigacoesVencidas }} {{ statsObrigacoesVencidas === 1 ? 'obrigação vencida' : 'obrigações vencidas' }}</div>
+                Regularize o quanto antes para evitar multas e juros.
+              </div>
+              <button type="button" class="btn btn-danger btn-sm" (click)="verObrigacoes()">Regularizar</button>
             </div>
           }
 
-          <!-- itens pendentes do checklist -->
-          @if (itensChecklistFaltando.length > 0) {
-            <div class="destaque destaque-pendencias">
-              <div class="destaque-label destaque-label-alerta">
-                Documentação pendente
-                <span class="destaque-qtd">{{ itensChecklistFaltando.length }}</span>
+          @if (decAtencao.length > 0) {
+            <div class="alert ed-alert" [ngClass]="decTacitaDias != null && decTacitaDias <= 2 ? 'alert-danger' : 'alert-warning'" role="alert">
+              <app-icon name="mail" [size]="18" />
+              <div class="ed-alert-text">
+                <div class="alert-title">{{ decAtencao.length }} {{ decAtencao.length === 1 ? 'comunicação do DEC precisa' : 'comunicações do DEC precisam' }} de atenção</div>
+                @if (decTacitaDias != null) { Ciência tácita {{ decTacitaDias === 0 ? 'hoje' : decTacitaDias === 1 ? 'amanhã' : 'em ' + decTacitaDias + ' dias' }} — urgência alta ou crítica e ainda sem ciência. }
+                @else { Urgência alta ou crítica e ainda sem ciência no DEC. }
               </div>
-              <ul class="lista-pendencias">
-                @for (item of itensChecklistFaltando.slice(0, 4); track item.titulo) {
-                  <li>
-                    <span class="dot"></span>
-                    <div>
-                      <strong>{{ item.titulo }}</strong>
-                      @if (item.dica) { <p>{{ item.dica }}</p> }
-                    </div>
-                  </li>
-                }
-              </ul>
-              @if (itensChecklistFaltando.length > 4) {
-                <button class="destaque-link" (click)="abaAtual = 'checklist'">Ver todas as {{ itensChecklistFaltando.length }} pendências →</button>
-              } @else {
-                <button class="destaque-link" (click)="abaAtual = 'checklist'">Ir para checklist →</button>
-              }
-            </div>
-          } @else {
-            <div class="destaque destaque-sucesso">
-              <div class="destaque-icone-sucesso">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              </div>
-              <p class="destaque-titulo">Documentação em dia</p>
-              <p class="destaque-msg">Todos os itens do checklist estão completos.</p>
+              <button type="button" class="btn btn-secondary btn-sm ed-nowrap" (click)="mudarAba('dec')">Ver comunicações</button>
             </div>
           }
 
-          <!-- resumo rápido -->
-          <div class="destaque destaque-resumo">
-            <div class="destaque-label">Resumo</div>
-            <dl class="resumo">
+          <!-- próximos vencimentos -->
+          <section class="card">
+            <header class="card-header">
               <div>
-                <dt>CNPJ</dt>
-                <dd>
-                  {{ formatarCnpj(empresa.cnpj) }}
-                  <button class="btn-copiar-inline" (click)="copiar(formatarCnpj(empresa.cnpj), 'cnpj-resumo')" title="Copiar">
-                    @if (copiado === 'cnpj-resumo') {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    } @else {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                    }
-                  </button>
-                </dd>
+                <h2 class="card-title">Próximos vencimentos</h2>
+                <p class="card-subtitle">Obrigações em aberto e arquivos com validade</p>
               </div>
-              <div><dt>Abertura</dt><dd>{{ formatarData(empresa.dataAbertura) }}</dd></div>
-              <div><dt>Regime</dt>
-                <dd>@if (empresa.regimeTributario) { {{ regimeLabel[empresa.regimeTributario] }} } @else { — }</dd>
+              <button type="button" class="link text-sm" (click)="verCalendario()">Abrir calendário →</button>
+            </header>
+            @if (proximosVencimentos.length === 0) {
+              <div class="empty ed-empty-sm">
+                <span class="empty-icon ed-empty-ok"><app-icon name="calendar-check" [size]="22" /></span>
+                <span class="empty-title">Nenhum vencimento em aberto</span>
+                <span class="empty-text">Todas as obrigações desta empresa estão entregues.</span>
               </div>
-              <div><dt>Endereço</dt><dd>{{ enderecoCompleto() }}</dd></div>
-              <div><dt>Telefone</dt><dd>{{ formatarTelefone(empresa.telefone) }}</dd></div>
-              <div><dt>E-mail</dt><dd><a [href]="'mailto:' + empresa.email">{{ empresa.email }}</a></dd></div>
-            </dl>
-          </div>
-
-        </div>
-      }
-
-      <!-- ========== DADOS ========== -->
-      @if (abaAtual === 'dados') {
-        <div class="grid-secoes">
-
-          <section class="secao">
-            <h2 class="secao-titulo"><span class="secao-icone">📌</span> Identificação</h2>
-            <dl class="lista-dados">
-              <div><dt>Razão Social</dt><dd>{{ empresa.razaoSocial }}</dd></div>
-              <div><dt>Nome Fantasia</dt><dd>{{ empresa.nomeFantasia }}</dd></div>
-              <div>
-                <dt>CNPJ</dt>
-                <dd class="com-copia">
-                  {{ formatarCnpj(empresa.cnpj) }}
-                  <button class="btn-copiar" (click)="copiar(formatarCnpj(empresa.cnpj), 'cnpj-dados')" title="Copiar">
-                    @if (copiado === 'cnpj-dados') { <span class="copiado">✓ Copiado</span> }
-                    @else {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                    }
-                  </button>
-                </dd>
-              </div>
-              <div><dt>Data de abertura</dt><dd>{{ formatarData(empresa.dataAbertura) }}</dd></div>
-              <div><dt>Situação cadastral</dt>
-                <dd>
-                  @if (empresa.situacaoCadastral) {
-                    <span [class]="situacaoClasse()">{{ situacaoLabel[empresa.situacaoCadastral] }}</span>
-                  } @else { — }
-                </dd>
-              </div>
-              <div><dt>Natureza jurídica</dt>
-                <dd>@if (empresa.naturezaJuridica) { {{ naturezaLabel[empresa.naturezaJuridica] }} } @else { — }</dd>
-              </div>
-            </dl>
-          </section>
-
-          <section class="secao">
-            <h2 class="secao-titulo"><span class="secao-icone">📍</span> Endereço</h2>
-            @if (empresa.endereco) {
-              <dl class="lista-dados">
-                <div class="full"><dt>Logradouro</dt><dd>{{ empresa.endereco.logradouro || '—' }}</dd></div>
-                <div><dt>Número</dt><dd>{{ empresa.endereco.numero || '—' }}</dd></div>
-                <div><dt>Complemento</dt><dd>{{ empresa.endereco.complemento || '—' }}</dd></div>
-                <div><dt>Bairro</dt><dd>{{ empresa.endereco.bairro || '—' }}</dd></div>
-                <div><dt>Cidade</dt><dd>{{ empresa.endereco.cidade || '—' }}</dd></div>
-                <div><dt>UF</dt><dd>{{ empresa.endereco.uf || '—' }}</dd></div>
-                <div>
-                  <dt>CEP</dt>
-                  <dd class="com-copia">
-                    {{ formatarCep(empresa.endereco.cep) || '—' }}
-                    @if (empresa.endereco.cep) {
-                      <button class="btn-copiar" (click)="copiar(formatarCep(empresa.endereco.cep), 'cep')" title="Copiar">
-                        @if (copiado === 'cep') { <span class="copiado">✓ Copiado</span> }
-                        @else {
-                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                        }
-                      </button>
-                    }
-                  </dd>
-                </div>
-              </dl>
             } @else {
-              <p class="vazio">Endereço não cadastrado.</p>
+              <div class="list">
+                @for (v of proximosVencimentos; track v.tipo + v.id) {
+                  <button type="button" class="list-item" (click)="abrirVencimento(v)">
+                    <span class="icon-tile sm" [ngClass]="v.vencido ? 'danger' : v.tipo === 'arquivo' ? 'neutral' : ''">
+                      <app-icon [name]="v.tipo === 'arquivo' ? 'file-text' : 'calendar-clock'" [size]="15" />
+                    </span>
+                    <span class="list-item-body">
+                      <span class="list-item-title truncate ed-block">{{ v.titulo }}</span>
+                      <span class="list-item-sub ed-block">
+                        @if (v.tipo === 'arquivo') { Arquivo }
+                        @else { {{ v.cliente ? 'Cliente envia' : 'Obrigação' }}@if (v.competencia) { · <span class="tnum">Comp. {{ v.competencia }}</span> } }
+                        · <span class="tnum">{{ v.data | date:'dd/MM/yyyy' }}</span>
+                        @if (v.tipo === 'obrigacao' && v.arquivos) {
+                          · <span class="ed-anexos tnum" [title]="v.arquivos + ' arquivo(s) anexado(s)'"><app-icon name="paperclip" [size]="12" /> {{ v.arquivos }}</span>
+                        }
+                      </span>
+                    </span>
+                    <span class="badge tnum" [ngClass]="'badge-' + (v.vencido ? 'danger' : (v.data | prazoTom))">{{ v.data | prazo }}</span>
+                  </button>
+                }
+              </div>
             }
           </section>
 
-          <section class="secao">
-            <h2 class="secao-titulo"><span class="secao-icone">📞</span> Contato</h2>
-            <dl class="lista-dados">
-              <div><dt>Telefone</dt>
-                <dd class="com-copia">
-                  {{ formatarTelefone(empresa.telefone) }}
-                  <button class="btn-copiar" (click)="copiar(formatarTelefone(empresa.telefone), 'tel')" title="Copiar">
-                    @if (copiado === 'tel') { <span class="copiado">✓ Copiado</span> }
-                    @else {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                    }
-                  </button>
-                </dd>
+          <!-- documentação pendente -->
+          <section class="card">
+            <header class="card-header">
+              <div>
+                <h2 class="card-title">
+                  Documentação pendente
+                  @if (itensChecklistFaltando.length > 0) { <span class="count count-danger">{{ itensChecklistFaltando.length }}</span> }
+                </h2>
+                <p class="card-subtitle tnum">{{ itensChecklistOk }} de {{ checklist.length }} itens do checklist concluídos</p>
               </div>
-              <div><dt>E-mail</dt>
-                <dd class="com-copia">
-                  <a [href]="'mailto:' + empresa.email">{{ empresa.email }}</a>
-                  <button class="btn-copiar" (click)="copiar(empresa.email, 'email')" title="Copiar">
-                    @if (copiado === 'email') { <span class="copiado">✓ Copiado</span> }
-                    @else {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                    }
-                  </button>
-                </dd>
+              <button type="button" class="link text-sm" (click)="mudarAba('checklist')">Ver checklist →</button>
+            </header>
+            @if (itensChecklistFaltando.length === 0) {
+              <div class="empty ed-empty-sm">
+                <span class="empty-icon ed-empty-ok"><app-icon name="check" [size]="22" [stroke]="2" /></span>
+                <span class="empty-title">Documentação em dia</span>
+                <span class="empty-text">Todos os itens do checklist estão completos.</span>
               </div>
-              <div><dt>Site</dt>
-                <dd>
-                  @if (empresa.site) { <a [href]="empresa.site" target="_blank" rel="noopener">{{ empresa.site }}</a> } @else { — }
-                </dd>
-              </div>
-            </dl>
-          </section>
-
-          <section class="secao">
-            <h2 class="secao-titulo"><span class="secao-icone">🧾</span> Dados fiscais</h2>
-            <dl class="lista-dados">
-              <div><dt>Inscrição Estadual</dt>
-                <dd class="com-copia">
-                  {{ empresa.inscricaoEstadual || '—' }}
-                  @if (empresa.inscricaoEstadual) {
-                    <button class="btn-copiar" (click)="copiar(empresa.inscricaoEstadual, 'ie')" title="Copiar">
-                      @if (copiado === 'ie') { <span class="copiado">✓ Copiado</span> }
-                      @else {
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                      }
-                    </button>
-                  }
-                </dd>
-              </div>
-              <div><dt>Inscrição Municipal</dt>
-                <dd class="com-copia">
-                  {{ empresa.inscricaoMunicipal || '—' }}
-                  @if (empresa.inscricaoMunicipal) {
-                    <button class="btn-copiar" (click)="copiar(empresa.inscricaoMunicipal, 'im')" title="Copiar">
-                      @if (copiado === 'im') { <span class="copiado">✓ Copiado</span> }
-                      @else {
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                      }
-                    </button>
-                  }
-                </dd>
-              </div>
-              <div><dt>Regime tributário</dt>
-                <dd>@if (empresa.regimeTributario) { {{ regimeLabel[empresa.regimeTributario] }} } @else { — }</dd>
-              </div>
-              <div><dt>CNAE principal</dt><dd>{{ empresa.cnaePrincipal || '—' }}</dd></div>
-              <div class="full"><dt>CNAEs secundários</dt>
-                <dd>
-                  @if (cnaesSecundariosLista().length > 0) {
-                    <div class="cnae-tags">
-                      @for (c of cnaesSecundariosLista(); track c) {
-                        <span class="cnae-tag">{{ c }}</span>
-                      }
+            } @else {
+              <div class="list">
+                @for (item of itensChecklistFaltando.slice(0, 5); track item.titulo) {
+                  <div class="list-item">
+                    <span class="icon-tile sm warning"><app-icon name="alert-circle" [size]="15" /></span>
+                    <div class="list-item-body">
+                      <div class="list-item-title">{{ item.titulo }}</div>
+                      <div class="list-item-sub">{{ item.dica || item.descricao }}</div>
                     </div>
-                  } @else { — }
-                </dd>
-              </div>
-            </dl>
-          </section>
-
-        </div>
-      }
-
-      <!-- ========== SÓCIOS ========== -->
-      @if (abaAtual === 'socios') {
-        <section class="secao">
-          <div class="secao-header">
-            <h2 class="secao-titulo">
-              <span class="secao-icone">👤</span> Sócios e responsáveis
-              <span class="contador">{{ socios.length }}</span>
-            </h2>
-          </div>
-          @if (socios.length === 0) {
-            <div class="vazio-grande">
-              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-              <p>Nenhum sócio cadastrado para esta empresa.</p>
-            </div>
-          } @else {
-            <div class="grid-socios">
-              @for (s of socios; track s.id) {
-                <div class="card-socio" [class.card-admin]="s.administrador">
-                  <div class="avatar-socio-grande">{{ s.nome.charAt(0) }}</div>
-                  <div class="socio-info">
-                    <p class="socio-nome">{{ s.nome }}</p>
-                    <p class="socio-cpf">
-                      CPF {{ formatarCpf(s.cpf) }}
-                      <button class="btn-copiar-inline" (click)="copiar(formatarCpf(s.cpf), 'cpf-' + s.id)" title="Copiar CPF">
-                        @if (copiado === 'cpf-' + s.id) {
-                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                        } @else {
-                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                        }
-                      </button>
-                    </p>
-                    <div class="socio-footer">
-                      @if (s.participacao != null) {
-                        <div class="participacao-bar">
-                          <div class="participacao-fill" [style.width.%]="s.participacao"></div>
-                          <span>{{ s.participacao.toFixed(2) }}%</span>
-                        </div>
-                      } @else {
-                        <span class="sem-part">sem % informada</span>
-                      }
-                    </div>
+                    @if (rotuloAcao(item.acao); as rotulo) {
+                      <button type="button" class="btn btn-ghost btn-sm ed-nowrap" (click)="executarAcao(item.acao)">{{ rotulo }}</button>
+                    }
                   </div>
-                  @if (s.administrador) {
-                    <span class="badge-admin" title="Administrador">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                      Admin
-                    </span>
-                  }
-                </div>
+                }
+              </div>
+              @if (itensChecklistFaltando.length > 5) {
+                <footer class="card-footer ed-card-foot">
+                  <button type="button" class="link text-sm" (click)="mudarAba('checklist')">Ver todas as {{ itensChecklistFaltando.length }} pendências →</button>
+                </footer>
               }
+            }
+          </section>
+        </div>
+
+        <aside class="stack-lg">
+          <!-- resumo -->
+          <section class="card">
+            <header class="card-header"><h2 class="card-title">Resumo</h2>
+              <button type="button" class="link text-sm" (click)="mudarAba('dados')">Dados completos →</button>
+            </header>
+            <dl class="dl ed-dl-1 card-body">
+              <div><dt>CNPJ</dt><dd class="ed-copyable"><span class="tnum">{{ empresa.cnpj | documento }}</span>
+                <button type="button" class="btn-icon sm ed-copy" (click)="copiar(doc(empresa.cnpj), 'cnpj-r', 'CNPJ')" title="Copiar CNPJ" aria-label="Copiar CNPJ"><app-icon [name]="copiado === 'cnpj-r' ? 'check' : 'copy'" [size]="14" /></button></dd></div>
+              <div><dt>Abertura</dt><dd class="tnum">{{ empresa.dataAbertura ? (empresa.dataAbertura | date:'dd/MM/yyyy') : '—' }}</dd></div>
+              <div><dt>Regime</dt><dd>{{ empresa.regimeTributario ? regimeLabel[empresa.regimeTributario] : '—' }}</dd></div>
+              <div><dt>Endereço</dt><dd>{{ enderecoCompleto() }}</dd></div>
+              <div><dt>Telefone</dt><dd class="tnum">{{ empresa.telefone | telefone }}</dd></div>
+              <div><dt>E-mail</dt><dd><a [href]="'mailto:' + empresa.email">{{ empresa.email }}</a></dd></div>
+            </dl>
+          </section>
+
+          <!-- sócios (prévia) -->
+          <section class="card">
+            <header class="card-header">
+              <h2 class="card-title">Sócios <span class="count">{{ socios.length }}</span></h2>
+              <button type="button" class="link text-sm" (click)="mudarAba('socios')">Ver todos →</button>
+            </header>
+            @if (socios.length === 0) {
+              <div class="empty ed-empty-sm">
+                <span class="empty-text">Nenhum sócio cadastrado.</span>
+                @if (isAdmin) { <button type="button" class="btn btn-secondary btn-sm" (click)="gerenciarSocios()"><app-icon name="user-plus" [size]="15" /> Cadastrar sócio</button> }
+              </div>
+            } @else {
+              <div class="list">
+                @for (s of sociosOrdenados.slice(0, 4); track s.id) {
+                  <div class="list-item">
+                    <span class="avatar avatar-sm" [ngClass]="s.nome | avatarCor">{{ s.nome | iniciais }}</span>
+                    <div class="list-item-body">
+                      <div class="list-item-title truncate">{{ s.nome }}</div>
+                      @if (s.administrador) { <div class="list-item-sub">Administrador</div> }
+                    </div>
+                    <span class="tnum text-sm fw-500">{{ s.participacao != null ? (s.participacao | number:'1.0-2') + '%' : '—' }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </section>
+        </aside>
+      </div>
+    }
+
+    <!-- ========== DADOS CADASTRAIS ========== -->
+    @if (abaAtual === 'dados') {
+      <div class="grid-2 ed-dados">
+        <section class="card">
+          <header class="card-header">
+            <h2 class="card-title"><span class="icon-tile sm"><app-icon name="id-card" [size]="15" /></span> Identificação</h2>
+            @if (isAdmin) { <button type="button" class="btn btn-ghost btn-sm" (click)="abrirEdicao()"><app-icon name="pencil" [size]="14" /> Editar</button> }
+          </header>
+          <dl class="dl card-body">
+            <div class="span-2"><dt>Razão social</dt><dd>{{ empresa.razaoSocial }}</dd></div>
+            <div><dt>Nome fantasia</dt><dd>{{ empresa.nomeFantasia }}</dd></div>
+            <div><dt>CNPJ</dt><dd class="ed-copyable"><span class="tnum">{{ empresa.cnpj | documento }}</span>
+              <button type="button" class="btn-icon sm ed-copy" (click)="copiar(doc(empresa.cnpj), 'cnpj-d', 'CNPJ')" title="Copiar CNPJ" aria-label="Copiar CNPJ"><app-icon [name]="copiado === 'cnpj-d' ? 'check' : 'copy'" [size]="14" /></button></dd></div>
+            <div><dt>Data de abertura</dt><dd class="tnum">{{ empresa.dataAbertura ? (empresa.dataAbertura | date:'dd/MM/yyyy') : '—' }}</dd></div>
+            <div><dt>Situação cadastral</dt>
+              <dd>@if (empresa.situacaoCadastral) { <span class="badge badge-dot" [ngClass]="situacaoTom()">{{ situacaoLabel[empresa.situacaoCadastral] }}</span> } @else { — }</dd>
+            </div>
+            <div class="span-2"><dt>Natureza jurídica</dt><dd>{{ empresa.naturezaJuridica ? naturezaLabel[empresa.naturezaJuridica] : '—' }}</dd></div>
+          </dl>
+        </section>
+
+        <section class="card">
+          <header class="card-header">
+            <h2 class="card-title"><span class="icon-tile sm"><app-icon name="percent" [size]="15" /></span> Dados fiscais</h2>
+            @if (isAdmin) { <button type="button" class="btn btn-ghost btn-sm" (click)="abrirEdicao()"><app-icon name="pencil" [size]="14" /> Editar</button> }
+          </header>
+          <dl class="dl card-body">
+            <div><dt>Regime tributário</dt><dd>{{ empresa.regimeTributario ? regimeLabel[empresa.regimeTributario] : '—' }}</dd></div>
+            <div><dt>CNAE principal</dt><dd class="tnum">{{ empresa.cnaePrincipal || '—' }}</dd></div>
+            <div><dt>Inscrição estadual</dt><dd class="ed-copyable"><span class="tnum">{{ empresa.inscricaoEstadual || '—' }}</span>
+              @if (empresa.inscricaoEstadual) { <button type="button" class="btn-icon sm ed-copy" (click)="copiar(empresa.inscricaoEstadual, 'ie', 'Inscrição estadual')" title="Copiar IE" aria-label="Copiar inscrição estadual"><app-icon [name]="copiado === 'ie' ? 'check' : 'copy'" [size]="14" /></button> }</dd></div>
+            <div><dt>Inscrição municipal</dt><dd class="ed-copyable"><span class="tnum">{{ empresa.inscricaoMunicipal || '—' }}</span>
+              @if (empresa.inscricaoMunicipal) { <button type="button" class="btn-icon sm ed-copy" (click)="copiar(empresa.inscricaoMunicipal, 'im', 'Inscrição municipal')" title="Copiar IM" aria-label="Copiar inscrição municipal"><app-icon [name]="copiado === 'im' ? 'check' : 'copy'" [size]="14" /></button> }</dd></div>
+            <div class="span-2"><dt>CNAEs secundários</dt>
+              <dd>
+                @if (cnaesSecundariosLista().length > 0) {
+                  <div class="row wrap ed-cnaes">@for (c of cnaesSecundariosLista(); track c) { <span class="tag tnum">{{ c }}</span> }</div>
+                } @else { — }
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="card">
+          <header class="card-header">
+            <h2 class="card-title"><span class="icon-tile sm"><app-icon name="map-pin" [size]="15" /></span> Endereço</h2>
+            @if (isAdmin) { <button type="button" class="btn btn-ghost btn-sm" (click)="abrirEdicao()"><app-icon name="pencil" [size]="14" /> Editar</button> }
+          </header>
+          @if (empresa.endereco) {
+            <dl class="dl card-body">
+              <div class="span-2"><dt>Logradouro</dt><dd>{{ empresa.endereco.logradouro || '—' }}</dd></div>
+              <div><dt>Número</dt><dd class="tnum">{{ empresa.endereco.numero || '—' }}</dd></div>
+              <div><dt>Complemento</dt><dd>{{ empresa.endereco.complemento || '—' }}</dd></div>
+              <div><dt>Bairro</dt><dd>{{ empresa.endereco.bairro || '—' }}</dd></div>
+              <div><dt>Cidade / UF</dt><dd>{{ empresa.endereco.cidade || '—' }}{{ empresa.endereco.uf ? ' / ' + empresa.endereco.uf : '' }}</dd></div>
+              <div><dt>CEP</dt><dd class="ed-copyable"><span class="tnum">{{ formatarCep(empresa.endereco.cep) || '—' }}</span>
+                @if (empresa.endereco.cep) { <button type="button" class="btn-icon sm ed-copy" (click)="copiar(formatarCep(empresa.endereco.cep), 'cep', 'CEP')" title="Copiar CEP" aria-label="Copiar CEP"><app-icon [name]="copiado === 'cep' ? 'check' : 'copy'" [size]="14" /></button> }</dd></div>
+            </dl>
+          } @else {
+            <div class="empty ed-empty-sm">
+              <span class="empty-text">Endereço não cadastrado.</span>
+              @if (isAdmin) { <button type="button" class="btn btn-secondary btn-sm" (click)="abrirEdicao()">Informar endereço</button> }
             </div>
           }
         </section>
-      }
 
-      <!-- ========== CHECKLIST ========== -->
-      @if (abaAtual === 'checklist') {
-        <section class="secao secao-checklist">
-          <div class="checklist-header">
-            <h2 class="secao-titulo">
-              <span class="secao-icone">✅</span> Checklist de documentação
-            </h2>
-            <div class="progresso-wrap">
-              <span class="progresso-num">{{ itensChecklistOk }}/{{ checklist.length }}</span>
-              <div class="progresso-barra">
-                <div class="progresso-fill" [style.width.%]="percentualChecklist"></div>
-              </div>
-              <span class="progresso-pct">{{ percentualChecklist }}%</span>
+        <section class="card">
+          <header class="card-header">
+            <h2 class="card-title"><span class="icon-tile sm"><app-icon name="phone" [size]="15" /></span> Contato</h2>
+            @if (isAdmin) { <button type="button" class="btn btn-ghost btn-sm" (click)="abrirEdicao()"><app-icon name="pencil" [size]="14" /> Editar</button> }
+          </header>
+          <dl class="dl card-body">
+            <div><dt>Telefone</dt><dd class="ed-copyable"><span class="tnum">{{ empresa.telefone | telefone }}</span>
+              @if (empresa.telefone) { <button type="button" class="btn-icon sm ed-copy" (click)="copiar(tel(empresa.telefone), 'tel', 'Telefone')" title="Copiar telefone" aria-label="Copiar telefone"><app-icon [name]="copiado === 'tel' ? 'check' : 'copy'" [size]="14" /></button> }</dd></div>
+            <div><dt>E-mail</dt><dd class="ed-copyable"><a class="truncate" [href]="'mailto:' + empresa.email">{{ empresa.email }}</a>
+              <button type="button" class="btn-icon sm ed-copy" (click)="copiar(empresa.email, 'email', 'E-mail')" title="Copiar e-mail" aria-label="Copiar e-mail"><app-icon [name]="copiado === 'email' ? 'check' : 'copy'" [size]="14" /></button></dd></div>
+            <div class="span-2"><dt>Site</dt>
+              <dd>@if (empresa.site) { <a [href]="empresa.site" target="_blank" rel="noopener" class="ed-copyable">{{ empresa.site }} <app-icon name="external-link" [size]="13" /></a> } @else { — }</dd>
             </div>
-          </div>
+          </dl>
+        </section>
+      </div>
+    }
 
-          <ul class="checklist">
-            @for (item of checklist; track item.titulo) {
-              <li [class.ok]="item.ok" [class.pendente]="!item.ok">
-                <span class="check-icon">
-                  @if (item.ok) {
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  } @else {
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  }
+    <!-- ========== SÓCIOS ========== -->
+    @if (abaAtual === 'socios') {
+      <section class="card table-card">
+        <header class="card-header">
+          <div>
+            <h2 class="card-title">Sócios e responsáveis <span class="count">{{ socios.length }}</span></h2>
+            <p class="card-subtitle">Quadro societário e participação no capital</p>
+          </div>
+          @if (isAdmin && socios.length > 0) {
+            <button type="button" class="btn btn-secondary btn-sm" (click)="gerenciarSocios()"><app-icon name="user-cog" [size]="15" /> Gerenciar sócios</button>
+          }
+        </header>
+        @if (socios.length === 0) {
+          <div class="empty">
+            <span class="empty-icon"><app-icon name="users" [size]="22" /></span>
+            <span class="empty-title">Nenhum sócio cadastrado</span>
+            <span class="empty-text">O quadro societário é usado no checklist de documentação e na identificação dos responsáveis.</span>
+            @if (isAdmin) { <button type="button" class="btn btn-primary" (click)="gerenciarSocios()"><app-icon name="user-plus" [size]="16" /> Cadastrar sócio</button> }
+          </div>
+        } @else {
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Sócio</th>
+                  <th>CPF</th>
+                  <th class="ed-col-part">Participação</th>
+                  <th>Função</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (s of sociosOrdenados; track s.id) {
+                  <tr>
+                    <td>
+                      <div class="cell-entity">
+                        <span class="avatar" [ngClass]="s.nome | avatarCor">{{ s.nome | iniciais }}</span>
+                        <span class="cell-main">{{ s.nome }}</span>
+                      </div>
+                    </td>
+                    <td class="nowrap">
+                      <span class="ed-copyable"><span class="tnum">{{ s.cpf | documento }}</span>
+                        <button type="button" class="btn-icon sm ed-copy" (click)="copiar(doc(s.cpf), 'cpf-' + s.id, 'CPF')" title="Copiar CPF" aria-label="Copiar CPF"><app-icon [name]="copiado === 'cpf-' + s.id ? 'check' : 'copy'" [size]="14" /></button>
+                      </span>
+                    </td>
+                    <td>
+                      @if (s.participacao != null) {
+                        <div class="ed-part">
+                          <div class="progress"><span [style.width.%]="s.participacao"></span></div>
+                          <span class="tnum fw-500">{{ s.participacao | number:'1.2-2' }}%</span>
+                        </div>
+                      } @else { <span class="text-faint text-sm">Não informada</span> }
+                    </td>
+                    <td>
+                      @if (s.administrador) { <span class="badge badge-info"><app-icon name="shield-check" [size]="12" /> Administrador</span> }
+                      @else { <span class="badge badge-neutral">Sócio</span> }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <footer class="table-footer">
+            <span>Total de participação</span>
+            <span class="row-sm">
+              <span class="tnum fw-600 text-ink-2">{{ totalParticipacao | number:'1.2-2' }}%</span>
+              @if (totalParticipacao > 99.99 && totalParticipacao < 100.01) { <span class="badge badge-success">Fecha 100%</span> }
+              @else { <span class="badge badge-warning">Ajustar para 100%</span> }
+            </span>
+          </footer>
+        }
+      </section>
+    }
+
+    <!-- ========== DEC ========== -->
+    @if (abaAtual === 'dec') {
+      <section class="card table-card">
+        <header class="card-header">
+          <div>
+            <h2 class="card-title">Comunicações do DEC <span class="count">{{ dec.length }}</span></h2>
+            <p class="card-subtitle">Domicílio Eletrônico do Contribuinte · SEFAZ-TO · somente leitura</p>
+          </div>
+          <a routerLink="/dec" class="link text-sm">Abrir Comunicações DEC →</a>
+        </header>
+        @if (decCarregando && !dec.length) {
+          <div class="loading-block"><span class="spinner"></span> Carregando comunicações…</div>
+        } @else if (decErro) {
+          <div class="empty ed-empty-sm">
+            <span class="empty-icon ed-empty-danger"><app-icon name="alert-circle" [size]="22" /></span>
+            <span class="empty-title">Não foi possível carregar o DEC</span>
+            <span class="empty-text">{{ decErro }}</span>
+            <button type="button" class="btn btn-secondary btn-sm" (click)="carregarDec()"><app-icon name="refresh" [size]="15" /> Tentar novamente</button>
+          </div>
+        } @else if (!dec.length) {
+          <div class="empty">
+            <span class="empty-icon ed-empty-ok"><app-icon name="inbox" [size]="22" /></span>
+            <span class="empty-title">Nenhuma comunicação no DEC nos últimos 180 dias</span>
+            <span class="empty-text">Notificações, intimações e alertas da SEFAZ-TO para esta empresa aparecem aqui automaticamente.</span>
+          </div>
+        } @else {
+          <app-dec-tabela [itens]="decPaginaItens" [mostrarEmpresa]="false" [compacta]="true"
+                          [selecionadoId]="decDetalhe?.id ?? null" (abrir)="decDetalhe = $event" />
+          @if (dec.length > 10) {
+            <app-paginador [total]="dec.length" rotulo="comunicações" [(pagina)]="decPagina" [(porPagina)]="decPorPagina" />
+          }
+        }
+      </section>
+    }
+
+    <!-- ========== CHECKLIST ========== -->
+    @if (abaAtual === 'checklist') {
+      <section class="card">
+        <header class="card-header ed-check-head">
+          <div>
+            <h2 class="card-title">Checklist de documentação</h2>
+            <p class="card-subtitle">Itens verificados automaticamente a partir dos arquivos, sócios e cadastro</p>
+          </div>
+          <div class="segmented" role="group" aria-label="Filtrar checklist">
+            <button type="button" [class.active]="filtroChecklist === 'todos'" (click)="filtroChecklist = 'todos'">Todos <span class="count">{{ checklist.length }}</span></button>
+            <button type="button" [class.active]="filtroChecklist === 'pendentes'" (click)="filtroChecklist = 'pendentes'">Pendentes <span class="count">{{ itensChecklistFaltando.length }}</span></button>
+            <button type="button" [class.active]="filtroChecklist === 'ok'" (click)="filtroChecklist = 'ok'">Concluídos <span class="count">{{ itensChecklistOk }}</span></button>
+          </div>
+        </header>
+
+        <div class="ed-progress-box">
+          <span class="display-md tnum">{{ percentualChecklist }}%</span>
+          <div class="ed-progress-text">
+            <div class="progress" [ngClass]="tomChecklist"><span [style.width.%]="percentualChecklist"></span></div>
+            <span class="text-sm text-mute tnum">{{ itensChecklistOk }} de {{ checklist.length }} itens concluídos
+              @if (itensChecklistFaltando.length) { · {{ itensChecklistFaltando.length }} {{ itensChecklistFaltando.length === 1 ? 'pendente' : 'pendentes' }} }
+            </span>
+          </div>
+        </div>
+
+        @if (checklistVisivel.length === 0) {
+          <div class="empty ed-empty-sm">
+            <span class="empty-icon" [class.ed-empty-ok]="filtroChecklist === 'pendentes'"><app-icon [name]="filtroChecklist === 'pendentes' ? 'check' : 'list-checks'" [size]="22" /></span>
+            <span class="empty-title">{{ filtroChecklist === 'pendentes' ? 'Nenhuma pendência' : 'Nenhum item concluído ainda' }}</span>
+            <button type="button" class="btn btn-secondary btn-sm" (click)="filtroChecklist = 'todos'">Ver todos os itens</button>
+          </div>
+        } @else {
+          <ul class="list ed-checklist">
+            @for (item of checklistVisivel; track item.titulo) {
+              <li class="list-item ed-check" [class.is-ok]="item.ok">
+                <span class="ed-check-ico" [class.ok]="item.ok">
+                  <app-icon [name]="item.ok ? 'check' : 'alert-circle'" [size]="16" [stroke]="item.ok ? 2.5 : 2" />
                 </span>
-                <div class="check-conteudo">
-                  <p class="check-titulo">{{ item.titulo }}</p>
-                  <p class="check-desc">
-                    {{ item.descricao }}
-                    @if (item.detalhe) { <span class="check-detalhe">· {{ item.detalhe }}</span> }
-                  </p>
+                <div class="list-item-body">
+                  <div class="list-item-title">
+                    {{ item.titulo }}
+                    @if (item.detalhe) { <span class="tag tnum ed-detalhe">{{ item.detalhe }}</span> }
+                  </div>
+                  <div class="list-item-sub">{{ item.descricao }}</div>
                   @if (!item.ok && item.dica) {
-                    <p class="check-dica">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                      {{ item.dica }}
-                    </p>
+                    <div class="ed-dica"><app-icon name="info" [size]="13" /> {{ item.dica }}</div>
+                  }
+                </div>
+                <div class="ed-check-side">
+                  @if (item.ok) { <span class="badge badge-success">Concluído</span> }
+                  @else {
+                    <span class="badge badge-warning">Pendente</span>
+                    @if (rotuloAcao(item.acao); as rotulo) {
+                      <button type="button" class="btn btn-secondary btn-sm" (click)="executarAcao(item.acao)">{{ rotulo }}</button>
+                    }
                   }
                 </div>
               </li>
             }
           </ul>
-        </section>
-      }
-
-    </div>
-  </div>
-
-  <!-- TOAST -->
-  @if (toastVisivel) {
-    <div class="toast">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-      {{ toastMensagem }}
-    </div>
+        }
+      </section>
+    }
   }
+</div>
+
+<!-- ================= DRAWER DEC ================= -->
+@if (decDetalhe; as d) {
+  <app-dec-detalhe [comunicacao]="d" (fechar)="decDetalhe = null" />
+}
+
+<!-- ================= MODAL DE EDIÇÃO ================= -->
+@if (formAberto && empresa) {
+  <app-empresa-form
+    [empresa]="empresa"
+    modo="editar"
+    (fechar)="formAberto = false"
+    (salvo)="onSalvo($event)"
+    (deletado)="voltar()"
+  />
 }

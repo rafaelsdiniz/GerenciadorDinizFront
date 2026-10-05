@@ -3,13 +3,14 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { PastaRequestDTO } from '../models/pasta-request.dto';
 import { PastaResponseDTO } from '../models/pasta-response.dto';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PastaService {
 
-  private readonly API = 'http://localhost:8080/pastas';
+  private readonly API = `${environment.apiUrl}/pastas`;
 
   constructor(private http: HttpClient) {}
 

@@ -1,0 +1,115 @@
+<div class="linha" [class.has-sel]="selecionados > 0">
+@if (selecionados > 0) {
+  <!-- ===== Barra de seleção ===== -->
+  <div class="selbar" role="toolbar" aria-label="Ações para os arquivos selecionados">
+    <button type="button" class="btn-icon sm" (click)="limparSelecao.emit()" title="Limpar seleção (Esc)" aria-label="Limpar seleção">
+      <app-icon name="x" [size]="18" />
+    </button>
+    <span class="sel-count"><strong class="tnum">{{ selecionados }}</strong> {{ selecionados === 1 ? 'selecionado' : 'selecionados' }}</span>
+    <span class="sel-sep"></span>
+    <button type="button" class="sel-btn" (click)="baixar.emit()" [disabled]="baixando" [title]="selecionados > 1 ? 'Baixar em ZIP' : 'Baixar'">
+      @if (baixando) { <span class="spinner"></span> } @else { <app-icon name="download" [size]="17" /> }
+      <span class="lbl">{{ baixando ? 'Compactando…' : (selecionados > 1 ? 'Baixar ZIP' : 'Baixar') }}</span>
+    </button>
+    <button type="button" class="sel-btn" (click)="mover.emit()" [disabled]="movendo" title="Mover para…">
+      <app-icon name="folder-input" [size]="17" /><span class="lbl">Mover</span>
+    </button>
+    <button type="button" class="sel-btn danger" (click)="lixeira.emit()" [disabled]="deletando" title="Mover para a lixeira (Delete)">
+      @if (deletando) { <span class="spinner"></span> } @else { <app-icon name="trash" [size]="17" /> }
+      <span class="lbl">Lixeira</span>
+    </button>
+  </div>
+} @else {
+  <!-- ===== Chips de filtro ===== -->
+  <div class="chips" role="group" aria-label="Filtros">
+    <span class="fchip" [class.on]="!!tipo">
+      <button type="button" class="fchip-main" (click)="abrir('tipo', $event)" [disabled]="desabilitado" aria-haspopup="menu" [attr.aria-expanded]="aberto?.qual === 'tipo'">
+        <span>{{ rotuloTipo }}</span> @if (!tipo) { <app-icon name="chevron-down" [size]="15" /> }
+      </button>
+      @if (tipo) { <button type="button" class="fchip-x" (click)="tipoChange.emit('')" title="Remover filtro" aria-label="Remover filtro de tipo"><app-icon name="x" [size]="14" /></button> }
+    </span>
+    <span class="fchip" [class.on]="!!status">
+      <button type="button" class="fchip-main" (click)="abrir('status', $event)" [disabled]="desabilitado" aria-haspopup="menu" [attr.aria-expanded]="aberto?.qual === 'status'">
+        <span>{{ rotuloStatus }}</span> @if (!status) { <app-icon name="chevron-down" [size]="15" /> }
+      </button>
+      @if (status) { <button type="button" class="fchip-x" (click)="statusChange.emit('')" title="Remover filtro" aria-label="Remover filtro de status"><app-icon name="x" [size]="14" /></button> }
+    </span>
+    <span class="fchip" [class.on]="!!categoria">
+      <button type="button" class="fchip-main" (click)="abrir('categoria', $event)" [disabled]="desabilitado" aria-haspopup="menu" [attr.aria-expanded]="aberto?.qual === 'categoria'">
+        <span>{{ rotuloCategoria }}</span> @if (!categoria) { <app-icon name="chevron-down" [size]="15" /> }
+      </button>
+      @if (categoria) { <button type="button" class="fchip-x" (click)="categoriaChange.emit('')" title="Remover filtro" aria-label="Remover filtro de categoria"><app-icon name="x" [size]="14" /></button> }
+    </span>
+    <span class="fchip" [class.on]="!!modificado">
+      <button type="button" class="fchip-main" (click)="abrir('modificado', $event)" [disabled]="desabilitado" aria-haspopup="menu" [attr.aria-expanded]="aberto?.qual === 'modificado'">
+        <span>{{ rotuloModificado }}</span> @if (!modificado) { <app-icon name="chevron-down" [size]="15" /> }
+      </button>
+      @if (modificado) { <button type="button" class="fchip-x" (click)="modificadoChange.emit('')" title="Remover filtro" aria-label="Remover filtro de data"><app-icon name="x" [size]="14" /></button> }
+    </span>
+    @if (filtrosAtivos) {
+      <button type="button" class="limpar" (click)="limpar.emit()">Limpar filtros</button>
+    }
+  </div>
+}
+
+<div class="views">
+  <div class="seg" role="group" aria-label="Modo de exibição">
+    <button type="button" [class.active]="visao === 'lista'" (click)="visaoChange.emit('lista')" title="Lista" aria-label="Exibir em lista" [attr.aria-pressed]="visao === 'lista'">
+      @if (visao === 'lista') { <app-icon name="check" [size]="15" [stroke]="2.25" /> }
+      <app-icon name="list" [size]="17" />
+    </button>
+    <button type="button" [class.active]="visao === 'grade'" (click)="visaoChange.emit('grade')" title="Grade" aria-label="Exibir em grade" [attr.aria-pressed]="visao === 'grade'">
+      @if (visao === 'grade') { <app-icon name="check" [size]="15" [stroke]="2.25" /> }
+      <app-icon name="grid" [size]="17" />
+    </button>
+  </div>
+  @if (painelDisponivel) {
+  <button type="button" class="btn-icon info-toggle" [class.active]="painelAberto" (click)="painelToggle.emit()"
+          [title]="painelAberto ? 'Ocultar detalhes' : 'Ver detalhes'" aria-label="Painel de detalhes" [attr.aria-pressed]="painelAberto">
+    <app-icon name="info" [size]="19" />
+  </button>
+  }
+</div>
+
+</div>
+
+@if (aberto) {
+  <app-context-menu [x]="aberto.x" [y]="aberto.y" [yAcima]="aberto.yAcima" [rotulo]="'Filtrar por ' + aberto.qual" (fechar)="aberto = null">
+    @switch (aberto.qual) {
+      @case ('tipo') {
+        @for (t of tipos; track t.valor) {
+          <button type="button" class="menu-item" role="menuitemradio" [attr.aria-checked]="tipo === t.valor" [class.is-on]="tipo === t.valor"
+                  (click)="tipoChange.emit(tipo === t.valor ? '' : t.valor)">
+            <app-icon [name]="t.icone" [size]="17" [ngClass]="'ti-' + t.tom" /> {{ t.label }}
+            <span class="menu-meta tnum">{{ contagemTipo[t.valor] || 0 }}</span>
+          </button>
+        }
+      }
+      @case ('status') {
+        @for (s of statusOpcoes; track s) {
+          <button type="button" class="menu-item" role="menuitemradio" [attr.aria-checked]="status === s" [class.is-on]="status === s"
+                  (click)="statusChange.emit(status === s ? '' : s)">
+            <span class="sdot" [ngClass]="'sd-' + tomStatus(s)"></span> {{ statusLabel[s] }}
+            <span class="menu-meta tnum">{{ contagemStatus[s] || 0 }}</span>
+          </button>
+        }
+      }
+      @case ('categoria') {
+        @for (c of categorias; track c) {
+          <button type="button" class="menu-item" role="menuitemradio" [attr.aria-checked]="categoria === c" [class.is-on]="categoria === c"
+                  (click)="categoriaChange.emit(categoria === c ? '' : c)">
+            <app-icon [name]="categoria === c ? 'check' : 'tag'" [size]="16" /> {{ categoriaLabel[c] }}
+          </button>
+        }
+      }
+      @case ('modificado') {
+        @for (m of modificadoOpcoes; track m.valor) {
+          <button type="button" class="menu-item" role="menuitemradio" [attr.aria-checked]="modificado === m.valor" [class.is-on]="modificado === m.valor"
+                  (click)="modificadoChange.emit(modificado === m.valor ? '' : m.valor)">
+            <app-icon [name]="modificado === m.valor ? 'check' : 'calendar'" [size]="16" /> {{ m.label }}
+          </button>
+        }
+      }
+    }
+  </app-context-menu>
+}

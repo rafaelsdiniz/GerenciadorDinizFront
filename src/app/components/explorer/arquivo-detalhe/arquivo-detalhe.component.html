@@ -1,0 +1,173 @@
+<!-- ===== Pré-visualização (compartilhada) ===== -->
+<ng-template #previewTpl>
+  @if (previewTipo === 'outro') {
+    <div class="preview-empty">
+      <span class="icon-tile lg" [ngClass]="v.tom"><app-icon [name]="v.icone" [size]="24" /></span>
+      <strong>Pré-visualização indisponível</strong>
+      <span class="text-sm text-mute">Arquivos {{ v.ext }} não podem ser exibidos no navegador. Baixe para abrir no seu computador.</span>
+      @if (!emPainel) {
+        <button type="button" class="btn btn-secondary btn-sm mt-sm" (click)="baixar.emit(arquivo)"><app-icon name="download" [size]="15" /> Baixar arquivo</button>
+      }
+    </div>
+  } @else if (previewErro) {
+    <div class="preview-empty">
+      <span class="icon-tile lg danger"><app-icon name="alert-circle" [size]="24" /></span>
+      <strong>Arquivo não encontrado no servidor</strong>
+      <span class="text-sm text-mute">O registro existe, mas o arquivo físico não está disponível. Tente enviá-lo novamente.</span>
+    </div>
+  } @else if (!previewUrl) {
+    <div class="skeleton preview-skel" aria-label="Carregando pré-visualização"></div>
+  } @else if (previewTipo === 'imagem') {
+    <img [src]="previewUrl | safe" class="preview-img" [alt]="'Pré-visualização de ' + arquivo.nomeOriginal" />
+  } @else {
+    <iframe [src]="previewUrl | safe" class="preview-frame" [title]="'Pré-visualização de ' + arquivo.nomeOriginal" [attr.tabindex]="emPainel ? -1 : null"></iframe>
+  }
+</ng-template>
+
+<!-- ===== Informações (compartilhadas) ===== -->
+<ng-template #infoTpl>
+  <dl class="dl">
+    <div>
+      <dt>Status</dt>
+      <dd>
+        @if (arquivo.status) { <span class="badge badge-dot" [ngClass]="tomStatus(arquivo.status)">{{ statusLabel[arquivo.status] }}</span> }
+        @else { <span class="text-mute">Sem status</span> }
+      </dd>
+    </div>
+    <div>
+      <dt>Vencimento</dt>
+      <dd class="row wrap">
+        @if (arquivo.dataVencimento) {
+          <span class="tnum">{{ arquivo.dataVencimento | date:'dd/MM/yyyy' }}</span>
+          @if (mostrarPrazo) { <span class="badge" [ngClass]="'badge-' + (prazoValor | prazoTom)">{{ prazoValor | prazo }}</span> }
+        } @else { <span class="text-mute">Sem vencimento</span> }
+      </dd>
+    </div>
+    <div>
+      <dt>Tipo</dt>
+      <dd class="tnum">{{ v.ext }} · {{ arquivo.tamanho | bytes }}</dd>
+    </div>
+    <div>
+      <dt>Categoria fiscal</dt>
+      <dd>@if (arquivo.categoriaFiscal) { <span class="tag">{{ categoriaLabel[arquivo.categoriaFiscal] }}</span> } @else { <span class="text-mute">Sem categoria</span> }</dd>
+    </div>
+    <div class="span-2">
+      <dt>Local</dt>
+      <dd><button type="button" class="link row-sm local" (click)="irParaPasta.emit(arquivo)" title="Abrir a pasta"><app-icon name="folder" [size]="14" /> <span>{{ caminho }}</span></button></dd>
+    </div>
+    <div>
+      <dt>Enviado por</dt>
+      <dd class="row">
+        @if (arquivo.nomeUsuario) {
+          <span class="avatar avatar-sm" [ngClass]="arquivo.nomeUsuario | avatarCor">{{ arquivo.nomeUsuario | iniciais }}</span>
+          <span class="truncate">{{ arquivo.nomeUsuario }}</span>
+        } @else { <span class="text-mute">—</span> }
+      </dd>
+    </div>
+    <div>
+      <dt>Enviado em</dt>
+      <dd class="tnum">
+        @if (arquivo.dataCriacao) { {{ arquivo.dataCriacao | date:"dd/MM/yyyy 'às' HH:mm" }} } @else { <span class="text-mute">—</span> }
+      </dd>
+    </div>
+    @if (arquivo.idObrigacaoPendente != null) {
+      <div class="span-2">
+        <dt>Obrigação vinculada</dt>
+        <dd>
+          <a class="link row-sm" routerLink="/obrigacoes-pendentes" [queryParams]="{ empresa: arquivo.idEmpresa }" title="Ver obrigações da empresa">
+            <app-icon name="calendar-check" [size]="14" />
+            <span>{{ obrigacaoNome ?? 'Carregando…' }}@if (obrigacaoCompetencia) { · {{ obrigacaoCompetencia }} }</span>
+          </a>
+        </dd>
+      </div>
+    }
+    @if (nomeEmpresa) {
+      <div class="span-2"><dt>Empresa</dt><dd>{{ nomeEmpresa }}</dd></div>
+    }
+    @if (arquivo.descricao) {
+      <div class="span-2"><dt>Descrição</dt><dd>{{ arquivo.descricao }}</dd></div>
+    }
+  </dl>
+
+  @if (isAdmin) {
+    <section class="edit-box">
+      <h3 class="form-section-title">Atualizar documento</h3>
+      <p class="form-section-desc">Altere o status ou a data de vencimento.</p>
+      <div class="form-grid">
+        <div class="field">
+          <label class="field-label" [attr.for]="'ed-status-' + modo">Status</label>
+          <select [id]="'ed-status-' + modo" class="select" [(ngModel)]="editStatus">
+            <option value="" disabled>Selecione…</option>
+            @for (s of statusOpcoes; track s) { <option [value]="s">{{ statusLabel[s] }}</option> }
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label" [attr.for]="'ed-venc-' + modo">Vencimento</label>
+          <input [id]="'ed-venc-' + modo" type="date" class="input" [(ngModel)]="editVencimento" />
+        </div>
+      </div>
+      <div class="edit-actions">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="salvar()" [disabled]="!alterado || salvando">
+          @if (salvando) { <span class="spinner"></span> } @else { <app-icon name="check" [size]="15" /> }
+          Salvar alterações
+        </button>
+      </div>
+    </section>
+  }
+</ng-template>
+
+@if (emPainel) {
+  <!-- ===================== PAINEL EMBUTIDO ===================== -->
+  <aside class="dp" [attr.aria-label]="'Detalhes de ' + arquivo.nomeOriginal">
+    <header class="dp-head">
+      <span class="icon-tile sm" [ngClass]="v.tom"><app-icon [name]="v.icone" [size]="15" /></span>
+      <h2 class="dp-title" [title]="arquivo.nomeOriginal">{{ arquivo.nomeOriginal }}</h2>
+      <button type="button" class="btn-icon sm" (click)="fechar.emit()" title="Fechar painel" aria-label="Fechar painel de detalhes"><app-icon name="x" [size]="16" /></button>
+    </header>
+    <div class="dp-body stack-lg">
+      <div class="preview dp-preview" role="button" tabindex="0" (click)="expandir.emit(arquivo)" (keydown.enter)="expandir.emit(arquivo)"
+           title="Abrir visualização" aria-label="Abrir visualização ampliada">
+        <ng-container *ngTemplateOutlet="previewTpl" />
+        <span class="dp-zoom"><app-icon name="maximize" [size]="14" /> Abrir</span>
+      </div>
+      <div class="dp-actions">
+        <button type="button" class="btn btn-primary btn-sm" (click)="baixar.emit(arquivo)"><app-icon name="download" [size]="15" [stroke]="2" /> Baixar</button>
+        <button type="button" class="btn-icon sm bordered" (click)="mover.emit(arquivo)" title="Mover para…" aria-label="Mover para outra pasta"><app-icon name="folder-input" [size]="16" /></button>
+        <button type="button" class="btn-icon sm bordered danger" (click)="excluir.emit(arquivo)" title="Mover para a lixeira" aria-label="Mover para a lixeira"><app-icon name="trash" [size]="16" /></button>
+      </div>
+      <ng-container *ngTemplateOutlet="infoTpl" />
+    </div>
+  </aside>
+} @else {
+  <!-- ===================== GAVETA (sobreposta) ===================== -->
+  <div class="drawer-backdrop" (click)="fechar.emit()"></div>
+  <aside class="drawer drawer-lg" role="dialog" aria-modal="true" [attr.aria-label]="'Detalhes de ' + arquivo.nomeOriginal">
+    <div class="modal-header">
+      <div class="cell-entity">
+        <span class="icon-tile" [ngClass]="v.tom"><app-icon [name]="v.icone" [size]="18" /></span>
+        <div class="head-text">
+          <h2 class="modal-title truncate" [title]="arquivo.nomeOriginal">{{ arquivo.nomeOriginal }}</h2>
+          <p class="modal-subtitle tnum">{{ v.ext }} · {{ arquivo.tamanho | bytes }}@if (arquivo.nomeUsuario) { · enviado por {{ arquivo.nomeUsuario }} }</p>
+        </div>
+      </div>
+      <button type="button" class="btn-icon" (click)="fechar.emit()" title="Fechar (Esc)" aria-label="Fechar"><app-icon name="x" [size]="18" /></button>
+    </div>
+
+    <div class="modal-body stack-xl">
+      <div class="stack">
+        <div class="preview"><ng-container *ngTemplateOutlet="previewTpl" /></div>
+        @if (previewUrl) {
+          <button type="button" class="btn btn-ghost btn-sm preview-open" (click)="abrirNovaAba()"><app-icon name="external-link" [size]="15" /> Abrir em nova aba</button>
+        }
+      </div>
+      <ng-container *ngTemplateOutlet="infoTpl" />
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-danger-ghost" (click)="excluir.emit(arquivo)" title="Mover para a lixeira"><app-icon name="trash" [size]="16" /><span class="hide-xs">Lixeira</span></button>
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-secondary" (click)="mover.emit(arquivo)"><app-icon name="folder-input" [size]="16" /> Mover</button>
+      <button type="button" class="btn btn-primary" (click)="baixar.emit(arquivo)"><app-icon name="download" [size]="16" [stroke]="2" /> Baixar</button>
+    </div>
+  </aside>
+}

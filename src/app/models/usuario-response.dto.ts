@@ -7,4 +7,5 @@ export interface UsuarioResponseDTO {
   email: string;
   perfilUsuario: PerfilUsuario;
   idEmpresa: number;
+  dataCriacao?: string | null;
 }

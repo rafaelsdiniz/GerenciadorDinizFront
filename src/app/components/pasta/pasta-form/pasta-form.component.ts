@@ -1,19 +1,23 @@
-import { Component, Input, Output, EventEmitter, OnChanges } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, EventEmitter, HostListener, Input, OnChanges, Output, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PastaService } from '../../../services/pasta.service';
 import { PastaRequestDTO } from '../../../models/pasta-request.dto';
 import { PastaResponseDTO } from '../../../models/pasta-response.dto';
 import { EmpresaResponseDTO } from '../../../models/empresa-response.dto';
+import { IconComponent } from '../../../shared/icon.component';
+import { ToastService } from '../../../shared/ui/toast.service';
 
 @Component({
   selector: 'app-pasta-form',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './pasta-form.component.html',
   styleUrl: './pasta-form.component.css'
 })
-export class PastaFormComponent implements OnChanges {
+export class PastaFormComponent implements OnChanges, AfterViewInit {
+  private pastaService = inject(PastaService);
+  private toast = inject(ToastService);
 
   @Input() pasta: PastaResponseDTO | null = null;
   @Input() modo: 'novo' | 'editar' | 'detalhes' = 'novo';
@@ -23,48 +27,45 @@ export class PastaFormComponent implements OnChanges {
   @Output() fechar = new EventEmitter<void>();
   @Output() salvo = new EventEmitter<void>();
 
+  @ViewChild('primeiroCampo') primeiroCampo?: ElementRef<HTMLInputElement>;
+
   dto: PastaRequestDTO = this.dtoVazio();
   erros: Record<string, string> = {};
   erroGeral = '';
   salvando = false;
 
-  constructor(private pastaService: PastaService) {}
-
+  /** Pastas que podem ser pai: mesma empresa e diferente da própria pasta. */
   get pastasDisponiveis(): PastaResponseDTO[] {
-    // Exclui a própria pasta para não ser pai de si mesma
-    return this.pastas.filter(p => p.id !== this.pasta?.id);
+    return this.pastas.filter(p => p.id !== this.pasta?.id && (!this.dto.idEmpresa || p.idEmpresa === this.dto.idEmpresa));
   }
 
   ngOnChanges(): void {
     this.erros = {};
     this.erroGeral = '';
+    this.dto = this.modo === 'editar' && this.pasta ? this.fromPasta(this.pasta) : this.dtoVazio();
+  }
 
-    if (this.modo === 'editar' && this.pasta) {
-      this.dto = {
-        nome: this.pasta.nome,
-        descricao: this.pasta.descricao,
-        idEmpresa: this.pasta.idEmpresa,
-        idPastaPai: this.pasta.idPastaPai ?? null
-      };
-    } else {
-      this.dto = this.dtoVazio();
-    }
+  ngAfterViewInit(): void {
+    setTimeout(() => this.primeiroCampo?.nativeElement.focus(), 60);
   }
 
   dtoVazio(): PastaRequestDTO {
     return { nome: '', descricao: '', idEmpresa: 0, idPastaPai: null };
   }
 
+  private fromPasta(p: PastaResponseDTO): PastaRequestDTO {
+    return { nome: p.nome, descricao: p.descricao, idEmpresa: p.idEmpresa, idPastaPai: p.idPastaPai ?? null };
+  }
+
   irParaEdicao(): void {
     this.modo = 'editar';
-    if (this.pasta) {
-      this.dto = {
-        nome: this.pasta.nome,
-        descricao: this.pasta.descricao,
-        idEmpresa: this.pasta.idEmpresa,
-        idPastaPai: this.pasta.idPastaPai ?? null
-      };
-    }
+    if (this.pasta) this.dto = this.fromPasta(this.pasta);
+    setTimeout(() => this.primeiroCampo?.nativeElement.focus(), 30);
+  }
+
+  onEmpresaChange(): void {
+    delete this.erros['idEmpresa'];
+    if (this.dto.idPastaPai && !this.pastasDisponiveis.some(p => p.id === this.dto.idPastaPai)) this.dto.idPastaPai = null;
   }
 
   getNomeEmpresa(idEmpresa: number): string {
@@ -78,29 +79,41 @@ export class PastaFormComponent implements OnChanges {
 
   validar(): boolean {
     this.erros = {};
-    if (!this.dto.nome.trim()) this.erros['nome'] = 'Nome é obrigatório.';
-    if (!this.dto.idEmpresa || this.dto.idEmpresa === 0) this.erros['idEmpresa'] = 'Empresa é obrigatória.';
+    if (!this.dto.nome.trim()) this.erros['nome'] = 'Informe o nome da pasta.';
+    if (!this.dto.idEmpresa || this.dto.idEmpresa === 0) this.erros['idEmpresa'] = 'Selecione a empresa.';
     return Object.keys(this.erros).length === 0;
   }
 
   salvar(): void {
-    if (!this.validar()) return;
+    if (this.salvando || !this.validar()) return;
     this.salvando = true;
     this.erroGeral = '';
 
-    const request = this.modo === 'novo'
+    const novo = this.modo === 'novo';
+    const request = novo
       ? this.pastaService.salvar(this.dto)
       : this.pastaService.atualizar(this.pasta!.id!, this.dto);
 
     request.subscribe({
       next: () => {
         this.salvando = false;
+        this.toast.success(novo ? 'Pasta criada' : 'Pasta atualizada', this.dto.nome);
         this.salvo.emit();
       },
       error: () => {
         this.salvando = false;
         this.erroGeral = 'Erro ao salvar pasta. Verifique os dados e tente novamente.';
+        this.toast.error('Não foi possível salvar a pasta');
       }
     });
+  }
+
+  tentarFechar(): void {
+    if (!this.salvando) this.fechar.emit();
+  }
+
+  @HostListener('document:keydown.escape')
+  onEsc(): void {
+    this.tentarFechar();
   }
 }

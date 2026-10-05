@@ -1,0 +1,136 @@
+<div class="modal-backdrop" (click)="tentarFechar()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pagamento-titulo" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="pag-head">
+        <span class="icon-tile success"><app-icon name="banknote" [size]="18" /></span>
+        <div class="min0">
+          <h2 class="modal-title" id="pagamento-titulo">Confirmar pagamento da guia</h2>
+          <p class="modal-subtitle">Registre a data em que a guia foi paga e, se quiser, anexe o comprovante.</p>
+        </div>
+      </div>
+      <button type="button" class="btn-icon sm" (click)="tentarFechar()" [disabled]="salvando" aria-label="Fechar" title="Fechar (Esc)">
+        <app-icon name="x" [size]="18" />
+      </button>
+    </div>
+
+    <form class="modal-body stack-lg" id="form-pagamento" (ngSubmit)="salvar()" novalidate>
+      <dl class="dl pag-resumo">
+        <div>
+          <dt>Obrigação</dt>
+          <dd class="cell-main">{{ obrigacao.nomeObrigacao || 'Obrigação avulsa' }}</dd>
+        </div>
+        <div>
+          <dt>Empresa</dt>
+          <dd>{{ empresa || obrigacao.nomeEmpresa || '—' }}</dd>
+        </div>
+        <div>
+          <dt>Competência</dt>
+          <dd class="tnum">{{ obrigacao.competencia || '—' }}</dd>
+        </div>
+        <div>
+          <dt>Vencimento</dt>
+          <dd class="tnum pag-venc">
+            {{ obrigacao.dataVencimento | date:'dd/MM/yyyy' }}
+            @if (atrasado) { <span class="badge badge-danger">Venceu</span> }
+          </dd>
+        </div>
+      </dl>
+
+      <div class="field">
+        <label class="field-label" for="pagamento-data">Data do pagamento <span class="req">*</span></label>
+        <input id="pagamento-data" class="input tnum" type="date" name="data" [(ngModel)]="data" [max]="hoje"
+               [class.is-invalid]="dataFutura" [disabled]="salvando" required />
+        <div class="row wrap atalhos">
+          <button type="button" class="chip" [class.active]="data === hoje" (click)="data = hoje" [disabled]="salvando">Hoje</button>
+          @if (vencimentoSelecionavel) {
+            <button type="button" class="chip" [class.active]="data === obrigacao.dataVencimento"
+                    (click)="data = obrigacao.dataVencimento" [disabled]="salvando">
+              No vencimento ({{ obrigacao.dataVencimento | date:'dd/MM' }})
+            </button>
+          }
+        </div>
+        @if (dataFutura) {
+          <span class="field-error"><app-icon name="alert-circle" [size]="14" /> A data do pagamento não pode ser futura.</span>
+        } @else if (aposVencimento) {
+          <span class="field-hint is-warning"><app-icon name="info" [size]="12" /> Pago após o vencimento — a guia pode ter juros e multa.</span>
+        }
+      </div>
+
+      <div class="field">
+        <span class="field-label">Anexar comprovante <span class="text-faint">(opcional)</span></span>
+        @if (!arquivo) {
+          <div class="dropzone" role="button" tabindex="0"
+               [class.is-over]="arrastando" [class.is-invalid]="erroArquivo" [class.is-disabled]="salvando"
+               (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)"
+               (click)="!salvando && inputArquivo.click()" (keydown.enter)="!salvando && inputArquivo.click()"
+               (keydown.space)="$event.preventDefault(); !salvando && inputArquivo.click()"
+               aria-label="Selecionar comprovante de pagamento">
+            <span class="icon-tile"><app-icon name="receipt" [size]="18" /></span>
+            <div class="dz-text">
+              <strong>{{ arrastando ? 'Solte o comprovante aqui' : 'Arraste o comprovante ou clique para selecionar' }}</strong>
+              <span>PDF ou imagem · até 50 MB</span>
+            </div>
+          </div>
+        } @else {
+          <div class="file-chip" [class.is-busy]="salvando"
+               (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
+            <span class="icon-tile sm" [ngClass]="visual?.tom || ''"><app-icon [name]="visual?.icone || 'file'" [size]="15" /></span>
+            <div class="fchip-text">
+              <span class="fchip-name truncate" [title]="arquivo.name">{{ arquivo.name }}</span>
+              <span class="fchip-meta tnum">{{ visual?.ext }} · {{ arquivo.size | bytes }}</span>
+            </div>
+            @if (etapa === 'upload') {
+              <span class="spinner"></span>
+            } @else if (precisaPasta) {
+              <button type="button" class="btn btn-ghost btn-sm" (click)="inputArquivo.click()" [disabled]="salvando">Trocar</button>
+              <button type="button" class="btn-icon sm" (click)="remover()" [disabled]="salvando" aria-label="Remover comprovante" title="Remover">
+                <app-icon name="x" [size]="16" />
+              </button>
+            } @else {
+              <span class="badge badge-success"><app-icon name="check" [size]="12" /> Anexado</span>
+            }
+          </div>
+        }
+        <input #inputArquivo type="file" class="sr-only" tabindex="-1" (change)="onInput($event)"
+               accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.txt,.doc,.docx,.odt,.zip" />
+        @if (erroArquivo) {
+          <span class="field-error"><app-icon name="alert-circle" [size]="14" /> {{ erroArquivo }}</span>
+        }
+      </div>
+
+      @if (precisaPasta) {
+        <div class="field">
+          <label class="field-label" for="pagamento-pasta">Salvar comprovante em <span class="req">*</span></label>
+          @if (carregandoPastas) {
+            <span class="skeleton sk-input"></span>
+          } @else if (erroPastas) {
+            <span class="field-error"><app-icon name="alert-circle" [size]="14" /> {{ erroPastas }}</span>
+          } @else if (!pastas.length) {
+            <span class="field-error"><app-icon name="alert-circle" [size]="14" /> Esta empresa ainda não tem pastas. Crie uma pasta na área de Arquivos ou confirme sem comprovante.</span>
+          } @else {
+            <select id="pagamento-pasta" class="select" name="pasta" [(ngModel)]="idPasta" [disabled]="salvando" required>
+              @for (f of pastas; track f.id) { <option [ngValue]="f.id">{{ f.caminho }}</option> }
+            </select>
+            <span class="field-hint">{{ idPasta != null && idPasta === pastaGuiaId ? 'Mesma pasta da guia — o' : 'O' }} comprovante fica vinculado a esta obrigação.</span>
+          }
+        </div>
+      }
+
+      @if (erro) {
+        <div class="alert alert-danger" role="alert">
+          <app-icon name="alert-triangle" [size]="16" />
+          <span>{{ erro }}</span>
+        </div>
+      }
+    </form>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="tentarFechar()" [disabled]="salvando">Cancelar</button>
+      <button type="submit" form="form-pagamento" class="btn btn-primary" [disabled]="!podeSalvar">
+        @if (etapa === 'upload') { <span class="spinner"></span> Enviando comprovante… }
+        @else if (salvando) { <span class="spinner"></span> Confirmando… }
+        @else { <app-icon name="check-circle" [size]="16" /> Confirmar pagamento }
+      </button>
+    </div>
+  </div>
+</div>

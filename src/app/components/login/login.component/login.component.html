@@ -1,104 +1,124 @@
-<div class="login-page">
+<main class="login">
 
-  <!-- blobs decorativos -->
-  <div class="blob blob-1"></div>
-  <div class="blob blob-2"></div>
-  <div class="blob blob-3"></div>
+  <!-- ============ PAINEL DA MARCA (mesma moldura do DEC Monitor) ============ -->
+  <section class="brand" aria-hidden="true">
+    <span class="glow glow-a"></span>
+    <span class="glow glow-b"></span>
 
-  <div class="login-shell">
+    <!-- divisa em curva suave com o lado claro -->
+    <svg class="curve" viewBox="0 0 100 1000" preserveAspectRatio="none">
+      <path d="M100 0 H78 C30 180 22 380 52 540 C80 690 78 850 40 1000 H100 Z" />
+    </svg>
 
-    <!-- lado esquerdo: branding -->
-    <aside class="branding">
-      <div class="brand-logo">
-        <img src="images/logo/logo-final.png" alt="Logo" />
+    <div class="brand-inner">
+      <img class="brand-logo" src="images/logo/logo-final.png" alt="" />
+
+      <!-- ilustração: pasta de documentos com guia aprovada e relógio de prazo -->
+      <svg class="art" viewBox="0 0 360 300">
+        <defs>
+          <linearGradient id="lg-doc" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#ffffff" />
+            <stop offset="1" stop-color="#eef1f6" />
+          </linearGradient>
+          <linearGradient id="lg-folder" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#e6cf93" />
+            <stop offset="1" stop-color="#c9a961" />
+          </linearGradient>
+        </defs>
+        <!-- pasta (fundo) -->
+        <path d="M48 110 Q48 96 62 96 H138 L156 114 H298 Q312 114 312 128 V250 Q312 264 298 264 H62 Q48 264 48 250 Z" fill="#b8952a" />
+        <!-- documentos -->
+        <rect x="88" y="58" width="150" height="168" rx="12" fill="url(#lg-doc)" transform="rotate(-6 163 142)" />
+        <rect x="118" y="46" width="150" height="176" rx="12" fill="#ffffff" />
+        <rect x="138" y="70" width="70" height="9" rx="4.5" fill="#1a2d7a" />
+        <rect x="138" y="92" width="110" height="6" rx="3" fill="#e4e8f0" />
+        <rect x="138" y="106" width="96" height="6" rx="3" fill="#e4e8f0" />
+        <rect x="138" y="120" width="104" height="6" rx="3" fill="#e4e8f0" />
+        <rect x="138" y="146" width="56" height="20" rx="10" fill="#e3f6ea" />
+        <path d="M148 156 l5 5 9-10" fill="none" stroke="#1e9e57" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+        <!-- pasta (frente) -->
+        <path d="M48 150 Q48 138 62 138 H298 Q312 138 312 152 V250 Q312 264 298 264 H62 Q48 264 48 250 Z" fill="url(#lg-folder)" />
+        <rect x="150" y="188" width="60" height="8" rx="4" fill="#0b1433" opacity=".18" />
+        <!-- relógio de prazo -->
+        <circle cx="290" cy="226" r="44" fill="#0b1433" stroke="#ffffff" stroke-width="6" />
+        <circle cx="290" cy="226" r="34" fill="none" stroke="#c9a961" stroke-width="2" opacity=".75" />
+        <path d="M290 226 V200" stroke="#ffffff" stroke-width="5" stroke-linecap="round" />
+        <path d="M290 226 L308 238" stroke="#c9a961" stroke-width="5" stroke-linecap="round" />
+        <circle cx="290" cy="226" r="4" fill="#ffffff" />
+        <!-- selo -->
+        <circle cx="96" cy="70" r="17" fill="#c9a961" />
+        <path d="M88 70 l6 6 10-11" fill="none" stroke="#0b1433" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+
+      <p class="brand-text">
+        Documentos, prazos e obrigações de cada empresa da carteira, organizados num só lugar.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ FORMULÁRIO ============ -->
+  <section class="panel">
+    <div class="panel-inner">
+      <div class="mobile-brand">
+        <span class="mobile-mark"><img src="images/logo/logo-final.png" alt="Diniz" /></span>
       </div>
-    </aside>
 
-    <!-- lado direito: formulário -->
-    <section class="login-card">
+      <h1 class="title">Bem-vindo de volta</h1>
+      <p class="subtitle">Informe seus dados para acessar o portal.</p>
 
-      <div class="card-top">
-        <h1 class="titulo">Bem-vindo de volta</h1>
-        <p class="subtitulo">Entre com seu email e senha para continuar.</p>
-      </div>
-
-      <form class="form-area" (ngSubmit)="entrar()">
-        <div class="campo">
-          <label for="email">Email</label>
-          <div class="input-wrap">
-            <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-              <polyline points="22,6 12,13 2,6"/>
-            </svg>
-            <input
-              id="email"
-              type="email"
-              placeholder="seu@email.com"
-              [(ngModel)]="dto.email"
-              name="email"
-              [class.input-erro]="erro"
-              autocomplete="email"
-            />
+      <form class="form" (ngSubmit)="entrar()" novalidate>
+        <div class="field">
+          <label class="field-label" for="email">E-mail</label>
+          <div class="input-icon">
+            <app-icon name="mail" [size]="16" />
+            <input id="email" class="input input-lg" type="email" placeholder="voce@empresa.com.br"
+                   [(ngModel)]="dto.email" name="email" [class.is-invalid]="erro"
+                   autocomplete="email" autofocus required />
           </div>
         </div>
 
-        <div class="campo">
-          <label for="senha">Senha</label>
-          <div class="input-wrap">
-            <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-            <input
-              id="senha"
-              [type]="senhaVisivel ? 'text' : 'password'"
-              placeholder="••••••••"
-              [(ngModel)]="dto.senha"
-              name="senha"
-              [class.input-erro]="erro"
-              autocomplete="current-password"
-            />
-            <button class="btn-toggle-senha" type="button" (click)="toggleSenha()">
-              <svg *ngIf="!senhaVisivel" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-              </svg>
-              <svg *ngIf="senhaVisivel" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>
-              </svg>
+        <div class="field">
+          <label class="field-label" for="senha">Senha</label>
+          <div class="input-icon">
+            <app-icon name="lock" [size]="16" />
+            <input id="senha" class="input input-lg" [type]="senhaVisivel ? 'text' : 'password'" placeholder="Sua senha"
+                   [(ngModel)]="dto.senha" name="senha" [class.is-invalid]="erro"
+                   autocomplete="current-password" required />
+            <button class="btn-icon sm toggle-senha" type="button" (click)="toggleSenha()"
+                    [attr.aria-label]="senhaVisivel ? 'Ocultar senha' : 'Mostrar senha'">
+              <app-icon [name]="senhaVisivel ? 'eye-off' : 'eye'" [size]="16" />
             </button>
           </div>
         </div>
 
-        @if (erro) {
-          <div class="alerta-erro">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            {{ erro }}
+        <div class="forgot">
+          <button type="button" class="link text-xs" (click)="ajudaSenha = !ajudaSenha">Esqueceu a senha?</button>
+        </div>
+        @if (ajudaSenha) {
+          <div class="alert alert-info text-sm">
+            <app-icon name="info" [size]="16" />
+            <span>Fale com o escritório Diniz: um administrador redefine o seu acesso em <strong>Usuários</strong>.</span>
           </div>
         }
 
-        <button
-          class="btn-entrar"
-          type="submit"
-          [disabled]="carregando || !dto.email || !dto.senha"
-        >
+        @if (erro) {
+          <div class="alert alert-danger text-sm" role="alert">
+            <app-icon name="alert-circle" [size]="16" />
+            <span>{{ erro }}</span>
+          </div>
+        }
+
+        <button class="btn btn-primary btn-lg btn-block" type="submit" [disabled]="carregando || !dto.email || !dto.senha">
           @if (carregando) {
-            <span class="spinner"></span>
+            <span class="spinner"></span> Entrando…
           } @else {
-            <span>Entrar</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-            </svg>
+            Entrar
           }
         </button>
       </form>
 
-      <p class="rodape-card">© 2026 · Todos os direitos reservados</p>
-    </section>
-
-  </div>
-
-</div>
+      <div class="divider-text"><span>Diniz Assessoria Contábil</span></div>
+      <p class="foot">© {{ ano }} · Acesso restrito a clientes e equipe do escritório</p>
+    </div>
+  </section>
+</main>

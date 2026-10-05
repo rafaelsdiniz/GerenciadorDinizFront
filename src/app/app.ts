@@ -1,12 +1,10 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { UiHostComponent } from './shared/ui/ui-host.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
-  templateUrl: './app.html',
-  styleUrl: './app.css'
+  imports: [RouterOutlet, UiHostComponent],
+  template: '<router-outlet /><app-ui-host />'
 })
-export class App {
-  protected readonly title = signal('GerenciadorDinizFront');
-}
+export class App {}

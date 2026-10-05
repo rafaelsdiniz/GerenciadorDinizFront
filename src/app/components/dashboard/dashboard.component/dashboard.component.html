@@ -1,374 +1,436 @@
-<div class="dash">
+<div class="page dash">
 
-  <!-- HERO -->
-  <div class="hero">
-    <div class="hero-texto">
-      <span class="hero-saud">{{ saudacao }}{{ nomeUsuario ? ', ' + nomeUsuario : '' }}.</span>
-      <h1 class="hero-titulo">Visão geral da contabilidade</h1>
-      <span class="hero-data">{{ dataAtual }}</span>
+  <!-- ============ CABEÇALHO ============ -->
+  <header class="page-header">
+    <div class="page-header-text">
+      <span class="eyebrow">Painel · {{ dataAtual }}</span>
+      <h1 class="page-title">{{ saudacao }}{{ primeiroNome ? ', ' + primeiroNome : '' }}</h1>
+      <p class="page-subtitle">
+        @if (isAdmin) { Aqui está o que precisa da sua atenção na carteira hoje. }
+        @else { Acompanhe os documentos e prazos de {{ nomeEmpresaUsuario }}. }
+      </p>
     </div>
-    <div class="hero-acoes">
-      <button class="btn-acao primaria" (click)="navegarPara('/arquivos')">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        Enviar arquivo
+    <div class="page-actions">
+      <button class="btn-icon bordered" (click)="carregarDados()" title="Atualizar dados" aria-label="Atualizar dados">
+        <app-icon name="refresh" [size]="16" />
       </button>
-      <button class="btn-acao" (click)="navegarPara('/obrigacoes-pendentes')">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-        </svg>
-        Pendências
+      <button class="btn btn-secondary" (click)="navegarPara('/calendario')">
+        <app-icon name="calendar" [size]="16" /> Calendário
       </button>
-      <button class="btn-acao ghost" (click)="carregarDados()" title="Atualizar">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-        </svg>
+      <button class="btn btn-primary" (click)="enviarArquivo()">
+        <app-icon name="upload" [size]="16" [stroke]="2" /> Enviar arquivo
       </button>
     </div>
-  </div>
+  </header>
 
-  <!-- ALERTA SE HÁ VENCIDOS -->
-  @if (totalVencidosGeral > 0) {
-    <div class="alerta" (click)="navegarPara('/arquivos')">
-      <span class="alerta-icone">⚠</span>
-      <span><strong>{{ totalVencidosGeral }}</strong> arquivo(s) vencido(s) precisam de atenção.</span>
-      <span class="alerta-link">Ver →</span>
-    </div>
-  }
-
-  <!-- CARDS GLOBAIS -->
-  <div class="cards-row">
-    <div class="card card-clicavel" (click)="navegarPara('/empresas')">
-      <div class="card-top">
-        <span class="card-label">Empresas</span>
-        <div class="card-icon icon-blue">🏢</div>
+  <!-- ============ INDICADORES ============ -->
+  <section class="kpis">
+    <!-- 1. ação imediata -->
+    <article class="kpi" [class.is-urgent]="totalAcaoImediata > 0">
+      <div class="kpi-head">
+        <span class="kpi-label">
+          @if (totalAcaoImediata > 0) { <span class="dot danger"></span> }
+          Exigem ação imediata
+        </span>
+        <span class="icon-tile" [class.danger]="totalAcaoImediata > 0" [class.success]="totalAcaoImediata === 0">
+          <app-icon [name]="totalAcaoImediata > 0 ? 'alert-triangle' : 'shield-check'" [size]="18" />
+        </span>
       </div>
-      <span class="card-valor">{{ totalEmpresas }}</span>
-    </div>
-    <div class="card card-clicavel" (click)="navegarPara('/arquivos')">
-      <div class="card-top">
-        <span class="card-label">Arquivos</span>
-        <div class="card-icon icon-red">📄</div>
-      </div>
-      <span class="card-valor">{{ totalArquivos }}</span>
-    </div>
-    <div class="card card-clicavel" (click)="navegarPara('/pastas')">
-      <div class="card-top">
-        <span class="card-label">Pastas</span>
-        <div class="card-icon icon-yellow">📁</div>
-      </div>
-      <span class="card-valor">{{ totalPastas }}</span>
-    </div>
-    @if (isAdmin) {
-      <div class="card card-clicavel" (click)="navegarPara('/usuarios')">
-        <div class="card-top">
-          <span class="card-label">Usuários</span>
-          <div class="card-icon icon-green">👥</div>
-        </div>
-        <span class="card-valor">{{ totalUsuarios }}</span>
-      </div>
-    }
-    <div class="card card-clicavel destaque" (click)="navegarPara('/obrigacoes-pendentes')">
-      <div class="card-top">
-        <span class="card-label">Obrigações em aberto</span>
-        <div class="card-icon icon-purple">⏰</div>
-      </div>
-      <span class="card-valor">{{ totalPendentesObrigGeral }}</span>
-    </div>
-    <div class="card">
-      <div class="card-top">
-        <span class="card-label">Armazenamento</span>
-        <div class="card-icon icon-teal">💾</div>
-      </div>
-      <span class="card-valor">{{ totalStorage }}</span>
-    </div>
-  </div>
-
-  <!-- GRÁFICOS DE SITUAÇÃO GERAL -->
-  @if (isAdmin && resumoEmpresas.length > 0) {
-    <div class="charts-row">
-      <!-- Chart 1: Saúde Geral -->
-      <div class="chart-card">
-        <h3 class="chart-titulo">Saúde Geral das Empresas</h3>
-        <div class="chart-container doughnut-container">
-          @if (chartDoughnutData) {
-            <canvas baseChart
-              [data]="chartDoughnutData"
-              [options]="chartDoughnutOptions"
-              type="doughnut">
-            </canvas>
-          }
-        </div>
-      </div>
-
-      <!-- Chart 2: Top Atrasos/Pendências -->
-      <div class="chart-card">
-        <h3 class="chart-titulo">Top Empresas (Pendências/Atrasos)</h3>
-        <div class="chart-container bar-container">
-          @if (chartBarData && chartBarData.labels && chartBarData.labels.length > 0) {
-            <canvas baseChart
-              [data]="chartBarData"
-              [options]="chartBarOptions"
-              type="bar">
-            </canvas>
+      <div class="kpi-main">
+        @if (carregando || carregandoObrig) {
+          <span class="skeleton" style="width: 120px; height: 30px"></span>
+        } @else {
+          <span class="kpi-value">{{ totalAcaoImediata }}</span>
+          @if (totalAcaoImediata > 0) {
+            <span class="badge badge-soft badge-danger">Urgente</span>
+            <span class="badge badge-soft badge-danger">Venceu há {{ maiorAtrasoDias }} dias</span>
           } @else {
-            <div class="estado-vazio"><p>Todas as empresas estão em dia! 🎉</p></div>
+            <span class="badge badge-soft badge-success"><app-icon name="check" [size]="12" [stroke]="2.5" /> Sob controle</span>
           }
+        }
+      </div>
+      <div class="kpi-foot">
+        <span><strong>{{ obrigacoesAtrasadas.length }}</strong> obrigações · <strong>{{ totalVencidosGeral }}</strong> arquivos</span>
+        @if (totalAcaoImediata > 0) {
+          <button class="kpi-link" (click)="navegarPara('/obrigacoes-pendentes')">Resolver <app-icon name="arrow-right" [size]="13" [stroke]="2.25" /></button>
+        }
+      </div>
+    </article>
+
+    <!-- 2. prazo se aproximando -->
+    <article class="kpi">
+      <div class="kpi-head">
+        <span class="kpi-label">Prazo se aproximando</span>
+        <span class="icon-tile warning"><app-icon name="clock" [size]="18" /></span>
+      </div>
+      <div class="kpi-main">
+        <span class="kpi-value">{{ vencendo7.length }}</span>
+        @if (vencendo7.length === 0) {
+          <span class="badge badge-soft badge-success"><app-icon name="check" [size]="12" [stroke]="2.5" /> Sob controle</span>
+        } @else {
+          <span class="badge badge-soft badge-warning">{{ vencendo7[0].diasParaVencer | prazo }}</span>
+        }
+      </div>
+      <div class="kpi-foot">
+        <span>{{ vencendo7.length ? 'Nos próximos 7 dias' : 'Nada nos próximos 7 dias' }}</span>
+        <button class="kpi-link" (click)="navegarPara('/calendario')">Calendário <app-icon name="arrow-right" [size]="13" [stroke]="2.25" /></button>
+      </div>
+    </article>
+
+    <!-- 3. arquivos -->
+    <article class="kpi">
+      <div class="kpi-head">
+        <span class="kpi-label">Documentos ativos</span>
+        <span class="icon-tile"><app-icon name="files" [size]="18" /></span>
+      </div>
+      <div class="kpi-main">
+        <span class="kpi-value">{{ totalArquivos }}</span>
+        <span class="badge badge-soft badge-neutral">{{ totalBytes | bytes }}</span>
+        <span class="badge badge-soft badge-info">{{ totalPastas }} pastas</span>
+      </div>
+      <div class="kpi-foot">
+        <span><strong>{{ totalPendentesObrigGeral }}</strong> obrigações abertas</span>
+        <button class="kpi-link" (click)="navegarPara('/arquivos')">Explorar <app-icon name="arrow-right" [size]="13" [stroke]="2.25" /></button>
+      </div>
+    </article>
+
+    <!-- 4. carteira (admin) / entrega no prazo (cliente) -->
+    @if (isAdmin) {
+      <article class="kpi">
+        <div class="kpi-head">
+          <span class="kpi-label">Empresas com atenção</span>
+          <span class="icon-tile accent"><app-icon name="building" [size]="18" /></span>
         </div>
-      </div>
+        <div class="kpi-main">
+          <span class="kpi-value">{{ empresasComAtencao }}<small> / {{ resumoEmpresas.length }}</small></span>
+          <span class="badge badge-soft badge-neutral">{{ 100 - percentualEmDia }}% da carteira</span>
+        </div>
+        <div class="health-bar" [title]="percentualEmDia + '% em dia'">
+          <span class="hb-danger" [style.flex]="empresasComAtencao"></span>
+          <span class="hb-success" [style.flex]="empresasEmDia"></span>
+        </div>
+        <div class="kpi-foot">
+          <span class="row-sm nowrap"><span class="dot success"></span> {{ empresasEmDia }} em dia <span class="dot danger"></span> {{ empresasComAtencao }} atraso</span>
+          <button class="kpi-link" (click)="navegarPara('/empresas')">Carteira <app-icon name="arrow-right" [size]="13" [stroke]="2.25" /></button>
+        </div>
+      </article>
+    } @else {
+      <article class="kpi">
+        <div class="kpi-head">
+          <span class="kpi-label">Entrega no prazo</span>
+          <span class="icon-tile success"><app-icon name="trending-up" [size]="18" /></span>
+        </div>
+        <div class="kpi-main">
+          <span class="kpi-value">{{ formatarTaxa(metricas?.taxaEntregaNoPrazo ?? null) }}</span>
+          <span class="badge badge-soft badge-neutral">últimos 12 meses</span>
+        </div>
+        <div class="progress success"><span [style.width.%]="metricas?.taxaEntregaNoPrazo ?? 0"></span></div>
+        <div class="kpi-foot">
+          <span><strong>{{ metricas?.totalObrigacoesPendentes ?? 0 }}</strong> obrigações pendentes</span>
+          <button class="kpi-link" (click)="navegarPara('/obrigacoes-pendentes')">Ver <app-icon name="arrow-right" [size]="13" [stroke]="2.25" /></button>
+        </div>
+      </article>
+    }
+  </section>
+
+  <!-- ============ SITUAÇÃO DE HOJE ============ -->
+  <section class="card situacao">
+    <div class="card-header plain">
+      <h2 class="card-title">Situação de hoje</h2>
+      <button class="link text-sm row-sm" (click)="carregarDados()" title="Atualizar dados">
+        <app-icon name="refresh" [size]="13" [stroke]="2" /> {{ dataCurta }}
+      </button>
     </div>
-  }
-
-  <!-- LINHA: PRÓXIMOS VENCIMENTOS + ATIVIDADE RECENTE -->
-  <div class="linha-2col">
-
-    <!-- PRÓXIMOS VENCIMENTOS -->
-    <div class="painel">
-      <div class="painel-header">
-        <h2 class="painel-titulo">Próximos vencimentos (14 dias)</h2>
-        <a class="painel-link" (click)="navegarPara('/calendario')">Calendário →</a>
-      </div>
-      @if (carregando) {
-        <div class="estado-vazio"><span class="spinner"></span></div>
-      } @else if (proximosVencimentos.length === 0) {
-        <div class="onboarding-vazio-mini">
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-          </svg>
-          <p>Tudo em dia! Nada vencendo em breve. 🎉</p>
+    <div class="sit-body">
+      @if (carregando || carregandoObrig) {
+        <div class="sit-row"><span class="skeleton" style="width: 36px; height: 36px; border-radius: 8px"></span>
+          <div class="stack" style="flex: 1; gap: 6px"><span class="skeleton skeleton-line" style="width: 40%"></span><span class="skeleton skeleton-line" style="width: 65%"></span></div>
         </div>
       } @else {
-        <div class="vencs">
-          @for (v of proximosVencimentos; track v.id) {
-            <div class="venc-row" (click)="abrirArquivo(v.id)">
-              <span class="venc-pill" [ngClass]="classeDias(v.diasParaVencer)">
-                {{ rotuloDias(v.diasParaVencer) }}
+        @for (s of slides; track s.titulo) {
+          <div class="sit-row" [ngClass]="'tone-' + s.tom">
+            <span class="icon-tile" [ngClass]="s.tom === 'primary' ? 'warning' : s.tom"><app-icon [name]="s.icone" [size]="18" /></span>
+            <div class="sit-text">
+              <strong>{{ s.titulo }}</strong>
+              <span>{{ s.texto }}</span>
+            </div>
+            <button class="btn btn-sm" [class.btn-primary]="s.tom === 'danger'" [class.btn-secondary]="s.tom !== 'danger'" (click)="abrirSlide(s)">
+              {{ s.cta }} <app-icon name="arrow-right" [size]="14" [stroke]="2" />
+            </button>
+          </div>
+        }
+      }
+    </div>
+  </section>
+
+  <!-- ============ AGENDA: vencimentos + documentos do cliente ============ -->
+  <section class="grid-main">
+    <article class="card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">Próximos vencimentos</h2>
+          <p class="card-subtitle">Obrigações e documentos nos próximos 14 dias</p>
+        </div>
+        <a class="link text-sm" routerLink="/calendario">Ver calendário →</a>
+      </div>
+      @if (carregando || carregandoObrig) {
+        <div class="list">
+          @for (i of [1,2,3,4]; track i) {
+            <div class="list-item"><span class="skeleton" style="width: 36px; height: 36px"></span>
+              <div class="list-item-body stack" style="gap: 6px"><span class="skeleton skeleton-line" style="width: 55%"></span><span class="skeleton skeleton-line" style="width: 35%"></span></div>
+            </div>
+          }
+        </div>
+      } @else if (proximosVencimentos.length === 0) {
+        <div class="empty">
+          <span class="empty-icon" style="background: var(--success-bg); color: var(--success-fg)"><app-icon name="calendar-check" [size]="22" /></span>
+          <span class="empty-title">Nada vencendo em breve</span>
+          <span class="empty-text">Nenhuma obrigação ou documento vence nos próximos 14 dias.</span>
+        </div>
+      } @else {
+        <div class="list">
+          @for (v of proximosVencimentos; track v.tipo + v.id) {
+            <button class="list-item" (click)="abrirVencimento(v)">
+              <span class="date-chip" [ngClass]="'tone-' + (v.diasParaVencer | prazoTom)">
+                <strong>{{ v.dataVencimento | date:'dd' }}</strong>
+                <span>{{ v.dataVencimento | date:'MMM' }}</span>
               </span>
-              <div class="venc-info">
-                <span class="venc-nome">{{ v.nome }}</span>
-                <span class="venc-meta">{{ v.descricao || '—' }} · {{ v.dataVencimento }}</span>
+              <span class="list-item-body">
+                <span class="list-item-title truncate">{{ v.nome }}</span>
+                <span class="list-item-sub row-sm">
+                  <app-icon [name]="v.tipo === 'obrigacao' ? 'list-checks' : 'file-text'" [size]="12" />
+                  {{ v.tipo === 'obrigacao' ? 'Obrigação' : 'Arquivo' }}{{ v.detalhe ? ' · ' + v.detalhe : '' }}
+                </span>
+              </span>
+              <span class="badge" [ngClass]="'badge-' + (v.diasParaVencer | prazoTom)">{{ v.diasParaVencer | prazo }}</span>
+            </button>
+          }
+        </div>
+      }
+    </article>
+
+    <!-- documentos que dependem do cliente -->
+    <article class="card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">
+            {{ isAdmin ? 'Aguardando documentos dos clientes' : 'O que você precisa enviar' }}
+            @if (paraEnviar.length) { <span class="count count-primary">{{ paraEnviar.length }}</span> }
+          </h2>
+          <p class="card-subtitle">
+            {{ isAdmin ? 'O que os clientes ainda não mandaram para o fechamento' : 'Documentos que o escritório precisa para fechar o mês' }}
+          </p>
+        </div>
+        <a class="link text-sm" routerLink="/obrigacoes-pendentes">Ver todos →</a>
+      </div>
+      @if (carregandoObrig) {
+        <div class="loading-block"><span class="spinner"></span></div>
+      } @else if (paraEnviar.length === 0) {
+        <div class="empty">
+          <span class="empty-icon" style="background: var(--success-bg); color: var(--success-fg)"><app-icon name="check" [size]="22" [stroke]="2" /></span>
+          <span class="empty-title">{{ isAdmin ? 'Nenhum documento pendente' : 'Nada para enviar agora' }}</span>
+          <span class="empty-text">{{ isAdmin ? 'Os clientes estão em dia com o envio de documentos.' : 'Quando o escritório precisar de algo, aparece aqui.' }}</span>
+        </div>
+      } @else {
+        <div class="list">
+          @for (o of paraEnviar.slice(0, 6); track o.id) {
+            <div class="list-item">
+              <span class="date-chip" [ngClass]="'tone-' + (o.diasParaVencer | prazoTom)">
+                <strong>{{ o.dataVencimento | date:'dd' }}</strong>
+                <span>{{ o.dataVencimento | date:'MMM' }}</span>
+              </span>
+              <div class="list-item-body">
+                <span class="list-item-title truncate">{{ o.nomeObrigacao || 'Documento' }}</span>
+                <span class="list-item-sub truncate">
+                  @if (o.competencia) { Competência {{ o.competencia }} }
+                  @if (isAdmin && o.nomeEmpresa) { · {{ o.nomeEmpresa }} }
+                </span>
               </div>
+              @if (isAdmin) {
+                <span class="badge" [ngClass]="'badge-' + (o.diasParaVencer | prazoTom)">{{ o.diasParaVencer | prazo }}</span>
+              } @else {
+                <button class="btn btn-primary btn-sm" (click)="navegarPara('/obrigacoes-pendentes')">
+                  <app-icon name="upload" [size]="14" [stroke]="2" /> Enviar
+                </button>
+              }
             </div>
           }
         </div>
       }
-    </div>
+    </article>
+  </section>
 
-    <!-- ATIVIDADE RECENTE (admin) ou STATUS RÁPIDO (não-admin) -->
-    @if (isAdmin) {
-      <div class="painel">
-        <div class="painel-header">
-          <h2 class="painel-titulo">Atividade recente</h2>
-          <a class="painel-link" (click)="navegarPara('/logs')">Ver tudo →</a>
-        </div>
-        @if (logsRecentes.length === 0) {
-          <div class="onboarding-vazio-mini">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-            </svg>
-            <p>Nenhuma atividade recente registrada.</p>
-          </div>
-        } @else {
-          <div class="logs">
-            @for (l of logsRecentes; track l.id) {
-              <div class="log-row">
-                <span class="log-acao a-{{ l.acao.toLowerCase() }}">{{ acaoLabel[l.acao] }}</span>
-                <div class="log-info">
-                  <span class="log-detalhe">{{ l.detalhes || (l.entidade + ' #' + l.idEntidade) }}</span>
-                  <span class="log-meta">{{ l.nomeUsuario || 'sistema' }} · {{ l.dataCriacao | date:'dd/MM HH:mm' }}</span>
-                </div>
-              </div>
-            }
-          </div>
-        }
-      </div>
-    } @else {
-      <div class="painel">
-        <div class="painel-header">
-          <h2 class="painel-titulo">Resumo da empresa</h2>
-        </div>
-        @if (metricas) {
-          <div class="resumo-mini">
-            <div class="rmini">
-              <span class="rmini-l">Vencidos</span>
-              <span class="rmini-v vermelho">{{ metricas.totalArquivosVencidos }}</span>
-            </div>
-            <div class="rmini">
-              <span class="rmini-l">Vencendo 7d</span>
-              <span class="rmini-v amarelo">{{ metricas.totalArquivosVencendo7Dias }}</span>
-            </div>
-            <div class="rmini">
-              <span class="rmini-l">Pendentes</span>
-              <span class="rmini-v">{{ metricas.totalObrigacoesPendentes }}</span>
-            </div>
-            <div class="rmini">
-              <span class="rmini-l">Taxa no prazo</span>
-              <span class="rmini-v verde">{{ formatarTaxa(metricas.taxaEntregaNoPrazo) }}</span>
-            </div>
-          </div>
-        }
-      </div>
-    }
-  </div>
-
-  <!-- RESUMO TODAS AS EMPRESAS (admin) -->
+  <!-- ============ SAÚDE DA CARTEIRA (admin) ============ -->
   @if (isAdmin && resumoEmpresas.length > 0) {
-    <div class="painel">
-      <div class="painel-header">
-        <h2 class="painel-titulo">Resumo por empresa</h2>
-        <a class="painel-link" (click)="navegarPara('/empresas')">Gerenciar →</a>
+    <section>
+      <div class="section-label">
+        <h2>Saúde da carteira</h2>
+        <span>{{ resumoEmpresas.length }} empresas · ordenadas por urgência</span>
       </div>
-      <div class="tabela-resumo-wrap">
-        <table class="tabela-resumo">
-          <thead>
-            <tr>
-              <th>Empresa</th>
-              <th class="num">Arquivos</th>
-              <th class="num">Vencidos</th>
-              <th class="num">Pendentes</th>
-              <th class="num">Vence 7d</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (r of resumoEmpresas; track r.id) {
-              <tr [class.linha-alerta]="r.vencidos > 0">
-                <td><strong>{{ r.nome }}</strong></td>
-                <td class="num">{{ r.total }}</td>
-                <td class="num">
-                  @if (r.vencidos > 0) {
-                    <span class="pill pill-vermelho">{{ r.vencidos }}</span>
-                  } @else { <span class="muted">0</span> }
-                </td>
-                <td class="num">
-                  @if (r.pendentes > 0) {
-                    <span class="pill pill-amarelo">{{ r.pendentes }}</span>
-                  } @else { <span class="muted">0</span> }
-                </td>
-                <td class="num">{{ r.vencendo7 }}</td>
-                <td class="num">
-                  <button class="btn-mini" (click)="idEmpresaSelecionada = r.id; carregarMetricas()">
-                    Detalhes
-                  </button>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
-  }
-
-  <!-- PAINEL CONTÁBIL POR EMPRESA -->
-  <div class="painel">
-    <div class="painel-header">
-      <h2 class="painel-titulo">Painel contábil por empresa</h2>
-      <select class="select-empresa" [(ngModel)]="idEmpresaSelecionada" (change)="carregarMetricas()">
-        @for (empresa of empresas; track empresa.id) {
-          <option [ngValue]="empresa.id">{{ empresa.nomeFantasia }}</option>
-        }
-      </select>
-    </div>
-
-    @if (carregandoMetricas) {
-      <div class="estado-vazio"><span class="spinner"></span></div>
-    } @else if (!metricas) {
-      <div class="estado-vazio"><p>Selecione uma empresa.</p></div>
-    } @else {
-      <div class="metricas-grid">
-        <div class="metrica-card metrica-vencidos">
-          <span class="metrica-label">Arquivos vencidos</span>
-          <span class="metrica-valor">{{ metricas.totalArquivosVencidos }}</span>
-        </div>
-        <div class="metrica-card metrica-vencendo">
-          <span class="metrica-label">Vencendo em 7 dias</span>
-          <span class="metrica-valor">{{ metricas.totalArquivosVencendo7Dias }}</span>
-        </div>
-        <div class="metrica-card">
-          <span class="metrica-label">Vencendo em 30 dias</span>
-          <span class="metrica-valor">{{ metricas.totalArquivosVencendo30Dias }}</span>
-        </div>
-        <div class="metrica-card metrica-taxa">
-          <span class="metrica-label">Taxa de entrega no prazo</span>
-          <span class="metrica-valor">{{ formatarTaxa(metricas.taxaEntregaNoPrazo) }}</span>
-          <small class="metrica-hint">últimos 12 meses</small>
-        </div>
-        <div class="metrica-card metrica-obrig">
-          <span class="metrica-label">Obrigações pendentes</span>
-          <span class="metrica-valor">{{ metricas.totalObrigacoesPendentes }}</span>
-        </div>
-        <div class="metrica-card metrica-obrig-vencidas">
-          <span class="metrica-label">Obrigações vencidas</span>
-          <span class="metrica-valor">{{ metricas.totalObrigacoesVencidas }}</span>
-        </div>
-      </div>
-
-      <div class="dist-grid">
-        <div class="dist-bloco">
-          <h3 class="dist-titulo">Distribuição por status</h3>
-          @if (distStatus.length === 0) {
-            <p class="dist-vazio">Sem arquivos.</p>
-          } @else {
-            @for (item of distStatus; track item.chave) {
-              <div class="dist-linha">
-                <div class="dist-label">
-                  <span class="dist-bullet" [style.background]="item.cor"></span>
-                  {{ item.label }}
-                </div>
-                <div class="dist-bar-wrap">
-                  <div class="dist-bar" [style.width.%]="item.percentual" [style.background]="item.cor"></div>
-                </div>
-                <span class="dist-valor">{{ item.total }} ({{ item.percentual }}%)</span>
-              </div>
-            }
-          }
-        </div>
-
-        <div class="dist-bloco">
-          <h3 class="dist-titulo">Top categorias fiscais</h3>
-          @if (distCategoria.length === 0) {
-            <p class="dist-vazio">Sem categorias.</p>
-          } @else {
-            @for (item of distCategoria; track item.chave) {
-              <div class="dist-linha">
-                <div class="dist-label">{{ item.label }}</div>
-                <div class="dist-bar-wrap">
-                  <div class="dist-bar" [style.width.%]="item.percentual" [style.background]="item.cor"></div>
-                </div>
-                <span class="dist-valor">{{ item.total }}</span>
-              </div>
-            }
-          }
-        </div>
-      </div>
-
-      <div class="atrasos-bloco">
-        <h3 class="dist-titulo">Top 5 maiores atrasos</h3>
-        @if (metricas.top5MaioresAtrasos.length === 0) {
-          <p class="dist-vazio">Nenhum arquivo vencido. 🎉</p>
-        } @else {
-          <table class="tabela-atrasos">
+      <div class="card table-card">
+        <div class="table-wrap">
+          <table class="table">
             <thead>
               <tr>
-                <th>Arquivo</th>
-                <th>Descrição</th>
-                <th>Dias de atraso</th>
+                <th>Empresa</th>
+                <th>Situação</th>
+                <th class="num">Arquivos</th>
+                <th class="num">Vencidos</th>
+                <th class="num">Obrig. vencidas</th>
+                <th class="num">Pendentes</th>
+                <th class="num">Vence em 7d</th>
+                <th class="col-actions">Ações</th>
               </tr>
             </thead>
             <tbody>
-              @for (atraso of metricas.top5MaioresAtrasos; track atraso.idArquivo) {
-                <tr>
-                  <td>{{ atraso.nome }}</td>
-                  <td>{{ atraso.descricao || '—' }}</td>
-                  <td><span class="atraso-pill">{{ atraso.diasAtraso }}d</span></td>
+              @for (r of resumoEmpresas; track r.id) {
+                <tr class="clickable" [routerLink]="['/empresas', r.id]">
+                  <td>
+                    <div class="cell-entity">
+                      <span class="avatar avatar-square" [ngClass]="r.nome | avatarCor">{{ r.nome | iniciais }}</span>
+                      <span class="cell-main">{{ r.nome }}</span>
+                    </div>
+                  </td>
+                  <td><span class="badge badge-dot" [ngClass]="'badge-' + saudeEmpresa(r)">{{ rotuloSaude(r) }}</span></td>
+                  <td class="num">{{ r.total }}</td>
+                  <td class="num">@if (r.vencidos) { <span class="badge badge-danger">{{ r.vencidos }}</span> } @else { <span class="text-faint">0</span> }</td>
+                  <td class="num">@if (r.obrigVencidas) { <span class="badge badge-danger">{{ r.obrigVencidas }}</span> } @else { <span class="text-faint">0</span> }</td>
+                  <td class="num">@if (r.pendentes) { <span class="badge badge-warning">{{ r.pendentes }}</span> } @else { <span class="text-faint">0</span> }</td>
+                  <td class="num">{{ r.vencendo7 }}</td>
+                  <td class="col-actions">
+                    <div class="row-actions">
+                      <button class="btn-icon sm bordered" title="Ver painel contábil" aria-label="Ver painel contábil"
+                              (click)="$event.stopPropagation(); verPainelEmpresa(r.id)">
+                        <app-icon name="bar-chart" [size]="15" />
+                      </button>
+                      <a class="btn-icon sm bordered" [routerLink]="['/empresas', r.id]" title="Abrir empresa" aria-label="Abrir empresa"
+                         (click)="$event.stopPropagation()">
+                        <app-icon name="arrow-up-right" [size]="15" />
+                      </a>
+                    </div>
+                  </td>
                 </tr>
               }
             </tbody>
           </table>
-        }
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- ============ PAINEL CONTÁBIL POR EMPRESA ============ -->
+  @if (painelAberto) {
+  <div class="drawer-backdrop" (click)="painelAberto = false"></div>
+  <aside class="drawer drawer-lg painel-drawer" role="dialog" aria-label="Painel contábil por empresa">
+  <section class="painel-conteudo" id="painel-empresa">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">Painel contábil</h2>
+        <p class="card-subtitle">Indicadores de documentos e obrigações da empresa selecionada</p>
+      </div>
+      @if (isAdmin || empresas.length > 1) {
+        <select class="select input-sm empresa-select" [(ngModel)]="idEmpresaSelecionada" (change)="carregarMetricas()" aria-label="Empresa">
+          @for (empresa of empresas; track empresa.id) {
+            <option [ngValue]="empresa.id">{{ empresa.nomeFantasia }}</option>
+          }
+        </select>
+      }
+      <button class="btn-icon" (click)="painelAberto = false" aria-label="Fechar painel"><app-icon name="x" [size]="18" /></button>
+    </div>
+
+    <div class="painel-scroll">
+    @if (carregandoMetricas) {
+      <div class="loading-block"><span class="spinner"></span> Carregando indicadores…</div>
+    } @else if (!metricas) {
+      <div class="empty">
+        <span class="empty-icon"><app-icon name="building" [size]="22" /></span>
+        <span class="empty-title">Selecione uma empresa</span>
+        <span class="empty-text">Escolha uma empresa para ver os indicadores contábeis.</span>
+      </div>
+    } @else {
+      <div class="card-body">
+        <div class="stat-strip">
+          <div class="stat"><span class="stat-label">Arquivos vencidos</span><span class="stat-value tnum" [class.text-danger]="metricas.totalArquivosVencidos > 0">{{ metricas.totalArquivosVencidos }}</span></div>
+          <div class="stat"><span class="stat-label">Vencendo em 7 dias</span><span class="stat-value tnum" [class.text-warning]="metricas.totalArquivosVencendo7Dias > 0">{{ metricas.totalArquivosVencendo7Dias }}</span></div>
+          <div class="stat"><span class="stat-label">Vencendo em 30 dias</span><span class="stat-value tnum">{{ metricas.totalArquivosVencendo30Dias }}</span></div>
+          <div class="stat"><span class="stat-label">Entrega no prazo <small>12 meses</small></span><span class="stat-value tnum text-success">{{ formatarTaxa(metricas.taxaEntregaNoPrazo) }}</span></div>
+          <div class="stat"><span class="stat-label">Obrigações pendentes</span><span class="stat-value tnum">{{ metricas.totalObrigacoesPendentes }}</span></div>
+          <div class="stat"><span class="stat-label">Obrigações vencidas</span><span class="stat-value tnum" [class.text-danger]="metricas.totalObrigacoesVencidas > 0">{{ metricas.totalObrigacoesVencidas }}</span></div>
+        </div>
+
+        <div class="analytics">
+          <!-- status -->
+          <div class="an-block">
+            <h3 class="an-title">Arquivos por status</h3>
+            @if (distStatus.length === 0) {
+              <p class="text-sm text-mute">Sem arquivos cadastrados.</p>
+            } @else {
+              <div class="donut-row">
+                <div class="donut">
+                  @if (chartStatusData) {
+                    <canvas baseChart [data]="chartStatusData" [options]="chartStatusOptions" type="doughnut"></canvas>
+                  }
+                  <div class="donut-center"><strong class="tnum">{{ totalDistStatus }}</strong><span>arquivos</span></div>
+                </div>
+                <ul class="legend">
+                  @for (item of distStatus; track item.chave) {
+                    <li>
+                      <span class="legend-dot" [style.background]="item.cor"></span>
+                      <span class="legend-label">{{ item.label }}</span>
+                      <span class="legend-val tnum">{{ item.total }}</span>
+                      <span class="legend-pct tnum">{{ item.percentual }}%</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+
+          <!-- categorias -->
+          <div class="an-block">
+            <h3 class="an-title">Principais categorias fiscais</h3>
+            @if (distCategoria.length === 0) {
+              <p class="text-sm text-mute">Sem categorias registradas.</p>
+            } @else {
+              <ul class="bars">
+                @for (item of distCategoria; track item.chave) {
+                  <li>
+                    <div class="bar-head"><span class="truncate">{{ item.label }}</span><strong class="tnum">{{ item.total }}</strong></div>
+                    <div class="progress"><span [style.width.%]="item.percentual"></span></div>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </div>
+
+        <!-- atrasos -->
+        <div class="an-block mt-xl">
+          <h3 class="an-title">Maiores atrasos</h3>
+          @if (metricas.top5MaioresAtrasos.length === 0) {
+            <div class="alert alert-success"><app-icon name="check-circle" [size]="16" /> Nenhum arquivo vencido nesta empresa.</div>
+          } @else {
+            <div class="table-wrap atrasos">
+              <table class="table table-compact">
+                <thead><tr><th>Arquivo</th><th>Descrição</th><th class="num">Atraso</th><th class="col-actions"></th></tr></thead>
+                <tbody>
+                  @for (atraso of metricas.top5MaioresAtrasos; track atraso.idArquivo) {
+                    <tr class="clickable" (click)="abrirArquivo(atraso.idArquivo)">
+                      <td><div class="cell-entity"><span class="icon-tile sm danger"><app-icon name="file-clock" [size]="14" /></span><span class="cell-main truncate">{{ atraso.nome }}</span></div></td>
+                      <td class="text-mute">{{ atraso.descricao || '—' }}</td>
+                      <td class="num"><span class="badge badge-danger">{{ atraso.diasAtraso }} dias</span></td>
+                      <td class="col-actions"><app-icon name="chevron-right" [size]="16" class="text-faint" /></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
       </div>
     }
-  </div>
-
+    </div>
+  </section>
+  </aside>
+}
 </div>

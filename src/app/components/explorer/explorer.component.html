@@ -1,368 +1,527 @@
-<div class="explorer">
+<div class="page drive" #driveEl [class.com-painel]="mostrarPainel" [class.is-moving]="arquivoArrastadoId !== null">
 
-  <!-- HEADER -->
-  <div class="explorer-header">
-    <div class="header-left">
-      <h1 class="titulo">Arquivos</h1>
-      <p class="subtitulo">
-        {{ pastasAtuais().length }} pasta(s) · {{ arquivosAtuais().length }} arquivo(s)
-      </p>
-    </div>
+  <!-- ===================== COLUNA ESQUERDA ===================== -->
+  <app-drive-sidebar
+    [pastas]="pastas" [secao]="secao" [pastaAtualId]="pastaAtualId" [emBusca]="filtrosAtivos"
+    [dropTargetId]="dropTargetId" [arrastando]="arquivoArrastadoId !== null" [desabilitado]="!idEmpresaSelecionada || carregando"
+    [totalBytes]="totalBytes" [totalArquivos]="arquivos.length" [qtdVencendo]="qtdVencendo" [temVencido]="temVencido"
+    [nomeEmpresa]="nomeEmpresaAtual" [aberta]="sidebarAberta"
+    (novaPasta)="abrirNovaPasta()" (enviar)="abrirUpload()" (irSecao)="irSecao($event)" (irPasta)="irPara($event)"
+    (fechar)="sidebarAberta = false"
+    (dragOverPasta)="onSidebarDragOver($event)" (dragLeavePasta)="onDragLeavePasta($event)" (dropPasta)="onSidebarDrop($event)" (dropLixeira)="onDropLixeira()" />
+  @if (sidebarAberta) { <div class="sb-backdrop" (click)="sidebarAberta = false" aria-hidden="true"></div> }
 
-    <div class="header-right">
-      <div class="busca-wrapper">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input
-          type="text"
-          placeholder="Buscar aqui..."
-          [(ngModel)]="termoBusca"
-        />
+  <!-- ===================== ÁREA PRINCIPAL ===================== -->
+  <section class="main" aria-label="Arquivos">
+    <app-drive-busca [termo]="termoBusca" [desabilitado]="!idEmpresaSelecionada" [empresas]="empresas" [idEmpresa]="idEmpresaSelecionada"
+      [isAdmin]="isAdmin" [nomeEmpresa]="nomeEmpresaAtual"
+      (termoChange)="termoBusca = $event; onBuscaChange()" (limpar)="limparBusca()"
+      (empresaChange)="idEmpresaSelecionada = $event; onEmpresaChange()" (abrirPastas)="sidebarAberta = true" />
+
+    <div class="sheet" (click)="onFundoClick($event)" (contextmenu)="onFundoContexto($event)">
+      <!-- ---------- Caminho / título ---------- -->
+      <div class="head">
+        @if (secao === 'pasta' && !emResultados) {
+          <nav class="crumbs" aria-label="Caminho da pasta">
+            @if (breadcrumb.length) {
+              <button type="button" class="crumb root" [class.is-drop]="dropTargetId === 'raiz'" (click)="voltarInicio()"
+                      (dragover)="onDragOverPasta($event, null)" (dragleave)="onDragLeavePasta(null)" (drop)="onDropPasta($event, null)">Meus arquivos</button>
+              @if (breadcrumb.length > 1) {
+                <span class="cg ellip"><app-icon class="sep" name="chevron-right" [size]="18" />
+                  <button type="button" class="crumb" (click)="voltar()" title="Voltar para a pasta anterior" aria-label="Voltar para a pasta anterior">…</button></span>
+              }
+              @for (crumb of breadcrumb; track crumb.id; let last = $last) {
+                <span class="cg" [class.last]="last">
+                  <app-icon class="sep" name="chevron-right" [size]="18" />
+                  @if (last) {
+                    <button type="button" class="crumb current" [class.active]="menu?.tipo === 'crumb'" (click)="abrirMenuBotao({ tipo: 'crumb' }, $event, false)"
+                            aria-haspopup="menu" [attr.aria-label]="'Ações da pasta ' + crumb.nome">
+                      <span class="truncate">{{ crumb.nome }}</span><app-icon name="chevron-down" [size]="18" />
+                    </button>
+                  } @else {
+                    <button type="button" class="crumb" [class.is-drop]="dropTargetId === crumb.id" (click)="irParaCrumb(crumb)"
+                            (dragover)="onDragOverPasta($event, crumb.id)" (dragleave)="onDragLeavePasta(crumb.id)" (drop)="onDropPasta($event, crumb.id)">
+                      <span class="truncate">{{ crumb.nome }}</span>
+                    </button>
+                  }
+                </span>
+              }
+            } @else {
+              <button type="button" class="crumb current" [class.active]="menu?.tipo === 'crumb'" (click)="abrirMenuBotao({ tipo: 'crumb' }, $event, false)"
+                      [disabled]="!idEmpresaSelecionada" aria-haspopup="menu">
+                <span class="truncate">Meus arquivos</span><app-icon name="chevron-down" [size]="18" />
+              </button>
+            }
+          </nav>
+        } @else {
+          <div class="titulo">
+            <h1 class="truncate">{{ tituloSecao }}</h1>
+            <p class="tnum">
+              @if (secao === 'lixeira') { Arquivos excluídos@if (nomeEmpresaAtual) { · {{ nomeEmpresaAtual }} } }
+              @else {
+                @if (secao === 'vencendo') { Vencidos ou com prazo nos próximos 30 dias · }
+                {{ plural(arquivosAtuais().length, 'arquivo', 'arquivos') }}
+                @if (pastasAtuais().length) { e {{ plural(pastasAtuais().length, 'pasta', 'pastas') }} }
+                @if (emResultados) { em todas as pastas }
+              }
+            </p>
+          </div>
+        }
       </div>
 
-      @if (isAdmin && empresas.length > 0) {
-        <select class="empresa-select" [(ngModel)]="idEmpresaSelecionada" (ngModelChange)="onEmpresaChange()">
-          @for (e of empresas; track e.id) {
-            <option [ngValue]="e.id">{{ e.nomeFantasia }}</option>
-          }
-        </select>
+      @if (secao !== 'lixeira') {
+      <app-drive-filtros class="filtros"
+        [tipo]="filtroTipo" [status]="filtroStatus" [categoria]="filtroCategoria" [modificado]="filtroModificado"
+        [contagemStatus]="contagemStatus" [contagemTipo]="contagemTipo" [filtrosAtivos]="filtrosAtivos"
+        [visao]="visao" [painelAberto]="painelAberto" [painelDisponivel]="painelInline"
+        [selecionados]="arquivosSelecionados.size" [baixando]="baixandoEmMassa" [deletando]="deletando" [movendo]="movendo"
+        [desabilitado]="!idEmpresaSelecionada || carregando"
+        (tipoChange)="setTipo($event)" (statusChange)="setStatus($event)" (categoriaChange)="setCategoria($event)" (modificadoChange)="setModificado($event)"
+        (limpar)="limparFiltros()" (visaoChange)="setVisao($event)" (painelToggle)="togglePainel()"
+        (baixar)="baixarSelecionados()" (mover)="abrirMover(idsSelecionados)" (lixeira)="confirmarExcluirSelecionados()" (limparSelecao)="limparSelecao()" />
       }
 
-      <button class="btn-acao btn-secundario" (click)="abrirNovaPasta()" [disabled]="!idEmpresaSelecionada">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-          <line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
-        </svg>
-        Nova pasta
-      </button>
+      <!-- ===================== CONTEÚDO ===================== -->
+      @if (carregando) {
+        <div class="sec" aria-busy="true">
+          <div class="folder-grid">
+            @for (s of skeletons.slice(0, 4); track s) { <div class="folder sk"><span class="skeleton sk-ic"></span><span class="skeleton skeleton-line sk-w"></span></div> }
+          </div>
+          <div class="file-grid mt">
+            @for (s of skeletons; track s) { <div class="skeleton sk-card"></div> }
+          </div>
+        </div>
 
-      <button class="btn-acao btn-primario" (click)="abrirUpload()" [disabled]="!idEmpresaSelecionada">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-        </svg>
-        Upload
-      </button>
+      } @else if (secao === 'lixeira') {
+        <app-drive-lixeira [idEmpresa]="idEmpresaSelecionada" [empresas]="empresas" [isAdmin]="isAdmin" [termo]="termoBusca"
+          (restaurado)="onRestaurado()" (limparBusca)="limparBusca()" />
+
+      } @else if (!idEmpresaSelecionada) {
+        <div class="empty">
+          <span class="empty-icon"><app-icon name="building" [size]="22" /></span>
+          <span class="empty-title">Nenhuma empresa disponível</span>
+          <span class="empty-text">Os arquivos são organizados por empresa. {{ isAdmin ? 'Cadastre uma empresa para começar.' : 'Seu usuário ainda não está vinculado a uma empresa.' }}</span>
+          @if (isAdmin) {
+            <a class="btn btn-secondary" routerLink="/empresas"><app-icon name="plus" [size]="16" /> Cadastrar empresa</a>
+          }
+        </div>
+
+      } @else {
+        <!-- ---------- Sugeridos ---------- -->
+        @if (sugeridos.length) {
+          <section class="sec" aria-labelledby="sec-sug">
+            <h2 class="sec-title" id="sec-sug">Sugeridos <span>· enviados recentemente</span></h2>
+            <div class="sug-grid">
+              @for (arq of sugeridos; track arq.id) {
+                <app-drive-arquivo-card variante="sugerido" [arquivo]="arq" tabindex="0" data-item
+                  [menuAtivo]="menuAbertoPara('arq', arq.id) && !isSelecionado(arq.id)"
+                  [attr.aria-label]="'Abrir ' + arq.nomeOriginal" [title]="arq.nomeOriginal + ' — ' + caminhoPasta(arq.idPasta)"
+                  (click)="abrirVisualizacao(arq)" (keydown.enter)="abrirVisualizacao(arq)"
+                  (contextmenu)="abrirMenuContexto({ tipo: 'arq', id: arq.id }, $event)"
+                  (menu)="abrirMenuBotao({ tipo: 'arq', id: arq.id }, $event)" />
+              }
+            </div>
+          </section>
+        }
+
+        @if (!pastasAtuais().length && !arquivosAtuais().length) {
+          <!-- ---------- Estados vazios ---------- -->
+          @if (filtrosAtivos) {
+            <div class="empty">
+              <span class="empty-icon"><app-icon name="search" [size]="22" /></span>
+              <span class="empty-title">Nenhum resultado</span>
+              <span class="empty-text">
+                @if (termoBusca.trim()) { Nada encontrado para “{{ termoBusca.trim() }}” com os filtros atuais. } @else { Nenhum arquivo corresponde aos filtros selecionados. }
+              </span>
+              <button type="button" class="btn btn-secondary" (click)="limparFiltros()"><app-icon name="x" [size]="16" /> Limpar filtros</button>
+            </div>
+          } @else if (secao === 'recentes') {
+            <div class="empty">
+              <span class="empty-icon"><app-icon name="clock" [size]="22" /></span>
+              <span class="empty-title">Nenhum arquivo enviado ainda</span>
+              <span class="empty-text">Os arquivos enviados para {{ nomeEmpresaAtual || 'a empresa' }} aparecem aqui, do mais novo para o mais antigo.</span>
+              <button type="button" class="btn btn-secondary" (click)="abrirUpload()"><app-icon name="upload" [size]="16" /> Enviar arquivos</button>
+            </div>
+          } @else if (secao === 'vencendo') {
+            <div class="empty">
+              <span class="empty-icon ok"><app-icon name="check-circle" [size]="22" /></span>
+              <span class="empty-title">Tudo em dia</span>
+              <span class="empty-text">Nenhum documento vencido ou vencendo nos próximos 30 dias.</span>
+            </div>
+          } @else if (pastaAtualId === null) {
+            <div class="empty">
+              <span class="empty-icon"><app-icon name="folder-plus" [size]="22" /></span>
+              <span class="empty-title">Nenhuma pasta ainda</span>
+              <span class="empty-text">Crie pastas para organizar os documentos de {{ nomeEmpresaAtual || 'sua empresa' }} — por exemplo: Notas fiscais, Impostos, Folha de pagamento.</span>
+              <button type="button" class="btn btn-secondary" (click)="abrirNovaPasta()"><app-icon name="folder-plus" [size]="16" /> Criar primeira pasta</button>
+            </div>
+          } @else {
+            <div class="empty dropzone" role="button" tabindex="0" data-item (click)="abrirUpload()" (keydown.enter)="abrirUpload()">
+              <span class="empty-icon"><app-icon name="upload-cloud" [size]="22" /></span>
+              <span class="empty-title">Esta pasta está vazia</span>
+              <span class="empty-text">Solte arquivos aqui ou use <strong>+ Novo</strong> para enviar arquivos e criar subpastas.</span>
+              <div class="row wrap empty-actions">
+                <button type="button" class="btn btn-secondary" (click)="$event.stopPropagation(); abrirUpload()"><app-icon name="upload" [size]="16" /> Enviar arquivos</button>
+                <button type="button" class="btn btn-ghost" (click)="$event.stopPropagation(); abrirNovaPasta()"><app-icon name="folder-plus" [size]="16" /> Nova subpasta</button>
+              </div>
+            </div>
+          }
+
+        } @else if (visao === 'grade') {
+          <!-- ---------- PASTAS ---------- -->
+          @if (pastasAtuais().length) {
+            <section class="sec" aria-labelledby="sec-pastas">
+              <h2 class="sec-title" id="sec-pastas">Pastas</h2>
+              <div class="folder-grid">
+                @for (pasta of pastasAtuais(); track pasta.id) {
+                  <div class="folder" role="button" tabindex="0" data-item
+                       [class.is-drop]="dropTargetId === pasta.id" [class.is-focus]="pastaFocoId === pasta.id"
+                       [attr.aria-label]="'Abrir pasta ' + pasta.nome" [title]="emResultados ? caminhoPasta(pasta.id) : pasta.nome"
+                       (click)="entrarPasta(pasta)" (keydown.enter)="entrarPasta(pasta)"
+                       (contextmenu)="abrirMenuContexto({ tipo: 'pasta', id: pasta.id }, $event)"
+                       (dragover)="onDragOverPasta($event, pasta.id)" (dragleave)="onDragLeavePasta(pasta.id)" (drop)="onDropPasta($event, pasta.id)">
+                    <app-icon class="f-ic" [name]="dropTargetId === pasta.id ? 'folder-open' : 'folder'" [size]="20" />
+                    <span class="f-txt">
+                      <span class="f-nome">{{ pasta.nome }}</span>
+                      <span class="f-meta">{{ emResultados ? caminhoPasta(pasta.idPastaPai) : metaPasta(pasta.id) }}</span>
+                    </span>
+                    <button type="button" class="btn-icon sm" [class.active]="menuAbertoPara('pasta', pasta.id)"
+                            (click)="abrirMenuBotao({ tipo: 'pasta', id: pasta.id }, $event)" (keydown.enter)="$event.stopPropagation()"
+                            title="Mais ações" [attr.aria-label]="'Ações da pasta ' + pasta.nome">
+                      <app-icon name="more-vertical" [size]="16" />
+                    </button>
+                  </div>
+                }
+              </div>
+            </section>
+          }
+
+          <!-- ---------- ARQUIVOS ---------- -->
+          @if (arquivosAtuais().length) {
+            <section class="sec" aria-labelledby="sec-arqs">
+              <div class="sec-head">
+                <h2 class="sec-title" id="sec-arqs">Arquivos <span class="tnum">· {{ arquivosAtuais().length }}</span></h2>
+                <div class="ordem">
+                  <button type="button" class="ordem-btn" (click)="abrirMenuBotao({ tipo: 'ordem' }, $event)" aria-haspopup="menu" title="Ordenar por">{{ rotuloOrdem }}</button>
+                  <button type="button" class="btn-icon sm" (click)="inverterOrdem()" [title]="ordemAsc ? 'Crescente' : 'Decrescente'"
+                          [attr.aria-label]="'Inverter ordem (' + (ordemAsc ? 'crescente' : 'decrescente') + ')'">
+                    <app-icon [name]="ordemAsc ? 'arrow-up' : 'arrow-down'" [size]="17" />
+                  </button>
+                </div>
+              </div>
+              <div class="file-grid">
+                @for (arq of arquivosPagina(); track arq.id) {
+                  <app-drive-arquivo-card [arquivo]="arq" tabindex="0" draggable="true" data-item [attr.data-arq]="arq.id"
+                    [selecionado]="isSelecionado(arq.id)" [mostrarCheck]="arquivosSelecionados.size > 0"
+                    [menuAtivo]="menuAbertoPara('arq', arq.id)" [caminho]="mostrarCaminho ? caminhoPasta(arq.idPasta) : ''"
+                    [class.is-dragging]="arrastandoAtivo(arq.id)" [attr.aria-label]="arq.nomeOriginal"
+                    (click)="clicarArquivo(arq, $event)" (dblclick)="abrirVisualizacao(arq)" (keydown.enter)="abrirVisualizacao(arq)"
+                    (keydown.space)="$event.preventDefault(); toggleSelecao(arq.id)"
+                    (contextmenu)="abrirMenuContexto({ tipo: 'arq', id: arq.id }, $event)"
+                    (dragstart)="onDragStartArquivo($event, arq)" (dragend)="onDragEndArquivo()"
+                    (menu)="abrirMenuBotao({ tipo: 'arq', id: arq.id }, $event)" (marcar)="toggleSelecao(arq.id)" />
+                }
+              </div>
+              @if (mostrarPaginacao) {
+                <app-paginador class="pager" [total]="arquivosAtuais().length" rotulo="arquivos" [opcoes]="porPaginaOpcoes" [(pagina)]="pagina" [(porPagina)]="porPagina" />
+              }
+            </section>
+          }
+
+        } @else {
+          <!-- ---------- LISTA ---------- -->
+          <div class="table-wrap lista">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th class="col-check">
+                    <input type="checkbox" [checked]="todosSelecionados()" [indeterminate]="algunsSelecionados()"
+                           [disabled]="!arquivosAtuais().length" (change)="toggleSelecionarTodos()" aria-label="Selecionar todos os arquivos da página" />
+                  </th>
+                  <th [attr.aria-sort]="ariaSort('nome')">
+                    <button type="button" class="th-sort" (click)="ordenarPor('nome')">Nome <app-icon [name]="iconeOrdem('nome')" [size]="13" /></button>
+                  </th>
+                  <th class="c-dono">Enviado por</th>
+                  <th class="c-data" [attr.aria-sort]="ariaSort('modificado')">
+                    <button type="button" class="th-sort" (click)="ordenarPor('modificado')">Modificado <app-icon [name]="iconeOrdem('modificado')" [size]="13" /></button>
+                  </th>
+                  <th class="num c-tam" [attr.aria-sort]="ariaSort('tamanho')">
+                    <button type="button" class="th-sort" (click)="ordenarPor('tamanho')">Tamanho <app-icon [name]="iconeOrdem('tamanho')" [size]="13" /></button>
+                  </th>
+                  <th class="c-prazo" [attr.aria-sort]="ariaSort('vencimento')">
+                    <button type="button" class="th-sort" (click)="ordenarPor('vencimento')">Status / Prazo <app-icon [name]="iconeOrdem('vencimento')" [size]="13" /></button>
+                  </th>
+                  <th class="col-actions"><span class="sr-only">Ações</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (paginaEfetiva === 1) {
+                  @for (pasta of pastasAtuais(); track pasta.id) {
+                    <tr class="clickable" tabindex="0" data-item [class.is-drop]="dropTargetId === pasta.id" [class.selected]="pastaFocoId === pasta.id"
+                        (click)="entrarPasta(pasta)" (keydown.enter)="entrarPasta(pasta)"
+                        (contextmenu)="abrirMenuContexto({ tipo: 'pasta', id: pasta.id }, $event)"
+                        (dragover)="onDragOverPasta($event, pasta.id)" (dragleave)="onDragLeavePasta(pasta.id)" (drop)="onDropPasta($event, pasta.id)">
+                      <td class="col-check"></td>
+                      <td>
+                        <div class="cell-entity">
+                          <app-icon class="f-ic" name="folder" [size]="20" />
+                          <div class="cell-text">
+                            <span class="cell-main truncate" [title]="pasta.nome">{{ pasta.nome }}</span>
+                            @if (emResultados) { <span class="cell-sub truncate">{{ caminhoPasta(pasta.idPastaPai) }}</span> }
+                          </div>
+                        </div>
+                      </td>
+                      <td class="c-dono text-faint">—</td>
+                      <td class="c-data text-faint">—</td>
+                      <td class="num c-tam text-mute nowrap">{{ metaPasta(pasta.id) }}</td>
+                      <td class="c-prazo text-faint">—</td>
+                      <td class="col-actions">
+                        <div class="row-actions">
+                          <button type="button" class="btn-icon sm" [class.active]="menuAbertoPara('pasta', pasta.id)"
+                                  (click)="abrirMenuBotao({ tipo: 'pasta', id: pasta.id }, $event)" (keydown.enter)="$event.stopPropagation()"
+                                  title="Mais ações" [attr.aria-label]="'Ações da pasta ' + pasta.nome">
+                            <app-icon name="more-vertical" [size]="16" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                }
+                @for (arq of arquivosPagina(); track arq.id) {
+                  @let v = visual(arq);
+                  <tr class="clickable" tabindex="0" draggable="true" data-item [attr.data-arq]="arq.id"
+                      [class.selected]="isSelecionado(arq.id)" [class.is-dragging]="arrastandoAtivo(arq.id)"
+                      [attr.aria-selected]="isSelecionado(arq.id)"
+                      (click)="clicarArquivo(arq, $event)" (dblclick)="abrirVisualizacao(arq)" (keydown.enter)="abrirVisualizacao(arq)"
+                      (keydown.space)="$event.preventDefault(); toggleSelecao(arq.id)"
+                      (contextmenu)="abrirMenuContexto({ tipo: 'arq', id: arq.id }, $event)"
+                      (dragstart)="onDragStartArquivo($event, arq)" (dragend)="onDragEndArquivo()">
+                    <td class="col-check" (click)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">
+                      <input type="checkbox" [checked]="isSelecionado(arq.id)" (change)="toggleSelecao(arq.id)" [attr.aria-label]="'Selecionar ' + arq.nomeOriginal" />
+                    </td>
+                    <td>
+                      <div class="cell-entity">
+                        <app-icon class="t-ic" [ngClass]="'tom-' + (v.tom || 'primary')" [name]="v.icone" [size]="20" />
+                        <div class="cell-text">
+                          <span class="cell-main truncate" [title]="arq.nomeOriginal">{{ arq.nomeOriginal }}</span>
+                          @if (mostrarCaminho) { <span class="cell-sub truncate">{{ caminhoPasta(arq.idPasta) }}</span> }
+                        </div>
+                      </div>
+                    </td>
+                    <td class="c-dono">
+                      @if (arq.nomeUsuario) {
+                        <span class="dono"><span class="avatar avatar-sm" [ngClass]="arq.nomeUsuario | avatarCor">{{ arq.nomeUsuario | iniciais }}</span><span class="truncate">{{ arq.nomeUsuario }}</span></span>
+                      } @else { <span class="text-faint">—</span> }
+                    </td>
+                    <td class="c-data tnum nowrap" [title]="arq.dataCriacao ? (arq.dataCriacao | date:'dd/MM/yyyy HH:mm') : ''">
+                      @if (arq.dataCriacao) { {{ arq.dataCriacao | date:'dd/MM/yyyy' }} } @else { <span class="text-faint">—</span> }
+                    </td>
+                    <td class="num c-tam nowrap">{{ arq.tamanho | bytes }}</td>
+                    <td class="c-prazo nowrap">
+                      @if (mostrarPrazo(arq)) {
+                        <span class="badge" [ngClass]="'badge-' + (prazoValor(arq) | prazoTom)" [title]="'Vence em ' + (arq.dataVencimento | date:'dd/MM/yyyy')">{{ prazoValor(arq) | prazo }}</span>
+                      } @else if (arq.status) {
+                        <span class="badge badge-dot" [ngClass]="tomStatus(arq.status)">{{ statusLabel[arq.status] }}</span>
+                      } @else { <span class="text-faint">—</span> }
+                    </td>
+                    <td class="col-actions" (click)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">
+                      <div class="row-actions">
+                        <button type="button" class="btn-icon sm hover-only" (click)="download(arq)" title="Baixar" [attr.aria-label]="'Baixar ' + arq.nomeOriginal">
+                          <app-icon name="download" [size]="16" />
+                        </button>
+                        <button type="button" class="btn-icon sm" [class.active]="menuAbertoPara('arq', arq.id)"
+                                (click)="abrirMenuBotao({ tipo: 'arq', id: arq.id }, $event)" title="Mais ações" [attr.aria-label]="'Ações de ' + arq.nomeOriginal">
+                          <app-icon name="more-vertical" [size]="16" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          @if (mostrarPaginacao) {
+            <app-paginador class="pager" [total]="arquivosAtuais().length" rotulo="arquivos" [opcoes]="porPaginaOpcoes" [(pagina)]="pagina" [(porPagina)]="porPagina" />
+          }
+        }
+      }
     </div>
-  </div>
+  </section>
 
-  <!-- BREADCRUMB -->
-  <nav class="breadcrumb">
-    <button
-      class="crumb"
-      [class.crumb-drop]="dropTargetId === 'parent' && pastaAtualId !== null"
-      (click)="voltarInicio()"
-      (dragover)="onDragOverCrumb($event, null)"
-      (drop)="onDropCrumb($event, null)"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-      </svg>
-      Início
-    </button>
-
-    @for (crumb of breadcrumb; track crumb.id; let i = $index) {
-      <span class="crumb-sep">/</span>
-      <button
-        class="crumb"
-        [class.crumb-atual]="i === breadcrumb.length - 1"
-        [class.crumb-drop]="dropTargetId === crumb.id"
-        (click)="irParaCrumb(crumb, i + 1)"
-        (dragover)="onDragOverCrumb($event, crumb.id)"
-        (drop)="onDropCrumb($event, crumb.id)"
-      >
-        {{ crumb.nome }}
-      </button>
-    }
-  </nav>
-
-  <!-- CRIAR PASTA INLINE -->
-  @if (criandoPasta) {
-    <div class="inline-form">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-           fill="#b8952a" stroke="#8a6e1a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-      </svg>
-      <input
-        #inputPasta
-        type="text"
-        placeholder="Nome da nova pasta"
-        [(ngModel)]="nomeNovaPasta"
-        (keydown.enter)="confirmarNovaPasta()"
-        (keydown.escape)="cancelarNovaPasta()"
-        autofocus
-      />
-      <button class="btn-mini btn-ok" (click)="confirmarNovaPasta()" [disabled]="!nomeNovaPasta.trim()">Criar</button>
-      <button class="btn-mini btn-cancel" (click)="cancelarNovaPasta()">Cancelar</button>
+  <!-- ===================== PAINEL ⓘ ===================== -->
+  @if (mostrarPainel) {
+    <div class="painel">
+      @if (arquivoPainel; as a) {
+        <app-arquivo-detalhe modo="painel" [arquivo]="a" [isAdmin]="isAdmin" [caminho]="caminhoPasta(a.idPasta)" [nomeEmpresa]="nomeEmpresaAtual"
+          (fechar)="definirPainel(false)" (baixar)="download($event)" (mover)="abrirMover([$event.id])" (excluir)="confirmarDeletarArquivo($event)"
+          (irParaPasta)="irParaPastaDoArquivo($event)" (atualizado)="onArquivoAtualizado($event)" (expandir)="abrirVisualizacao($event)" />
+      } @else {
+        @let info = infoPainel;
+        <app-drive-pasta-info [titulo]="info.titulo" [icone]="info.icone" [caminho]="info.caminho" [descricao]="info.descricao"
+          [nPastas]="info.nPastas" [nArquivos]="info.nArquivos" [bytes]="info.bytes" [empresa]="nomeEmpresaAtual"
+          [acoes]="info.acoes" [ehRaiz]="info.ehRaiz" [selecionados]="arquivosSelecionados.size" [bytesSelecionados]="bytesSelecionados"
+          (fechar)="definirPainel(false)" (enviar)="abrirUpload([], info.idPasta)" (novaPasta)="abrirNovaPasta(info.idPasta)" />
+      }
     </div>
   }
-
-  <!-- ÁREA PRINCIPAL -->
-  <div class="area-principal">
-
-    @if (carregando) {
-      <div class="estado-vazio">
-        <span class="spinner"></span>
-        <p>Carregando...</p>
-      </div>
-    } @else if (!idEmpresaSelecionada) {
-      <div class="estado-vazio">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"
-             fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-        </svg>
-        <p>Selecione uma empresa para ver os arquivos.</p>
-      </div>
-    } @else if (pastasAtuais().length === 0 && arquivosAtuais().length === 0) {
-      <div class="onboarding-vazio">
-        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="var(--brand-300)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-          <line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
-        </svg>
-        <h3>Tudo limpo por aqui!</h3>
-        <p>Comece organizando seus documentos criando uma nova pasta ou enviando o seu primeiro arquivo.</p>
-        <button class="btn-acao btn-primario" (click)="abrirUpload()">Enviar meu primeiro arquivo</button>
-      </div>
-    } @else {
-
-      <!-- SEÇÃO PASTAS -->
-      @if (pastasAtuais().length > 0) {
-        <h2 class="secao-titulo">Pastas</h2>
-        <div class="grid">
-          @for (pasta of pastasAtuais(); track pasta.id) {
-            <div
-              class="card card-pasta"
-              [class.card-drop]="dropTargetId === pasta.id"
-              (dblclick)="entrarPasta(pasta)"
-              (dragover)="onDragOverPasta($event, pasta.id!)"
-              (dragleave)="onDragLeavePasta(pasta.id!)"
-              (drop)="onDropPasta($event, pasta)"
-            >
-              <div class="card-icone">
-                <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24"
-                     fill="#f2c94c" stroke="#c9a961" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                </svg>
-              </div>
-              <div class="card-info">
-                <p class="card-nome" [title]="pasta.nome">{{ pasta.nome }}</p>
-                @if (pasta.descricao) {
-                  <p class="card-desc">{{ pasta.descricao }}</p>
-                }
-              </div>
-              <button class="card-menu" (click)="toggleMenu('pasta-' + pasta.id, $event)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
-                </svg>
-              </button>
-
-              @if (menuAbertoId === 'pasta-' + pasta.id) {
-                <div class="menu-dropdown" [style.top.px]="menuPosicao.top" [style.left.px]="menuPosicao.left" (click)="$event.stopPropagation()">
-                  <button (click)="entrarPasta(pasta)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                    Abrir
-                  </button>
-                  <button class="menu-danger" (click)="confirmarDeletarPasta(pasta)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-                    Excluir pasta
-                  </button>
-                </div>
-              }
-            </div>
-          }
-        </div>
-      }
-
-      <!-- SEÇÃO ARQUIVOS -->
-      @if (arquivosAtuais().length > 0) {
-        <div class="secao-header">
-          <h2 class="secao-titulo">Arquivos</h2>
-          <label class="checkbox-container select-all">
-            <input type="checkbox" [checked]="todosSelecionados()" (change)="toggleSelecionarTodos()" />
-            <span class="checkmark"></span> Selecionar todos
-          </label>
-        </div>
-        <div class="grid">
-          @for (arquivo of arquivosAtuais(); track arquivo.id) {
-            <div
-              class="card card-arquivo"
-              [class.card-selecionado]="isSelecionado(arquivo.id!)"
-              [class.card-arrastando]="arquivoArrastadoId === arquivo.id"
-              draggable="true"
-              (click)="abrirPreview(arquivo)"
-              (dragstart)="onDragStartArquivo($event, arquivo)"
-              (dragend)="onDragEndArquivo()"
-            >
-              <div class="checkbox-flutuante" (click)="toggleSelecao(arquivo.id!, $event)">
-                <input type="checkbox" [checked]="isSelecionado(arquivo.id!)" />
-                <span class="checkmark"></span>
-              </div>
-              <div class="card-icone">
-                <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 24 24"
-                     fill="none" [attr.stroke]="corIconeArquivo(arquivo)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14 2 14 8 20 8"/>
-                </svg>
-                <span class="tipo-badge" [style.background]="corIconeArquivo(arquivo)">{{ arquivo.tipoArquivo }}</span>
-              </div>
-              <div class="card-info">
-                <p class="card-nome" [title]="arquivo.nomeOriginal">{{ arquivo.nomeOriginal }}</p>
-                <div class="card-meta">
-                  <span>{{ formatarTamanho(arquivo.tamanho) }}</span>
-                  @if (arquivo.status) {
-                    <span [class]="classeStatusBadge(arquivo.status)">{{ statusLabel[arquivo.status] }}</span>
-                  }
-                </div>
-                @if (arquivo.dataVencimento) {
-                  <p class="card-venc">
-                    Vence em {{ arquivo.dataVencimento }}
-                    @if (arquivo.diasParaVencer != null) {
-                      @if (arquivo.diasParaVencer < 0) {
-                        <span class="venc-vencido">(há {{ -arquivo.diasParaVencer }}d)</span>
-                      } @else if (arquivo.diasParaVencer === 0) {
-                        <span class="venc-hoje">(hoje)</span>
-                      } @else {
-                        <span>(em {{ arquivo.diasParaVencer }}d)</span>
-                      }
-                    }
-                  </p>
-                }
-              </div>
-              <button class="card-menu" (click)="toggleMenu('arq-' + arquivo.id, $event)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
-                </svg>
-              </button>
-
-              @if (menuAbertoId === 'arq-' + arquivo.id) {
-                <div class="menu-dropdown" [style.top.px]="menuPosicao.top" [style.left.px]="menuPosicao.left" (click)="$event.stopPropagation()">
-                  <button (click)="download(arquivo)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    Baixar
-                  </button>
-                  <button class="menu-danger" (click)="confirmarDeletarArquivo(arquivo)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-                    Mover p/ lixeira
-                  </button>
-                </div>
-              }
-            </div>
-          }
-        </div>
-      }
-
-    }
-
-  </div>
-
 </div>
 
-<!-- BULK ACTIONS BAR -->
-@if (arquivosSelecionados.size > 0) {
-  <div class="bulk-bar">
-    <div class="bulk-info">
-      <span class="bulk-count">{{ arquivosSelecionados.size }}</span>
-      <span>arquivos selecionados</span>
-    </div>
-    <div class="bulk-acoes">
-      <button class="btn-bulk btn-secundario" (click)="confirmarExcluirSelecionados()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-        Excluir
-      </button>
-      <button class="btn-bulk btn-primario" (click)="baixarSelecionados()" [disabled]="baixandoEmMassa">
-        @if (baixandoEmMassa) {
-          <span class="spinner-sm"></span> Compactando...
-        } @else {
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Baixar ZIP
-        }
-      </button>
+<!-- ===================== BOTÃO NOVO (celular) ===================== -->
+@if (idEmpresaSelecionada && !carregando && !arquivosSelecionados.size && secao !== 'lixeira') {
+  <button type="button" class="fab" (click)="abrirMenuBotao({ tipo: 'novo' }, $event)" aria-haspopup="menu" aria-label="Novo: pasta ou envio de arquivos">
+    <app-icon name="plus" [size]="24" [stroke]="2" />
+  </button>
+}
+
+<!-- ===================== MENU CONTEXTUAL ===================== -->
+@if (menu; as m) {
+  <app-context-menu [x]="m.x" [y]="m.y" [yAcima]="m.yAcima" [alinharDireita]="m.direita" (fechar)="menu = null">
+    @if (arquivoDoMenu; as a) {
+      <button type="button" class="menu-item" role="menuitem" (click)="abrirVisualizacao(a)"><app-icon name="eye" [size]="17" /> Visualizar</button>
+      <button type="button" class="menu-item" role="menuitem" (click)="download(a)"><app-icon name="download" [size]="17" /> Baixar</button>
+      <div class="menu-sep"></div>
+      <button type="button" class="menu-item" role="menuitem" (click)="abrirMover([a.id])"><app-icon name="folder-input" [size]="17" /> Mover para…</button>
+      @if (mostrarCaminho) {
+        <button type="button" class="menu-item" role="menuitem" (click)="irParaPastaDoArquivo(a)"><app-icon name="folder-open" [size]="17" /> Abrir local do arquivo</button>
+      }
+      <button type="button" class="menu-item" role="menuitem" (click)="verDetalhes(a)"><app-icon name="info" [size]="17" /> Detalhes</button>
+      <div class="menu-sep"></div>
+      <button type="button" class="menu-item danger" role="menuitem" (click)="confirmarDeletarArquivo(a)"><app-icon name="trash" [size]="17" /> Mover para a lixeira</button>
+    } @else if (pastaDoMenu; as p) {
+      <button type="button" class="menu-item" role="menuitem" (click)="entrarPasta(p)"><app-icon name="folder-open" [size]="17" /> Abrir</button>
+      <button type="button" class="menu-item" role="menuitem" (click)="abrirUpload([], p.id)"><app-icon name="upload" [size]="17" /> Enviar arquivos aqui</button>
+      <button type="button" class="menu-item" role="menuitem" (click)="abrirNovaPasta(p.id)"><app-icon name="folder-plus" [size]="17" /> Nova subpasta</button>
+      <div class="menu-sep"></div>
+      <button type="button" class="menu-item" role="menuitem" (click)="abrirRenomearPasta(p)"><app-icon name="pencil" [size]="17" /> Renomear</button>
+      @if (painelInline) {
+        <button type="button" class="menu-item" role="menuitem" (click)="verDetalhesPasta(p)"><app-icon name="info" [size]="17" /> Detalhes</button>
+      }
+      <div class="menu-sep"></div>
+      <button type="button" class="menu-item danger" role="menuitem" (click)="confirmarDeletarPasta(p)"><app-icon name="trash" [size]="17" /> Excluir pasta</button>
+    } @else if (m.tipo === 'multi') {
+      <div class="menu-label">{{ arquivosSelecionados.size }} selecionados</div>
+      <button type="button" class="menu-item" role="menuitem" (click)="baixarSelecionados()" [disabled]="baixandoEmMassa"><app-icon name="download" [size]="17" /> Baixar em ZIP</button>
+      <button type="button" class="menu-item" role="menuitem" (click)="abrirMover(idsSelecionados)"><app-icon name="folder-input" [size]="17" /> Mover para…</button>
+      <div class="menu-sep"></div>
+      <button type="button" class="menu-item danger" role="menuitem" (click)="confirmarExcluirSelecionados()"><app-icon name="trash" [size]="17" /> Mover para a lixeira</button>
+    } @else if (m.tipo === 'ordem') {
+      <div class="menu-label">Ordenar por</div>
+      @for (o of ordemOpcoes; track o.valor) {
+        <button type="button" class="menu-item" role="menuitemradio" [attr.aria-checked]="ordem === o.valor" [class.is-on]="ordem === o.valor" (click)="escolherOrdem(o.valor)">
+          <app-icon [name]="ordem === o.valor ? 'check' : 'circle'" [size]="16" [stroke]="ordem === o.valor ? 2.25 : 0" /> {{ o.label }}
+        </button>
+      }
+    } @else if (m.tipo === 'crumb' && pastaAtual) {
+      <button type="button" class="menu-item" role="menuitem" (click)="abrirNovaPasta(pastaAtual!.id)"><app-icon name="folder-plus" [size]="17" /> Nova subpasta</button>
+      <button type="button" class="menu-item" role="menuitem" (click)="abrirUpload([], pastaAtual!.id)"><app-icon name="upload" [size]="17" /> Enviar arquivos aqui</button>
+      <div class="menu-sep"></div>
+      <button type="button" class="menu-item" role="menuitem" (click)="abrirRenomearPasta(pastaAtual!)"><app-icon name="pencil" [size]="17" /> Renomear</button>
+      @if (painelInline) {
+        <button type="button" class="menu-item" role="menuitem" (click)="verDetalhesPasta(pastaAtual!)"><app-icon name="info" [size]="17" /> Detalhes</button>
+      }
+      <div class="menu-sep"></div>
+      <button type="button" class="menu-item danger" role="menuitem" (click)="confirmarDeletarPasta(pastaAtual!)"><app-icon name="trash" [size]="17" /> Excluir pasta</button>
+    } @else {
+      <button type="button" class="menu-item" role="menuitem" (click)="abrirNovaPasta()"><app-icon name="folder-plus" [size]="17" /> {{ pastaContextoNome ? 'Nova subpasta' : 'Nova pasta' }}</button>
+      <div class="menu-sep"></div>
+      <button type="button" class="menu-item" role="menuitem" (click)="abrirUpload()"><app-icon name="upload" [size]="17" /> Enviar arquivos</button>
+    }
+  </app-context-menu>
+}
+
+<!-- ===================== DICAS DE ARRASTAR ===================== -->
+@if (arquivoArrastadoId !== null) {
+  <div class="drag-hint" role="status">
+    <app-icon name="folder-input" [size]="16" />
+    Solte sobre uma pasta para mover {{ qtdArrastando > 1 ? qtdArrastando + ' arquivos' : 'o arquivo' }}
+  </div>
+}
+
+@if (arrastandoExterno) {
+  <div class="drop-overlay" aria-hidden="true">
+    <div class="drop-box">
+      <span class="icon-tile lg"><app-icon name="upload-cloud" [size]="26" /></span>
+      <strong>Solte para enviar</strong>
+      <span>{{ pastaContextoNome ? 'para a pasta “' + pastaContextoNome + '”' : 'você escolherá a pasta de destino em seguida' }}</span>
     </div>
   </div>
 }
 
-<!-- PREVIEW MODAL -->
-@if (previewAberto && arquivoPreview) {
-  <div class="overlay preview-overlay" (click)="fecharPreview()"></div>
-  <div class="preview-modal">
-    <div class="preview-header">
-      <div class="ph-info">
-        <h3>{{ arquivoPreview.nomeOriginal }}</h3>
-        <span>{{ formatarTamanho(arquivoPreview.tamanho) }}</span>
+<!-- ===================== VISUALIZAÇÃO (gaveta) ===================== -->
+@if (arquivoDetalhe) {
+  <app-arquivo-detalhe
+    [arquivo]="arquivoDetalhe"
+    [isAdmin]="isAdmin"
+    [caminho]="caminhoPasta(arquivoDetalhe.idPasta)"
+    [nomeEmpresa]="nomeEmpresaAtual"
+    (fechar)="fecharDetalhe()"
+    (baixar)="download($event)"
+    (mover)="abrirMover([$event.id])"
+    (excluir)="confirmarDeletarArquivo($event)"
+    (irParaPasta)="irParaPastaDoArquivo($event)"
+    (atualizado)="onArquivoAtualizado($event)"
+  />
+}
+
+<!-- ===================== MOVER ===================== -->
+@if (moverIds) {
+  <app-mover-dialog
+    [opcoes]="opcoesDestino"
+    [origem]="pastasOrigemMover"
+    [quantidade]="moverIds.length"
+    [nomeEmpresa]="nomeEmpresaAtual"
+    [movendo]="movendo"
+    (confirmar)="confirmarMover($event)"
+    (fechar)="fecharMover()"
+  />
+}
+
+<!-- ===================== NOVA PASTA / RENOMEAR ===================== -->
+@if (pastaModal) {
+  <div class="modal-backdrop" (click)="fecharPastaModal()">
+    <form class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="pasta-titulo" (click)="$event.stopPropagation()" (ngSubmit)="salvarPasta()">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" id="pasta-titulo">{{ pastaModal.modo === 'nova' ? (pastaModal.idPai !== null ? 'Nova subpasta' : 'Nova pasta') : 'Renomear pasta' }}</h2>
+          <p class="modal-subtitle">
+            @if (pastaModal.modo === 'nova') { Em {{ caminhoPasta(pastaModal.idPai) }}@if (nomeEmpresaAtual) { · {{ nomeEmpresaAtual }} } }
+            @else { {{ pastaModal.pasta?.nome }} }
+          </p>
+        </div>
+        <button type="button" class="btn-icon" (click)="fecharPastaModal()" aria-label="Fechar" title="Fechar (Esc)"><app-icon name="x" [size]="18" /></button>
       </div>
-      <div class="ph-acoes">
-        <button class="btn-acao btn-primario" (click)="downloadPreview()">Baixar Original</button>
-        <button class="btn-fechar-preview" (click)="fecharPreview()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      <div class="modal-body stack-lg">
+        <div class="field">
+          <label class="field-label" for="pasta-nome">Nome <span class="req">*</span></label>
+          <input id="pasta-nome" name="nome" class="input" [(ngModel)]="pastaNome" maxlength="120" placeholder="Ex.: Notas fiscais 2026" autofocus required />
+        </div>
+        <div class="field">
+          <label class="field-label" for="pasta-desc">Descrição</label>
+          <input id="pasta-desc" name="descricao" class="input" [(ngModel)]="pastaDescricao" maxlength="255" placeholder="Opcional" />
+          <span class="field-hint">Aparece nos detalhes da pasta.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="fecharPastaModal()" [disabled]="salvandoPasta">Cancelar</button>
+        <button type="submit" class="btn btn-primary" [disabled]="!pastaNome.trim() || salvandoPasta">
+          @if (salvandoPasta) { <span class="spinner"></span> }
+          {{ pastaModal.modo === 'nova' ? 'Criar pasta' : 'Salvar' }}
         </button>
       </div>
-    </div>
-    <div class="preview-body">
-      @if (previewErro) {
-        <div class="estado-vazio erro-preview">
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <p>Arquivo físico não encontrado no servidor.</p>
-          <span class="dica">Provavelmente é um dado de teste sem arquivo real. Tente fazer um novo upload!</span>
-        </div>
-      } @else if (!previewUrl) {
-        <div class="estado-vazio"><span class="spinner"></span><p>Carregando visualização...</p></div>
-      } @else {
-        @if (previewTipo === 'imagem') {
-          <img [src]="previewUrl | safe" class="preview-img" alt="Visualização" />
-        } @else {
-          <iframe [src]="previewUrl | safe" class="preview-iframe"></iframe>
-        }
-      }
-    </div>
+    </form>
   </div>
 }
 
-<!-- DICA DE ARRASTAR -->
-@if (arquivoArrastadoId !== null) {
-  <div class="dica-arrasto">
-    Solte sobre uma pasta para mover
-  </div>
-}
-
-<!-- PAINEL UPLOAD -->
-@if (painelUploadAberto) {
-  <div class="overlay" (click)="fecharUpload()"></div>
-  <div class="painel-lateral painel-aberto">
-    <app-arquivo-form
-      [empresas]="empresas"
-      [pastas]="pastas"
-      (fechar)="fecharUpload()"
-      (salvo)="onArquivoSalvo()"
-    />
-  </div>
-}
-
-<!-- CONFIRM DELETE -->
-@if (arquivoParaDeletar || pastaParaDeletar) {
-  <div class="overlay" (click)="cancelarDelete()"></div>
-  <div class="modal-confirm">
-    @if (arquivoParaDeletar) {
-      <h3>Mover para a lixeira</h3>
-      <p>Enviar <strong>{{ arquivoParaDeletar.nomeOriginal }}</strong> para a lixeira?</p>
-    } @else if (pastaParaDeletar) {
-      <h3>Excluir pasta</h3>
-      <p>Excluir <strong>{{ pastaParaDeletar.nome }}</strong>? A pasta precisa estar vazia.</p>
-    }
-    <div class="modal-acoes">
-      <button class="btn-cancelar" (click)="cancelarDelete()">Cancelar</button>
-      <button class="btn-confirm-delete" (click)="deletar()" [disabled]="deletando">
-        @if (deletando) { <span class="spinner-sm"></span> } @else { Confirmar }
-      </button>
-    </div>
-  </div>
-}
-
-<!-- TOAST -->
-@if (toastVisivel) {
-  <div class="toast" [class.toast-erro]="toastErro">{{ toastMensagem }}</div>
+<!-- ===================== UPLOAD ===================== -->
+@if (uploadAberto) {
+  <app-arquivo-form
+    [empresas]="empresas"
+    [pastas]="pastas"
+    [idEmpresaInicial]="idEmpresaSelecionada"
+    [idPastaInicial]="uploadPastaId"
+    [arquivosIniciais]="uploadArquivos"
+    (fechar)="fecharUpload()"
+    (salvo)="onArquivoSalvo($event)"
+    (parcial)="onUploadParcial()"
+  />
 }

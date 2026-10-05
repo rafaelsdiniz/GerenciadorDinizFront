@@ -1,0 +1,108 @@
+<div class="lx-bar">
+  <p class="lx-info">
+    <app-icon name="info" [size]="16" />
+    <span>Itens na lixeira podem ser <strong>restaurados</strong> para a pasta de origem@if (isAdmin) {<span class="hide-sm"> ou <strong>excluídos definitivamente</strong></span>}.</span>
+  </p>
+  @if (isAdmin && idEmpresa != null) {
+    <div class="seg" role="group" aria-label="Escopo da lixeira">
+      <button type="button" [class.active]="!todasEmpresas" (click)="todasEmpresas && alternarEscopo()" [attr.aria-pressed]="!todasEmpresas" [title]="nomeEmpresaAtual">
+        <span class="truncate">Esta empresa</span>
+      </button>
+      <button type="button" [class.active]="todasEmpresas" (click)="!todasEmpresas && alternarEscopo()" [attr.aria-pressed]="todasEmpresas">Todas</button>
+    </div>
+  }
+</div>
+
+@if (carregando) {
+  <div class="lx-sk" aria-busy="true">
+    @for (s of skeletons; track s) { <div class="skeleton sk-row"></div> }
+  </div>
+} @else if (!filtrados.length) {
+  @if (erroCarregar) {
+    <div class="empty">
+      <span class="empty-icon"><app-icon name="alert-triangle" [size]="22" /></span>
+      <span class="empty-title">Não foi possível carregar a lixeira</span>
+      <span class="empty-text">Verifique sua conexão com o servidor e tente novamente.</span>
+      <button type="button" class="btn btn-secondary" (click)="carregar()"><app-icon name="refresh" [size]="15" /> Tentar novamente</button>
+    </div>
+  } @else if (termo.trim()) {
+    <div class="empty">
+      <span class="empty-icon"><app-icon name="search" [size]="22" /></span>
+      <span class="empty-title">Nada encontrado na lixeira</span>
+      <span class="empty-text">Nenhum item excluído corresponde a “{{ termo.trim() }}”.</span>
+      <button type="button" class="btn btn-secondary" (click)="limparBusca.emit()"><app-icon name="x" [size]="15" /> Limpar pesquisa</button>
+    </div>
+  } @else {
+    <div class="empty">
+      <span class="empty-icon"><app-icon name="trash" [size]="22" /></span>
+      <span class="empty-title">A lixeira está vazia</span>
+      <span class="empty-text">Arquivos movidos para a lixeira aparecem aqui e podem ser restaurados para a pasta de origem.
+        @if (escopoEmpresa && isAdmin) { Mostrando apenas {{ nomeEmpresaAtual }}. }</span>
+      @if (escopoEmpresa && isAdmin) {
+        <button type="button" class="btn btn-secondary" (click)="alternarEscopo()"><app-icon name="building" [size]="15" /> Ver todas as empresas</button>
+      }
+    </div>
+  }
+} @else {
+  <div class="table-wrap lx">
+    <table class="table">
+      <thead>
+        <tr>
+          <th [attr.aria-sort]="ariaSort('nome')">
+            <button type="button" class="th-sort" (click)="ordenarPor('nome')">Nome <app-icon [name]="iconeOrdem('nome')" [size]="13" /></button>
+          </th>
+          @if (mostrarEmpresa) {
+            <th class="c-emp" [attr.aria-sort]="ariaSort('empresa')">
+              <button type="button" class="th-sort" (click)="ordenarPor('empresa')">Empresa <app-icon [name]="iconeOrdem('empresa')" [size]="13" /></button>
+            </th>
+          }
+          <th class="c-exc" [attr.aria-sort]="ariaSort('excluido')">
+            <button type="button" class="th-sort" (click)="ordenarPor('excluido')">Excluído em <app-icon [name]="iconeOrdem('excluido')" [size]="13" /></button>
+          </th>
+          <th class="num c-tam" [attr.aria-sort]="ariaSort('tamanho')">
+            <button type="button" class="th-sort" (click)="ordenarPor('tamanho')">Tamanho <app-icon [name]="iconeOrdem('tamanho')" [size]="13" /></button>
+          </th>
+          <th class="col-actions"><span class="sr-only">Ações</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (a of paginaItens; track a.id) {
+          @let v = visual(a);
+          <tr>
+            <td>
+              <div class="cell-entity">
+                <app-icon class="t-ic" [ngClass]="'tom-' + (v.tom || 'primary')" [name]="v.icone" [size]="20" />
+                <div class="cell-text">
+                  <span class="cell-main truncate" [title]="a.nomeOriginal">{{ a.nomeOriginal }}</span>
+                  <span class="cell-sub truncate"><span class="exc-sm">Excluído {{ tempoRelativo(a.excluidoEm) }} · </span>{{ a.descricao || v.ext }}</span>
+                </div>
+              </div>
+            </td>
+            @if (mostrarEmpresa) { <td class="c-emp"><span class="truncate emp">{{ getNomeEmpresa(a.idEmpresa) }}</span></td> }
+            <td class="nowrap c-exc">
+              <span class="cell-main fw-400 tnum">{{ a.excluidoEm | date:'dd/MM/yyyy HH:mm' }}</span>
+              <span class="cell-sub">{{ tempoRelativo(a.excluidoEm) }}</span>
+            </td>
+            <td class="num c-tam nowrap">{{ a.tamanho | bytes }}</td>
+            <td class="col-actions">
+              <div class="row-actions">
+                <button type="button" class="btn btn-secondary btn-sm" (click)="restaurar(a)" [disabled]="processandoId === a.id"
+                        title="Restaurar para a pasta de origem" [attr.aria-label]="'Restaurar ' + a.nomeOriginal">
+                  @if (processandoId === a.id && acao === 'restaurar') { <span class="spinner"></span> } @else { <app-icon name="rotate-ccw" [size]="15" /> }
+                  <span class="lbl">Restaurar</span>
+                </button>
+                @if (isAdmin) {
+                  <button type="button" class="btn-icon sm danger" (click)="excluirPermanente(a)" [disabled]="processandoId === a.id"
+                          title="Excluir definitivamente" [attr.aria-label]="'Excluir definitivamente ' + a.nomeOriginal">
+                    @if (processandoId === a.id && acao === 'excluir') { <span class="spinner"></span> } @else { <app-icon name="trash" [size]="16" /> }
+                  </button>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <app-paginador class="pager" [total]="filtrados.length" rotulo="arquivos" [opcoes]="[24, 48, 96]" [(pagina)]="pagina" [(porPagina)]="porPagina" />
+}

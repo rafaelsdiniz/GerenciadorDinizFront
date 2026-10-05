@@ -1,156 +1,197 @@
-<div class="form-wrapper">
+<div class="modal-backdrop" (click)="tentarFechar()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="uf-titulo" (click)="$event.stopPropagation()">
 
-  <div class="form-header">
-    <div class="header-info">
-      @if (modo === 'novo') {
-        <span class="form-badge badge-novo">Novo Usuário</span>
-        <h2 class="form-titulo">Cadastrar Usuário</h2>
-      } @else if (modo === 'editar') {
-        <span class="form-badge badge-editar">Editar</span>
-        <h2 class="form-titulo">{{ usuario?.nome }}</h2>
-      } @else {
-        <span class="form-badge badge-detalhes">Detalhes</span>
-        <h2 class="form-titulo">{{ usuario?.nome }}</h2>
-      }
+    <div class="modal-header">
+      <div class="mh-main">
+        @if (modo === 'novo') {
+          <span class="icon-tile"><app-icon name="user-plus" [size]="18" /></span>
+        } @else {
+          <span class="avatar avatar-lg" [class]="(usuario?.nome | avatarCor)">{{ usuario?.nome | iniciais }}</span>
+        }
+        <div class="truncate">
+          <h2 class="modal-title truncate" id="uf-titulo">
+            {{ modo === 'novo' ? 'Novo usuário' : usuario?.nome }}
+          </h2>
+          <p class="modal-subtitle truncate">
+            @switch (modo) {
+              @case ('novo') { Dê acesso ao sistema para alguém da equipe ou de uma empresa cliente. }
+              @case ('editar') { Editando dados de acesso · {{ usuario?.email }} }
+              @default { {{ usuario?.email }} }
+            }
+          </p>
+        </div>
+      </div>
+      <button type="button" class="btn-icon" (click)="tentarFechar()" aria-label="Fechar" title="Fechar (Esc)">
+        <app-icon name="x" [size]="18" />
+      </button>
     </div>
-    <button class="btn-fechar" (click)="fechar.emit()">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-      </svg>
-    </button>
-  </div>
 
-  <div class="form-body">
-
-    <!-- DETALHES -->
     @if (modo === 'detalhes' && usuario) {
-      <div class="detalhes-grid">
-        <div class="detalhe-item detalhe-full">
-          <span class="detalhe-label">Nome</span>
-          <span class="detalhe-valor">{{ usuario.nome }}</span>
-        </div>
-        <div class="detalhe-item detalhe-full">
-          <span class="detalhe-label">Email</span>
-          <span class="detalhe-valor">{{ usuario.email }}</span>
-        </div>
-        <div class="detalhe-item">
-          <span class="detalhe-label">Perfil</span>
-          <span class="badge-perfil" [class.badge-admin]="usuario.perfilUsuario === 'ADMIN'" [class.badge-funcionario]="usuario.perfilUsuario === 'FUNCIONARIO'">
-            {{ usuario.perfilUsuario }}
+      <!-- ============ DETALHES ============ -->
+      <div class="modal-body">
+        <dl class="dl">
+          <div class="span-2">
+            <dt>Nome</dt>
+            <dd>{{ usuario.nome }}</dd>
+          </div>
+          <div class="span-2">
+            <dt>E-mail de acesso</dt>
+            <dd><a [href]="'mailto:' + usuario.email">{{ usuario.email }}</a></dd>
+          </div>
+          <div>
+            <dt>Perfil</dt>
+            <dd>
+              <span class="badge" [class.badge-primary]="usuario.perfilUsuario === 'ADMIN'" [class.badge-neutral]="usuario.perfilUsuario !== 'ADMIN'">
+                <app-icon [name]="usuario.perfilUsuario === 'ADMIN' ? 'shield-check' : 'user'" [size]="12" [stroke]="2" />
+                {{ perfilLabel(usuario.perfilUsuario) }}
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt>Empresa vinculada</dt>
+            <dd>
+              {{ getNomeEmpresa(usuario.idEmpresa) }}
+              @if (getCnpjEmpresa(usuario.idEmpresa); as cnpj) { <span class="cell-sub tnum">{{ cnpj | documento }}</span> }
+            </dd>
+          </div>
+        </dl>
+        <div class="alert alert-info detalhe-nota">
+          <app-icon name="info" [size]="16" />
+          <span>
+            @if (usuario.perfilUsuario === 'ADMIN') { Administradores têm acesso total: empresas, usuários, sócios e registro de atividades. }
+            @else { Funcionários veem e enviam somente os arquivos da empresa vinculada. }
           </span>
         </div>
-        <div class="detalhe-item">
-          <span class="detalhe-label">Empresa</span>
-          <span class="detalhe-valor">{{ getNomeEmpresa(usuario.idEmpresa) }}</span>
-        </div>
       </div>
-      <div class="form-acoes">
-        <button class="btn-secundario" (click)="fechar.emit()">Fechar</button>
-        <button class="btn-primario" (click)="irParaEdicao()">Editar</button>
-      </div>
-    }
-
-    <!-- NOVO / EDITAR -->
-    @if (modo === 'novo' || modo === 'editar') {
-      <div class="campos">
-
-        <div class="campo">
-          <label>Nome <span class="obrigatorio">*</span></label>
-          <input
-            type="text"
-            [(ngModel)]="dto.nome"
-            placeholder="Ex: Rafael Diniz"
-            [class.campo-erro]="erros['nome']"
-          />
-          @if (erros['nome']) {
-            <span class="mensagem-erro">{{ erros['nome'] }}</span>
-          }
-        </div>
-
-        <div class="campo">
-          <label>Email <span class="obrigatorio">*</span></label>
-          <input
-            type="email"
-            [(ngModel)]="dto.email"
-            placeholder="usuario@email.com"
-            [class.campo-erro]="erros['email']"
-          />
-          @if (erros['email']) {
-            <span class="mensagem-erro">{{ erros['email'] }}</span>
-          }
-        </div>
-
-        <div class="campo">
-          <label>
-            Senha <span class="obrigatorio">*</span>
-            @if (modo === 'editar') {
-              <span class="label-hint">(deixe em branco para manter a atual)</span>
-            }
-          </label>
-          <div class="input-senha-wrapper">
-            <input
-              [type]="senhaVisivel ? 'text' : 'password'"
-              [(ngModel)]="dto.senha"
-              placeholder="Mínimo 6 caracteres"
-              [class.campo-erro]="erros['senha']"
-            />
-            <button class="btn-toggle-senha" type="button" (click)="senhaVisivel = !senhaVisivel">
-              <svg *ngIf="!senhaVisivel" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-              </svg>
-              <svg *ngIf="senhaVisivel" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>
-              </svg>
-            </button>
-          </div>
-          @if (erros['senha']) {
-            <span class="mensagem-erro">{{ erros['senha'] }}</span>
-          }
-        </div>
-
-        <div class="campo">
-          <label>Perfil <span class="obrigatorio">*</span></label>
-          <select [(ngModel)]="dto.perfilUsuario" [class.campo-erro]="erros['perfilUsuario']">
-            <option value="" disabled>Selecione um perfil...</option>
-            <option value="ADMIN">ADMIN</option>
-            <option value="FUNCIONARIO">FUNCIONARIO</option>
-          </select>
-          @if (erros['perfilUsuario']) {
-            <span class="mensagem-erro">{{ erros['perfilUsuario'] }}</span>
-          }
-        </div>
-
-        <div class="campo">
-          <label>Empresa <span class="obrigatorio">*</span></label>
-          <select [(ngModel)]="dto.idEmpresa" [class.campo-erro]="erros['idEmpresa']">
-            <option [ngValue]="0" disabled>Selecione uma empresa...</option>
-            @for (empresa of empresas; track empresa.id) {
-              <option [ngValue]="empresa.id">{{ empresa.nomeFantasia }}</option>
-            }
-          </select>
-          @if (erros['idEmpresa']) {
-            <span class="mensagem-erro">{{ erros['idEmpresa'] }}</span>
-          }
-        </div>
-
-      </div>
-
-      @if (erroGeral) {
-        <p class="erro-geral">{{ erroGeral }}</p>
-      }
-
-      <div class="form-acoes">
-        <button class="btn-secundario" (click)="fechar.emit()" [disabled]="salvando">Cancelar</button>
-        <button class="btn-primario" (click)="salvar()" [disabled]="salvando">
-          @if (salvando) {
-            <span class="spinner-sm"></span>
-          } @else {
-            {{ modo === 'novo' ? 'Cadastrar' : 'Salvar' }}
-          }
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="fechar.emit()">Fechar</button>
+        <button type="button" class="btn btn-primary" (click)="irParaEdicao()">
+          <app-icon name="pencil" [size]="15" /> Editar usuário
         </button>
       </div>
+    } @else {
+      <!-- ============ NOVO / EDITAR ============ -->
+      <form class="modal-form" (ngSubmit)="salvar()" novalidate autocomplete="off">
+        <div class="modal-body">
+
+          <section class="form-section">
+            <h3 class="form-section-title">Identificação</h3>
+            <p class="form-section-desc">Nome exibido no sistema e e-mail usado para entrar.</p>
+            <div class="form-grid">
+              <div class="field span-2">
+                <label class="field-label" for="uf-nome">Nome completo <span class="req">*</span></label>
+                <input #primeiroCampo id="uf-nome" name="nome" class="input" type="text" [(ngModel)]="dto.nome"
+                       (ngModelChange)="limparErro('nome')" placeholder="Ex.: Rafael Diniz" [class.is-invalid]="erros['nome']" />
+                @if (erros['nome']) { <span class="field-error"><app-icon name="alert-circle" [size]="13" /> {{ erros['nome'] }}</span> }
+              </div>
+              <div class="field span-2">
+                <label class="field-label" for="uf-email">E-mail <span class="req">*</span></label>
+                <div class="input-icon">
+                  <app-icon name="mail" [size]="16" />
+                  <input id="uf-email" name="email" class="input" type="email" [(ngModel)]="dto.email"
+                         (ngModelChange)="limparErro('email')" placeholder="nome@empresa.com.br" [class.is-invalid]="erros['email']" />
+                </div>
+                @if (erros['email']) { <span class="field-error"><app-icon name="alert-circle" [size]="13" /> {{ erros['email'] }}</span> }
+              </div>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <h3 class="form-section-title">Perfil e empresa</h3>
+            <p class="form-section-desc">O perfil define o que a pessoa pode ver e fazer.</p>
+            <div class="radio-cards" role="radiogroup" aria-label="Perfil">
+              @for (p of perfis; track p.valor) {
+                <label class="radio-card" [class.selected]="dto.perfilUsuario === p.valor">
+                  <input type="radio" name="perfilUsuario" [value]="p.valor" [(ngModel)]="dto.perfilUsuario" (ngModelChange)="limparErro('perfilUsuario')" />
+                  <span class="icon-tile sm" [class.neutral]="dto.perfilUsuario !== p.valor"><app-icon [name]="p.icon" [size]="15" /></span>
+                  <span class="rc-text">
+                    <strong>{{ p.label }}</strong>
+                    <small>{{ p.desc }}</small>
+                  </span>
+                  <span class="rc-check"><app-icon name="check" [size]="12" [stroke]="3" /></span>
+                </label>
+              }
+            </div>
+            @if (erros['perfilUsuario']) { <span class="field-error mt-sm"><app-icon name="alert-circle" [size]="13" /> {{ erros['perfilUsuario'] }}</span> }
+
+            <div class="field mt-lg">
+              <label class="field-label" for="uf-empresa">Empresa vinculada <span class="req">*</span></label>
+              <select id="uf-empresa" name="idEmpresa" class="select" [(ngModel)]="dto.idEmpresa"
+                      (ngModelChange)="limparErro('idEmpresa')" [class.is-invalid]="erros['idEmpresa']">
+                <option [ngValue]="0" disabled>Selecione uma empresa…</option>
+                @for (empresa of empresas; track empresa.id) {
+                  <option [ngValue]="empresa.id">{{ empresa.nomeFantasia }}</option>
+                }
+              </select>
+              @if (erros['idEmpresa']) {
+                <span class="field-error"><app-icon name="alert-circle" [size]="13" /> {{ erros['idEmpresa'] }}</span>
+              } @else {
+                <span class="field-hint">
+                  {{ dto.perfilUsuario === 'ADMIN' ? 'Para administradores, normalmente o próprio escritório.' : 'O funcionário verá apenas os arquivos desta empresa.' }}
+                </span>
+              }
+            </div>
+          </section>
+
+          <section class="form-section">
+            <h3 class="form-section-title">Senha</h3>
+            <p class="form-section-desc">
+              {{ modo === 'novo' ? 'Defina uma senha inicial e envie-a ao usuário por um canal seguro.' : 'Deixe em branco para manter a senha atual.' }}
+            </p>
+            <div class="field">
+              <label class="field-label" for="uf-senha">
+                {{ modo === 'novo' ? 'Senha inicial' : 'Nova senha' }} @if (modo === 'novo') { <span class="req">*</span> }
+              </label>
+              <div class="input-icon">
+                <app-icon name="lock" [size]="16" />
+                <input id="uf-senha" name="senha" class="input pw-input" [type]="senhaVisivel ? 'text' : 'password'" [(ngModel)]="dto.senha"
+                       (ngModelChange)="limparErro('senha')" autocomplete="new-password"
+                       [placeholder]="modo === 'novo' ? 'Mínimo de 6 caracteres' : 'Manter a senha atual'" [class.is-invalid]="erros['senha']" />
+                <button type="button" class="btn-icon sm input-clear" (click)="senhaVisivel = !senhaVisivel"
+                        [attr.aria-label]="senhaVisivel ? 'Ocultar senha' : 'Mostrar senha'" [title]="senhaVisivel ? 'Ocultar senha' : 'Mostrar senha'">
+                  <app-icon [name]="senhaVisivel ? 'eye-off' : 'eye'" [size]="16" />
+                </button>
+              </div>
+              @if (dto.senha) {
+                <div class="pw-meter">
+                  <div class="progress" [class]="forcaSenha.tom"><span [style.width.%]="forcaSenha.nivel"></span></div>
+                  <span class="text-xs" [class]="'text-' + forcaSenha.tom">{{ forcaSenha.label }}</span>
+                </div>
+              }
+              @if (erros['senha']) {
+                <span class="field-error"><app-icon name="alert-circle" [size]="13" /> {{ erros['senha'] }}</span>
+              } @else {
+                <span class="field-hint">Use 6 ou mais caracteres; misture letras, números e símbolos para uma senha forte.</span>
+              }
+              <div class="pw-actions">
+                <button type="button" class="btn btn-ghost btn-sm" (click)="gerarSenha()">
+                  <app-icon name="sparkles" [size]="14" /> Gerar senha segura
+                </button>
+                @if (dto.senha) {
+                  <button type="button" class="btn btn-ghost btn-sm" (click)="copiarSenha()">
+                    <app-icon name="copy" [size]="14" /> Copiar
+                  </button>
+                }
+              </div>
+            </div>
+          </section>
+
+          @if (erroGeral) {
+            <div class="alert alert-danger mt-lg" role="alert">
+              <app-icon name="alert-triangle" [size]="16" />
+              <span>{{ erroGeral }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="tentarFechar()" [disabled]="salvando">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="salvando">
+            @if (salvando) { <span class="spinner"></span> Salvando… }
+            @else { <app-icon name="check" [size]="15" [stroke]="2" /> {{ modo === 'novo' ? 'Cadastrar usuário' : 'Salvar alterações' }} }
+          </button>
+        </div>
+      </form>
     }
-
   </div>
-
 </div>

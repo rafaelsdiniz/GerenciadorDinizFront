@@ -1,0 +1,107 @@
+<div class="table-wrap">
+  <table class="table" [class.table-compact]="compacta">
+    <thead>
+      <tr>
+        @if (ordem) {
+          <th class="sortable col-data" (click)="ordenar.emit(ordem === 'data' ? 'urgencia' : 'data')"
+              [attr.aria-sort]="ordem === 'data' ? 'descending' : null" title="Ordenar por data de chegada">
+            <span class="th-in">Recebida em @if (ordem === 'data') { <app-icon name="chevron-down" [size]="12" /> }</span>
+          </th>
+        } @else {
+          <th class="col-data">Recebida em</th>
+        }
+        @if (mostrarEmpresa) { <th>Empresa</th> }
+        <th>Comunicação</th>
+        <th>Ciência</th>
+        @if (ordem) {
+          <th class="sortable" (click)="ordenar.emit('urgencia')" [attr.aria-sort]="ordem === 'urgencia' ? 'ascending' : null" title="Ordenar por urgência">
+            <span class="th-in">Urgência @if (ordem === 'urgencia') { <app-icon name="chevron-up" [size]="12" /> }</span>
+          </th>
+        } @else {
+          <th>Urgência</th>
+        }
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (l of linhas; track l.c.id) {
+        <tr class="clickable" tabindex="0" [class.selected]="l.c.id === selecionadoId"
+            [class.row-critica]="l.tomUrgencia === 'danger' && !l.c.cienteEm && !l.c.encerrada"
+            (click)="abrir.emit(l.c)" (keydown.enter)="abrir.emit(l.c)"
+            [attr.aria-label]="'Abrir detalhes: ' + l.c.assunto">
+          <td class="col-data">
+            <div class="cell-entity">
+              <span class="date-chip" [title]="(l.c.disponibilizadaEm | date:'dd/MM/yyyy HH:mm') ?? ''">
+                <strong>{{ l.dia }}</strong><span>{{ l.mes }}</span>
+              </span>
+              <span class="chegou">
+                <span class="nowrap rel" [class.text-primary]="l.nova">{{ l.chegou }}</span>
+                <span class="cell-sub dt">{{ l.c.disponibilizadaEm | date:'yyyy' }}</span>
+              </span>
+            </div>
+          </td>
+
+          @if (mostrarEmpresa) {
+            <td>
+              <div class="cell-entity">
+                <span class="avatar avatar-sm" [ngClass]="l.c.idEmpresa == null ? 'avatar-novo' : (l.empresa | avatarCor)">
+                  @if (l.c.idEmpresa == null) { <app-icon name="building" [size]="14" /> } @else { {{ l.empresa | iniciais }} }
+                </span>
+                <span class="min0 emp-cell">
+                  <span class="cell-main truncate emp-nome" [title]="l.empresa">{{ l.empresa }}</span>
+                  @if (l.c.idEmpresa == null) {
+                    <span class="cell-sub emp-sub">
+                      <span class="tnum nowrap">{{ l.c.cnpj | documento }}</span>
+                      <span class="tag tag-novo" title="CNPJ ainda não cadastrado no Gerenciador">não cadastrada</span>
+                      @if (podeCadastrar) {
+                        <button type="button" class="link cadastrar" (click)="$event.stopPropagation(); cadastrar(l.c)"
+                                [attr.aria-label]="'Cadastrar ' + l.empresa + ' no Gerenciador'" title="Cadastrar no Gerenciador">
+                          <app-icon name="plus" [size]="12" /> Cadastrar
+                        </button>
+                      }
+                    </span>
+                  }
+                </span>
+              </div>
+            </td>
+          }
+
+          <td>
+            <div class="com-cell">
+              <span class="tag">{{ tipoLabel[l.c.tipo] || l.c.tipo }}</span>
+              <span class="cell-main com-assunto" [title]="l.c.assunto">{{ l.c.assunto || 'Sem assunto' }}</span>
+              <span class="cell-sub">
+                @if (l.c.numero) { <span class="tnum">Protocolo nº {{ l.c.numero }}</span> }
+                @if (l.c.temInteiroTeor) { <span class="pdf" title="Inteiro teor (PDF) disponível no DEC"><app-icon name="paperclip" [size]="12" /> PDF</span> }
+              </span>
+            </div>
+          </td>
+
+          <td>
+            @if (l.c.cienteEm) {
+              <span class="badge badge-success tnum" title="Ciência registrada"><app-icon name="check" [size]="12" /> {{ l.c.cienteEm | date:'dd/MM/yyyy' }}</span>
+            } @else if (l.c.encerrada) {
+              <span class="text-faint">—</span>
+            } @else if (l.c.cienciaTacitaEm) {
+              <span class="nowrap tacita">{{ (l.diasTacita ?? 0) < 0 ? 'Tácita desde' : 'Tácita em' }} {{ l.c.cienciaTacitaEm | date:'dd/MM' }}</span>
+              <span class="badge countdown" [ngClass]="'badge-' + l.tomTacita">{{ l.relTacita }}</span>
+            } @else {
+              <span class="badge badge-neutral">Aguardando</span>
+            }
+          </td>
+
+          <td>
+            <span class="badge badge-soft" [ngClass]="'badge-' + l.tomUrgencia" [title]="tituloUrgencia(l)">
+              {{ urgenciaLabel[l.c.urgencia] || l.c.urgencia }}
+            </span>
+          </td>
+
+          <td>
+            <span class="badge badge-dot" [ngClass]="'badge-' + l.tomStatus">{{ statusLabel[l.c.status] || l.c.status }}</span>
+          </td>
+
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

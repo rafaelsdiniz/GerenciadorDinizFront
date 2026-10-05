@@ -1,0 +1,60 @@
+.intro { margin-bottom: var(--sp-lg); }
+
+.filter-card .select { width: auto; min-width: 190px; }
+
+.min0 { min-width: 0; }
+.desc { max-width: 260px; }
+.emp-nome { max-width: 180px; }
+.table tbody tr.inativa td { color: var(--ink-mute); }
+.table tbody tr.inativa .cell-main { color: var(--ink-mute); }
+.table tbody tr.inativa .badge { opacity: .65; }
+
+.table-footer { flex-wrap: wrap; gap: 12px; }
+.page-ellipsis { padding: 0 4px; color: var(--ink-faint); }
+
+.sk-a { display: block; width: 60%; }
+.sk-b { display: block; width: 40%; }
+.sk-c { display: block; width: 30%; }
+
+.segmented { align-self: flex-start; }
+.resumo {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--canvas-soft);
+  border: 1px solid var(--hairline);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.resumo app-icon { color: var(--primary); margin-top: 1px; flex-shrink: 0; }
+.block { display: block; }
+.modal-body .switch { align-items: flex-start; }
+.modal-body .switch .track { margin-top: 2px; }
+
+@media (max-width: 720px) {
+  .filter-card .search { max-width: none; flex-basis: 100%; }
+  .filter-card .select { flex: 1 1 100%; }
+  .filter-chips { flex-wrap: nowrap; overflow-x: auto; width: 100%; }
+  .hide-sm { display: none; }
+  .table-footer { justify-content: center; }
+}
+
+/* responsável: chips e cartões de escolha */
+.chip-sep { width: 1px; height: 22px; background: var(--hairline-strong); margin: 0 2px; flex-shrink: 0; }
+.resp-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.resp-card {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px; text-align: left; cursor: pointer;
+  border: 1px solid var(--hairline-input); border-radius: var(--radius-md); background: var(--canvas);
+  transition: border-color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast);
+}
+.resp-card:hover { border-color: var(--hairline-input-hover); }
+.resp-card.active { border-color: var(--primary); background: var(--primary-50); box-shadow: 0 0 0 1px var(--primary); }
+.resp-card.is-cliente.active { border-color: var(--accent); background: var(--accent-bg); box-shadow: 0 0 0 1px var(--accent); }
+.resp-title { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
+.resp-help { display: block; font-size: 12px; line-height: 1.4; color: var(--ink-mute); margin-top: 2px; }
+@media (max-width: 520px) { .resp-cards { grid-template-columns: minmax(0, 1fr); } }
+.nome-resp { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.resp { height: 20px; padding: 0 8px; font-size: 11px; flex-shrink: 0; white-space: nowrap; }

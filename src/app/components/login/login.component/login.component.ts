@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { LoginRequestDTO } from '../../../models/login-request.dto';
 import { AuthService } from '../../../services/auth.service';
+import { IconComponent } from '../../../shared/icon.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
@@ -19,7 +20,9 @@ export class LoginComponent {
     senha: ''
   };
 
+  readonly ano = new Date().getFullYear();
   senhaVisivel = false;
+  ajudaSenha = false;
   carregando = false;
   erro = '';
 

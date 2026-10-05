@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SocioRequestDTO } from '../models/socio-request.dto';
 import { SocioResponseDTO } from '../models/socio-response.dto';
+import { environment } from '../../environments/environment';
 
 
 @Injectable({
@@ -10,7 +11,7 @@ import { SocioResponseDTO } from '../models/socio-response.dto';
 })
 export class SocioService {
 
-  private readonly API = 'http://localhost:8080/socios';
+  private readonly API = `${environment.apiUrl}/socios`;
 
   constructor(private http: HttpClient) {}
 

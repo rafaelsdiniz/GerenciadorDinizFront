@@ -4,13 +4,14 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { EmpresaResponseDTO } from '../models/empresa-response.dto';
 import { EmpresaRequestDTO } from '../models/empresa-request.dto';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class EmpresaService {
 
-  private readonly API = 'http://localhost:8080/empresas';
+  private readonly API = `${environment.apiUrl}/empresas`;
 
   constructor(private http: HttpClient) {}
 

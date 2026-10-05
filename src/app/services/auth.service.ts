@@ -5,13 +5,14 @@ import { PerfilUsuario } from '../models/enums/tipo-usuario.enum';
 import { JwtPayload } from '../models/jwt-payload.model';
 import { LoginRequestDTO } from '../models/login-request.dto';
 import { TokenResponseDTO } from '../models/token-response.dto';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
 
-  private readonly API = 'http://localhost:8080/auth';
+  private readonly API = `${environment.apiUrl}/auth`;
   private readonly TOKEN_KEY = 'token';
 
   constructor(private http: HttpClient) {}

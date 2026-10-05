@@ -1,0 +1,196 @@
+<div class="page ajuda">
+
+  <!-- ============ CABEÇALHO ============ -->
+  <header class="page-header">
+    <div class="page-header-text">
+      <span class="eyebrow">Ajuda</span>
+      <h1 class="page-title">Como usar</h1>
+      <p class="page-subtitle">Guia rápido para testar o sistema em 5 minutos</p>
+    </div>
+    @if (logado) {
+      <div class="page-actions">
+        <span class="badge badge-soft badge-info badge-lg">
+          <app-icon [name]="perfilAtual === 'escritorio' ? 'briefcase' : 'building'" [size]="13" />
+          Você está como {{ nomePerfilAtual }}
+        </span>
+      </div>
+    }
+  </header>
+
+  <!-- ============ O QUE É ============ -->
+  <section class="card card-pad">
+    <h2 class="card-title">O que é</h2>
+    <p class="intro">
+      Portal da <strong>Diniz Assessoria Contábil</strong> (Palmas-TO) com suas empresas clientes, muitas delas indústrias e
+      comércios. O escritório controla as obrigações fiscais de cada empresa e entrega as guias pelo sistema; o cliente vê
+      somente os dados da própria empresa, envia os documentos pedidos e confirma os pagamentos.
+    </p>
+    <div class="valores">
+      @for (v of valores; track v.titulo) {
+        <div class="valor">
+          <span class="icon-tile" [class]="v.tom"><app-icon [name]="v.icone" [size]="18" /></span>
+          <div>
+            <strong>{{ v.titulo }}</strong>
+            <p>{{ v.texto }}</p>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- ============ PERFIS DE DEMONSTRAÇÃO ============ -->
+  <section class="card">
+    <header class="card-header">
+      <div>
+        <h2 class="card-title"><app-icon name="log-in" [size]="17" /> Acesse com os perfis de demonstração</h2>
+        <p class="card-subtitle">Todos usam a senha <strong class="tnum">{{ senha }}</strong>.</p>
+      </div>
+    </header>
+    <div class="card-body">
+      <div class="perfis">
+        @for (p of perfis; track p.id) {
+          <article class="perfil" [class.atual]="p.id === perfilAtual">
+            <div class="perfil-head">
+              <span class="icon-tile lg" [class.accent]="p.id === 'escritorio'"><app-icon [name]="p.icone" [size]="20" /></span>
+              <div class="perfil-nome">
+                <strong>{{ p.nome }}</strong>
+                <span>{{ p.papel }}</span>
+              </div>
+              @if (p.id === perfilAtual) { <span class="badge badge-primary">Perfil atual</span> }
+            </div>
+
+            <dl class="cred">
+              <div>
+                <dt>E-mail</dt>
+                <dd><code>{{ p.email }}</code>
+                  <button type="button" class="btn-icon sm bordered" (click)="copiar(p.email)" [attr.aria-label]="'Copiar e-mail ' + p.email" title="Copiar">
+                    <app-icon name="copy" [size]="14" />
+                  </button>
+                </dd>
+              </div>
+              <div>
+                <dt>Senha</dt>
+                <dd><code>{{ senha }}</code>
+                  <button type="button" class="btn-icon sm bordered" (click)="copiar(senha)" aria-label="Copiar senha" title="Copiar">
+                    <app-icon name="copy" [size]="14" />
+                  </button>
+                </dd>
+              </div>
+            </dl>
+
+            <ul class="pode">
+              @for (item of p.pode; track item) {
+                <li><app-icon name="check" [size]="14" [stroke]="2.25" /> {{ item }}</li>
+              }
+            </ul>
+
+            @if (p.id === 'cliente') {
+              <p class="outro">
+                Teste o isolamento: entre também com <code>{{ outroCliente }}</code>
+                <button type="button" class="btn-icon sm" (click)="copiar(outroCliente)" aria-label="Copiar e-mail do outro cliente" title="Copiar">
+                  <app-icon name="copy" [size]="13" />
+                </button>
+                (Auto Peças Tocantins). Nada da Padaria aparece.
+              </p>
+            }
+          </article>
+        }
+      </div>
+
+      <p class="footnote">
+        <app-icon name="info" [size]="15" />
+        <span>A tela de entrada fica em <strong>/login</strong>. Para trocar de perfil, abra o menu do usuário (avatar no canto
+          superior direito) e clique em <strong>Sair</strong>.</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ ROTEIRO ============ -->
+  <section class="card">
+    <header class="card-header plain">
+      <div>
+        <h2 class="card-title"><app-icon name="list-checks" [size]="17" /> Roteiro de teste</h2>
+        <p class="card-subtitle">Siga os passos na ordem; cada um abre a tela correspondente.</p>
+      </div>
+    </header>
+    <div class="card-body roteiro">
+      <nav class="tabs" role="tablist" aria-label="Perfil do roteiro">
+        @for (p of perfis; track p.id) {
+          <button type="button" class="tab" role="tab" [class.active]="aba === p.id" [attr.aria-selected]="aba === p.id" (click)="aba = p.id">
+            <app-icon [name]="p.icone" [size]="15" /> {{ p.nome }}
+            <span class="count">{{ roteiros[p.id].length }}</span>
+          </button>
+        }
+      </nav>
+
+      @if (logado && aba !== perfilAtual) {
+        <div class="alert alert-info">
+          <app-icon name="info" [size]="16" />
+          <div class="alert-row">
+            <span>Este roteiro é do perfil <strong>{{ nomeAba }}</strong> e você está como {{ nomePerfilAtual }}.</span>
+            <button type="button" class="btn btn-secondary btn-sm" (click)="trocarPerfil()">
+              <app-icon name="log-out" [size]="14" /> Sair e entrar como {{ nomeAba }}
+            </button>
+          </div>
+        </div>
+      }
+
+      <ol class="passos" role="tabpanel">
+        @for (s of roteiros[aba]; track s.titulo; let i = $index) {
+          <li class="passo">
+            <span class="num tnum">{{ i + 1 }}</span>
+            <div class="passo-body">
+              <strong><app-icon [name]="s.icone" [size]="15" /> {{ s.titulo }}</strong>
+              <p>{{ s.texto }}</p>
+              @if (s.aviso) {
+                <p class="aviso"><app-icon name="alert-triangle" [size]="14" /> {{ s.aviso }}</p>
+              }
+            </div>
+            <a class="btn btn-outline btn-sm" [routerLink]="s.link">Abrir <app-icon name="arrow-right" [size]="14" /></a>
+          </li>
+        }
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ FUNCIONALIDADES ============ -->
+  <section>
+    <div class="section-label">
+      <h2>Funcionalidades</h2>
+      <span>{{ recursos.length }} recursos</span>
+    </div>
+    <div class="recursos">
+      @for (r of recursos; track r.titulo) {
+        <div class="card recurso">
+          <span class="icon-tile sm" [class]="r.tom"><app-icon [name]="r.icone" [size]="15" /></span>
+          <div>
+            <strong>{{ r.titulo }}</strong>
+            @if (r.texto) {
+              <p>{{ r.texto }}</p>
+            } @else {
+              <p><span class="kbd">/</span> ou <span class="kbd">Ctrl</span>+<span class="kbd">K</span> busca · <span class="kbd">Esc</span> fecha</p>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- ============ TECNOLOGIA ============ -->
+  <section class="card">
+    <header class="card-header">
+      <h2 class="card-title"><app-icon name="git-branch" [size]="17" /> Tecnologia</h2>
+    </header>
+    <div class="card-body tight">
+      <ul class="tec">
+        @for (t of tecnologias; track t.titulo) {
+          <li>
+            <app-icon [name]="t.icone" [size]="16" />
+            <div><span>{{ t.titulo }}</span><strong>{{ t.texto }}</strong></div>
+          </li>
+        }
+      </ul>
+    </div>
+  </section>
+
+</div>

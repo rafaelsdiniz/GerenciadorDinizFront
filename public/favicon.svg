@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="fundo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1a2d7a"/>
+      <stop offset="1" stop-color="#0b1433"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#fundo)"/>
+  <!-- detalhe dourado do logo Diniz -->
+  <path d="M13 14h17c3.2 0 6.1.7 8.6 2.1L29 25H13z" fill="#c9a961"/>
+  <!-- D -->
+  <path d="M22 25h8c7.2 0 12 4.6 12 11.5S37.2 48 30 48h-8V25z" fill="none" stroke="#ffffff" stroke-width="7" stroke-linejoin="round"/>
+</svg>

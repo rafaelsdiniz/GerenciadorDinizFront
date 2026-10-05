@@ -41,9 +41,18 @@ export const routes: Routes = [
         pathMatch: 'full'
       },
       {
+        path: 'como-usar',
+        loadComponent: () => import('./components/ajuda/como-usar.component')
+          .then(m => m.ComoUsarComponent)
+      },
+      {
+        path: 'dec',
+        loadComponent: () => import('./components/dec/dec-comunicacoes.component')
+          .then(m => m.DecComunicacoesComponent)
+      },
+      {
         path: 'lixeira',
-        loadComponent: () => import('./components/lixeira/lixeira.component')
-          .then(m => m.LixeiraComponent)
+        redirectTo: () => '/arquivos?secao=lixeira'
       },
       {
         path: 'calendario',
@@ -77,6 +86,11 @@ export const routes: Routes = [
         canActivate: [adminGuard],
         loadComponent: () => import('./components/socio/socio-list/socio-list.component')
           .then(m => m.SocioListComponent)
+      },
+      {
+        path: 'conta',
+        loadComponent: () => import('./components/conta/conta.component')
+          .then(m => m.ContaComponent)
       },
       {
         path: '',

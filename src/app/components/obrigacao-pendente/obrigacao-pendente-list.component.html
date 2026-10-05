@@ -1,0 +1,536 @@
+<div class="page">
+  <header class="page-header">
+    <div class="page-header-text">
+      <h1 class="page-title">Pendências</h1>
+      <p class="page-subtitle">
+        @if (carregando && !linhas.length) {
+          Carregando obrigações…
+        } @else {
+          <span class="tnum">{{ contar('pendentes') }}</span> em aberto
+          · <span class="tnum text-danger">{{ kpiVencidas.length }}</span> vencida(s)
+          · <span class="tnum">{{ base.length }}</span> no total
+        }
+      </p>
+    </div>
+    <div class="page-actions">
+      <a routerLink="/calendario" class="btn btn-secondary">
+        <app-icon name="calendar" [size]="16" /> Calendário
+      </a>
+      @if (isAdmin) {
+        <button type="button" class="btn btn-primary" (click)="gerar()" [disabled]="gerando">
+          @if (gerando) { <span class="spinner"></span> Gerando… }
+          @else { <app-icon name="sparkles" [size]="16" /> Gerar pendências }
+        </button>
+      }
+    </div>
+  </header>
+
+  <!-- KPIs que funcionam como filtros -->
+  <section class="kpis grid-4" aria-label="Resumo">
+    <button type="button" class="kpi is-danger" [class.is-urgent]="kpiVencidas.length > 0" [class.active]="filtro === 'vencidas'"
+            (click)="setFiltro('vencidas')" [attr.aria-pressed]="filtro === 'vencidas'">
+      <div class="kpi-head">
+        <span class="kpi-label">Vencidas</span>
+        <span class="icon-tile sm danger"><app-icon name="alert-triangle" [size]="16" /></span>
+      </div>
+      <div class="kpi-main">
+        @if (carregando && !linhas.length) { <span class="skeleton kpi-sk"></span> }
+        @else {
+          <span class="kpi-value">{{ kpiVencidas.length }}</span>
+          @if (kpiVencidas.length) {
+            <span class="badge badge-soft badge-danger">Urgente</span>
+            <span class="badge badge-soft badge-danger tnum kpi-extra" title="Maior atraso">Venceu há {{ maiorAtraso }} dias</span>
+          }
+        }
+      </div>
+      <div class="kpi-foot">
+        <span class="truncate">
+          {{ kpiVencidas.length ? (idEmpresaUsuario ? 'Regularize o quanto antes' : empresasComAtraso + ' empresa(s) com atraso') : 'Nenhuma obrigação atrasada' }}
+        </span>
+        <span class="kpi-link">Resolver <app-icon name="arrow-right" [size]="14" /></span>
+      </div>
+    </button>
+
+    <button type="button" class="kpi is-warning" [class.active]="filtro === 'semana'"
+            (click)="setFiltro('semana')" [attr.aria-pressed]="filtro === 'semana'">
+      <div class="kpi-head">
+        <span class="kpi-label">Vencem em 7 dias</span>
+        <span class="icon-tile sm warning"><app-icon name="clock" [size]="16" /></span>
+      </div>
+      <div class="kpi-main">
+        @if (carregando && !linhas.length) { <span class="skeleton kpi-sk"></span> }
+        @else {
+          <span class="kpi-value">{{ kpiSemana.length }}</span>
+          @if (kpiSemana.length) { <span class="badge badge-soft badge-warning">Atenção</span> }
+          @else { <span class="badge badge-soft badge-success">Sob controle</span> }
+        }
+      </div>
+      <div class="kpi-foot">
+        <span class="truncate">{{ kpiSemana.length ? 'Prepare as guias desta semana' : 'Semana tranquila' }}</span>
+        <span class="kpi-link">Ver <app-icon name="arrow-right" [size]="14" /></span>
+      </div>
+    </button>
+
+    <button type="button" class="kpi" [class.active]="filtro === 'pendentes'"
+            (click)="setFiltro('pendentes')" [attr.aria-pressed]="filtro === 'pendentes'">
+      <div class="kpi-head">
+        <span class="kpi-label">Pendentes</span>
+        <span class="icon-tile sm"><app-icon name="list-checks" [size]="16" /></span>
+      </div>
+      <div class="kpi-main">
+        @if (carregando && !linhas.length) { <span class="skeleton kpi-sk"></span> }
+        @else { <span class="kpi-value">{{ contar('pendentes') }}</span> }
+      </div>
+      <div class="kpi-foot">
+        <span class="truncate">
+          @if (proximoVencimento != null) { Próximo vence {{ proximoVencimento === 0 ? 'hoje' : 'em ' + proximoVencimento + 'd' }} }
+          @else { Sem vencimentos futuros }
+        </span>
+        <span class="kpi-link">Ver <app-icon name="arrow-right" [size]="14" /></span>
+      </div>
+    </button>
+
+    <button type="button" class="kpi is-success" [class.active]="filtro === 'entreguesMes'"
+            (click)="setFiltro('entreguesMes')" [attr.aria-pressed]="filtro === 'entreguesMes'">
+      <div class="kpi-head">
+        <span class="kpi-label">Entregues no mês</span>
+        <span class="icon-tile sm success"><app-icon name="check-circle" [size]="16" /></span>
+      </div>
+      <div class="kpi-main">
+        @if (carregando && !linhas.length) { <span class="skeleton kpi-sk"></span> }
+        @else { <span class="kpi-value">{{ contar('entreguesMes') }}</span> }
+      </div>
+      <div class="kpi-foot">
+        <span class="truncate tnum">
+          @if (contar('pagar'); as n) { <span class="kpi-pag" [class.is-danger]="pagamentosAtrasados > 0">{{ n }} aguardando pagamento</span> }
+          @else { {{ contar('entregues') }} entregue(s) no total }
+        </span>
+        <span class="kpi-link">Ver <app-icon name="arrow-right" [size]="14" /></span>
+      </div>
+    </button>
+  </section>
+
+  <!-- Cliente: guias entregues pelo escritório que aguardam pagamento -->
+  @if (!isAdmin && filtro !== 'pagar' && contar('pagar'); as n) {
+    <div class="alert pag-alerta" [class.alert-warning]="!pagamentosAtrasados" [class.alert-danger]="pagamentosAtrasados > 0" role="status">
+      <app-icon name="banknote" [size]="18" />
+      <div class="pag-alerta-txt">
+        <strong class="alert-title tnum">{{ n === 1 ? '1 guia aguardando pagamento' : n + ' guias aguardando pagamento' }}</strong>
+        <span>{{ textoAvisoPagamento }}</span>
+      </div>
+      <button type="button" class="btn btn-sm btn-secondary" (click)="setFiltro('pagar')">
+        Ver guias <app-icon name="arrow-right" [size]="14" />
+      </button>
+    </div>
+  }
+
+  <!-- Barra de filtros -->
+  <section class="filter-card">
+      <label class="input-icon search">
+        <app-icon name="search" [size]="16" />
+        <input #buscaInput class="input" type="search" placeholder="Buscar obrigação ou empresa…  ( / )"
+               [(ngModel)]="busca" (ngModelChange)="aoMudarFiltro()" aria-label="Buscar" />
+      </label>
+      @if (empresas.length > 1) {
+        <select class="select" [(ngModel)]="idEmpresaFiltro" (ngModelChange)="aoMudarFiltro()" aria-label="Empresa">
+          <option [ngValue]="null">Todas as empresas</option>
+          @for (e of empresas; track e.id) { <option [ngValue]="e.id">{{ e.nomeFantasia }}</option> }
+        </select>
+      }
+      <div class="filter-chips" role="group" aria-label="Situação">
+        @if (!isAdmin) {
+          <button type="button" class="chip chip-accent" [class.active]="filtro === 'enviar'" (click)="setFiltro('enviar')"
+                  title="Documentos que sua empresa precisa enviar ao escritório">
+            <app-icon name="upload" [size]="14" /> O que preciso enviar <span class="count">{{ contar('enviar') }}</span>
+          </button>
+          <ng-container *ngTemplateOutlet="chipPagar" />
+        }
+        <button type="button" class="chip chip-info" [class.active]="filtro === 'pendentes'" (click)="setFiltro('pendentes')">
+          Pendentes <span class="count">{{ contar('pendentes') }}</span>
+        </button>
+        <button type="button" class="chip chip-danger" [class.active]="filtro === 'vencidas'" (click)="setFiltro('vencidas')">
+          Vencidas <span class="count">{{ contar('vencidas') }}</span>
+        </button>
+        <button type="button" class="chip chip-warning" [class.active]="filtro === 'semana'" (click)="setFiltro('semana')">
+          Vencem em 7 dias <span class="count">{{ contar('semana') }}</span>
+        </button>
+        @if (isAdmin) { <ng-container *ngTemplateOutlet="chipPagar" /> }
+        <button type="button" class="chip chip-success" [class.active]="filtro === 'entregues' || filtro === 'entreguesMes'"
+                (click)="setFiltro('entregues')">
+          {{ filtro === 'entreguesMes' ? 'Entregues no mês' : 'Entregues' }}
+          <span class="count">{{ contar(filtro === 'entreguesMes' ? 'entreguesMes' : 'entregues') }}</span>
+        </button>
+        <button type="button" class="chip" [class.active]="filtro === 'todas'" (click)="setFiltro('todas')">
+          Todas <span class="count">{{ contar('todas') }}</span>
+        </button>
+      </div>
+      <ng-template #chipPagar>
+        <button type="button" class="chip" [class.chip-warning]="!pagamentosAtrasados" [class.chip-danger]="pagamentosAtrasados > 0"
+                [class.chip-destaque]="!isAdmin && contar('pagar') > 0" [class.active]="filtro === 'pagar'" (click)="setFiltro('pagar')"
+                title="Guias entregues pelo escritório com pagamento ainda não confirmado">
+          <app-icon name="banknote" [size]="14" /> Aguardando pagamento <span class="count">{{ contar('pagar') }}</span>
+        </button>
+      </ng-template>
+  </section>
+
+  <section class="card table-card">
+
+    @if (carregando && !linhas.length) {
+      <div class="table-wrap">
+        <table class="table">
+          <tbody>
+            @for (s of skeletonRows; track s) {
+              <tr>
+                <td><span class="skeleton skeleton-line sk-w60"></span></td>
+                <td><span class="skeleton skeleton-line sk-w40"></span></td>
+                <td><span class="skeleton skeleton-line sk-w30"></span></td>
+                <td><span class="skeleton skeleton-line sk-w20"></span></td>
+                <td><span class="skeleton skeleton-line sk-w30"></span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else if (!linhas.length) {
+      <div class="empty">
+        <div class="empty-icon"><app-icon name="list-checks" [size]="22" /></div>
+        <div class="empty-title">Nenhuma obrigação cadastrada</div>
+        <div class="empty-text">
+          As pendências são geradas a partir das obrigações recorrentes de cada empresa.
+        </div>
+        @if (isAdmin) {
+          <a routerLink="/obrigacoes-recorrentes" class="btn btn-secondary">
+            <app-icon name="repeat" [size]="16" /> Configurar recorrentes
+          </a>
+        }
+      </div>
+    } @else if (!filtradas.length) {
+      <div class="empty">
+        <div class="empty-icon">
+          <app-icon [name]="filtro === 'vencidas' || filtro === 'pendentes' || filtro === 'enviar' || filtro === 'pagar' ? 'check-circle' : 'search'" [size]="22" />
+        </div>
+        <div class="empty-title">
+          @switch (filtro) {
+            @case ('enviar') { Nenhum documento a enviar }
+            @case ('pagar') { Nenhuma guia aguardando pagamento }
+            @case ('vencidas') { Nenhuma obrigação vencida }
+            @case ('pendentes') { Tudo em dia! }
+            @case ('semana') { Nada vence nos próximos 7 dias }
+            @default { Nenhum resultado }
+          }
+        </div>
+        <div class="empty-text">
+          {{ temFiltroExtra ? 'Nenhuma obrigação corresponde à busca ou empresa selecionada.'
+             : filtro === 'pagar' ? 'Todas as guias entregues pelo escritório estão com o pagamento confirmado.' : 'Não há obrigações nesta situação.' }}
+        </div>
+        <button type="button" class="btn btn-secondary" (click)="limparFiltros()">
+          <app-icon name="x" [size]="16" /> Limpar filtros
+        </button>
+      </div>
+    } @else {
+      <!-- celular: cartões com ação direta -->
+      <ul class="m-list" aria-label="Obrigações">
+        @for (l of itensPagina; track l.p.id; let i = $index) {
+          @if (mostraGrupo(i)) {
+            <li [class]="'m-grupo grupo-' + l.situacao">{{ grupoTitulo(l.situacao) }} <span class="count">{{ contarSituacao(l.situacao) }}</span></li>
+          }
+          <li class="m-item" [class.row-vencida]="l.situacao === 'VENCIDA'">
+            <div class="m-top">
+              <button type="button" class="m-titulo" (click)="abrirDetalhe(l)">
+                <span class="cell-main">{{ l.p.nomeObrigacao || 'Obrigação avulsa' }}</span>
+                @if (l.p.competencia) { <span class="cell-sub tnum">Competência {{ l.p.competencia }}</span> }
+              </button>
+              <span [class]="'badge badge-dot ' + statusClasse(l.situacao)">{{ statusTexto(l.situacao) }}</span>
+            </div>
+            <div class="m-meta">
+              <span class="badge resp" [class.badge-accent]="l.cliente" [class.badge-primary]="!l.cliente">{{ l.cliente ? 'Cliente envia' : 'Escritório' }}</span>
+              <button type="button" class="anexos" [class.has]="l.arquivos" (click)="abrirDetalhe(l)"
+                      [attr.aria-label]="l.arquivos + ' arquivo(s) anexado(s) — ver detalhes'">
+                <app-icon name="paperclip" [size]="14" /> <span class="tnum">{{ l.arquivos }}</span>
+              </button>
+            </div>
+            @if (!idEmpresaUsuario) {
+            <div class="m-emp">
+              <span [class]="'avatar avatar-sm ' + (l.empresa | avatarCor)">{{ l.empresa | iniciais }}</span>
+              <span class="truncate">{{ l.empresa }}</span>
+            </div>
+            }
+            <div class="m-venc">
+              <app-icon name="calendar" [size]="14" />
+              <span class="tnum">{{ l.p.dataVencimento | date:'dd/MM/yyyy' }}</span>
+              @if (l.situacao !== 'ENTREGUE') { <span [class]="'badge ' + prazoClasse(l)">{{ l.dias | prazo }}</span> }
+              @else if (l.p.dataEntrega) { <span class="text-success text-sm tnum">Entregue em {{ l.p.dataEntrega | date:'dd/MM/yyyy' }}</span> }
+            </div>
+            @if (l.pagamento; as pg) {
+              <div class="m-pag">
+                <span [class]="'badge pag tnum ' + pg.classe"><app-icon [name]="pg.icone" [size]="12" /> {{ pg.texto }}</span>
+              </div>
+            }
+            @if (l.situacao !== 'ENTREGUE') {
+              <div class="m-acoes">
+                @if (l.podeAnexar) {
+                  <button type="button" class="btn btn-secondary btn-sm" (click)="abrirAnexar(l)" [disabled]="l.p.id === idAcaoCarregando">
+                    <app-icon [name]="l.cliente ? 'upload' : 'paperclip'" [size]="14" /> {{ l.acao }}
+                  </button>
+                }
+                <button type="button" class="btn btn-ghost btn-sm btn-entregar" (click)="marcarEntregue(l)" [disabled]="l.p.id === idAcaoCarregando">
+                  @if (l.p.id === idAcaoCarregando) { <span class="spinner"></span> } @else { <app-icon name="check" [size]="14" /> }
+                  Entregue
+                </button>
+                <button type="button" class="btn-icon sm bordered" (click)="abrirProrrogar(l)" title="Prorrogar vencimento" aria-label="Prorrogar vencimento">
+                  <app-icon name="calendar-clock" [size]="15" />
+                </button>
+              </div>
+            } @else if (isAdmin || l.aguardaPagamento) {
+              <div class="m-acoes">
+                @if (l.aguardaPagamento) {
+                  <button type="button" class="btn btn-secondary btn-sm btn-pagar" (click)="abrirPagamento(l)" [disabled]="l.p.id === idAcaoCarregando">
+                    <app-icon name="banknote" [size]="14" /> Confirmar pagamento
+                  </button>
+                }
+                @if (isAdmin) {
+                  <button type="button" class="btn btn-ghost btn-sm" (click)="reabrir(l)" [disabled]="l.p.id === idAcaoCarregando">
+                    @if (l.p.id === idAcaoCarregando && idDesfazendo !== l.p.id) { <span class="spinner"></span> } @else { <app-icon name="rotate-ccw" [size]="14" /> }
+                    Reabrir
+                  </button>
+                }
+              </div>
+            }
+          </li>
+        }
+      </ul>
+
+      <div class="table-wrap desk-only">
+        <table class="table">
+          <thead>
+            <tr>
+              <th class="sortable" (click)="ordenar('nome')" [attr.aria-sort]="ordem === 'nome' ? (ordemDesc ? 'descending' : 'ascending') : null">
+                <span class="th-in">Obrigação @if (ordem === 'nome') { <app-icon [name]="ordemDesc ? 'chevron-down' : 'chevron-up'" [size]="12" /> }</span>
+              </th>
+              @if (!idEmpresaUsuario) {
+              <th class="sortable" (click)="ordenar('empresa')">
+                <span class="th-in">Empresa @if (ordem === 'empresa') { <app-icon [name]="ordemDesc ? 'chevron-down' : 'chevron-up'" [size]="12" /> }</span>
+              </th>
+              }
+              <th class="sortable" (click)="ordenar('vencimento')">
+                <span class="th-in">Vencimento @if (ordem === 'vencimento') { <app-icon [name]="ordemDesc ? 'chevron-down' : 'chevron-up'" [size]="12" /> }</span>
+              </th>
+              <th>Status</th>
+              <th>Entrega</th>
+              <th class="col-anexos" title="Arquivos anexados">Anexos</th>
+              <th class="col-actions">
+                @if (ordem !== 'urgencia') {
+                  <button type="button" class="link text-xs" (click)="ordem = 'urgencia'">Ordenar por urgência</button>
+                }
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (l of itensPagina; track l.p.id; let i = $index) {
+              @if (mostraGrupo(i)) {
+                <tr [class]="'grupo grupo-' + l.situacao">
+                  <td [attr.colspan]="idEmpresaUsuario ? 6 : 7">
+                    <span class="dot" [class.danger]="l.situacao === 'VENCIDA'" [class.warning]="l.situacao === 'PENDENTE'" [class.success]="l.situacao === 'ENTREGUE'"></span>
+                    {{ grupoTitulo(l.situacao) }}
+                    <span class="count">{{ contarSituacao(l.situacao) }}</span>
+                  </td>
+                </tr>
+              }
+              <tr class="clickable" [class.row-vencida]="l.situacao === 'VENCIDA'" (click)="abrirDetalhe(l)">
+                <td>
+                  <div class="cell-entity">
+                    <span class="icon-tile sm"
+                          [class.danger]="l.situacao === 'VENCIDA'" [class.warning]="l.situacao === 'PENDENTE'" [class.success]="l.situacao === 'ENTREGUE'">
+                      <app-icon [name]="l.situacao === 'ENTREGUE' ? 'file-check' : 'file-clock'" [size]="15" />
+                    </span>
+                    <div class="min0 obr-cell">
+                      <span class="cell-main">{{ l.p.nomeObrigacao || 'Obrigação avulsa' }}</span>
+                      <span class="cell-sub obr-sub">
+                        @if (l.p.competencia) { <span class="tnum nowrap">Competência {{ l.p.competencia }}</span> }
+                        @else if (!l.p.idObrigacaoRecorrente) { Avulsa }
+                        <span class="badge resp" [class.badge-accent]="l.cliente" [class.badge-primary]="!l.cliente">{{ l.cliente ? 'Cliente envia' : 'Escritório' }}</span>
+                      </span>
+                    </div>
+                  </div>
+                </td>
+                @if (!idEmpresaUsuario) {
+                <td>
+                  <div class="cell-entity">
+                    <span class="avatar avatar-sm" [class]="'avatar avatar-sm ' + (l.empresa | avatarCor)">{{ l.empresa | iniciais }}</span>
+                    <span class="truncate emp-nome">{{ l.empresa }}</span>
+                  </div>
+                </td>
+                }
+                <td>
+                  <span class="tnum cell-main nowrap">{{ l.p.dataVencimento | date:'dd/MM/yyyy' }}</span>
+                  @if (l.situacao !== 'ENTREGUE') {
+                    <span class="badge prazo" [class]="'badge prazo ' + prazoClasse(l)">{{ l.dias | prazo }}</span>
+                  }
+                </td>
+                <td>
+                  <span class="badge badge-dot" [class]="'badge badge-dot ' + statusClasse(l.situacao)">{{ statusTexto(l.situacao) }}</span>
+                  @if (l.pagamento; as pg) {
+                    <span [class]="'badge pag tnum ' + pg.classe"><app-icon [name]="pg.icone" [size]="12" /> {{ pg.texto }}</span>
+                  }
+                </td>
+                <td>
+                  @if (l.p.dataEntrega) {
+                    <span class="tnum nowrap">{{ l.p.dataEntrega | date:'dd/MM/yyyy' }}</span>
+                    @if (l.atrasoEntrega != null) {
+                      <span class="cell-sub" [class.text-danger]="l.atrasoEntrega > 0" [class.text-success]="l.atrasoEntrega <= 0">
+                        {{ l.atrasoEntrega > 0 ? l.atrasoEntrega + ' dia(s) de atraso' : 'No prazo' }}
+                      </span>
+                    }
+                  } @else {
+                    <span class="text-faint">—</span>
+                  }
+                </td>
+                <td class="col-anexos">
+                  <button type="button" class="anexos" [class.has]="l.arquivos" (click)="$event.stopPropagation(); abrirDetalhe(l)"
+                          [title]="l.arquivos ? l.arquivos + ' arquivo(s) anexado(s)' : 'Nenhum arquivo anexado'"
+                          [attr.aria-label]="l.arquivos + ' arquivo(s) anexado(s) — ver detalhes'">
+                    <app-icon name="paperclip" [size]="14" /> <span class="tnum">{{ l.arquivos }}</span>
+                  </button>
+                </td>
+                <td class="col-actions" (click)="$event.stopPropagation()">
+                  <div class="row-actions">
+                    @if (l.situacao !== 'ENTREGUE') {
+                      @if (l.podeAnexar) {
+                        <button type="button" class="btn btn-secondary btn-sm" (click)="abrirAnexar(l)" [disabled]="l.p.id === idAcaoCarregando">
+                          <app-icon [name]="l.cliente ? 'upload' : 'paperclip'" [size]="14" /> {{ l.acao }}
+                        </button>
+                      }
+                      <button type="button" class="btn-icon sm bordered btn-entregar" (click)="marcarEntregue(l)"
+                              [disabled]="l.p.id === idAcaoCarregando" title="Marcar entregue (sem anexo)" aria-label="Marcar entregue">
+                        @if (l.p.id === idAcaoCarregando) { <span class="spinner"></span> }
+                        @else { <app-icon name="check" [size]="15" /> }
+                      </button>
+                      <button type="button" class="btn-icon sm bordered" (click)="abrirProrrogar(l)"
+                              title="Prorrogar vencimento" aria-label="Prorrogar vencimento">
+                        <app-icon name="calendar-clock" [size]="15" />
+                      </button>
+                    } @else {
+                      @if (l.aguardaPagamento) {
+                        @if (isAdmin) {
+                          <button type="button" class="btn-icon sm bordered btn-pagar" (click)="abrirPagamento(l)" [disabled]="l.p.id === idAcaoCarregando"
+                                  title="Confirmar pagamento" aria-label="Confirmar pagamento">
+                            <app-icon name="banknote" [size]="15" />
+                          </button>
+                        } @else {
+                          <button type="button" class="btn btn-secondary btn-sm btn-pagar" (click)="abrirPagamento(l)" [disabled]="l.p.id === idAcaoCarregando">
+                            <app-icon name="banknote" [size]="14" /> Confirmar pagamento
+                          </button>
+                        }
+                      }
+                      @if (isAdmin) {
+                        <button type="button" class="btn-icon sm bordered" (click)="reabrir(l)" [disabled]="l.p.id === idAcaoCarregando"
+                                title="Reabrir (desfazer entrega)" aria-label="Reabrir obrigação">
+                          @if (l.p.id === idAcaoCarregando && idDesfazendo !== l.p.id) { <span class="spinner"></span> }
+                          @else { <app-icon name="rotate-ccw" [size]="15" /> }
+                        </button>
+                      }
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="table-footer">
+        <span class="tnum">Mostrando <strong>{{ faixa.de }}</strong> a <strong>{{ faixa.ate }}</strong> de <strong>{{ faixa.total }}</strong> obrigações</span>
+        <div class="table-footer-right">
+          <label class="rows-per-page">
+            <span class="hide-sm">Linhas por página</span>
+            <select class="select" [(ngModel)]="porPagina" (ngModelChange)="pagina = 1" aria-label="Linhas por página">
+              @for (n of opcoesPorPagina; track n) { <option [ngValue]="n">{{ n }}</option> }
+            </select>
+          </label>
+          <nav class="pagination" aria-label="Paginação">
+            <button type="button" class="page-btn nav" (click)="irPara(paginaAtual - 1)" [disabled]="paginaAtual === 1" aria-label="Página anterior">
+              <app-icon name="chevron-left" [size]="16" />
+            </button>
+            @for (n of paginas; track $index) {
+              @if (n === -1) { <span class="page-ellipsis">…</span> }
+              @else {
+                <button type="button" class="page-btn tnum" [class.active]="n === paginaAtual" (click)="irPara(n)"
+                        [attr.aria-current]="n === paginaAtual ? 'page' : null">{{ n }}</button>
+              }
+            }
+            <button type="button" class="page-btn nav" (click)="irPara(paginaAtual + 1)" [disabled]="paginaAtual === totalPaginas" aria-label="Próxima página">
+              <app-icon name="chevron-right" [size]="16" />
+            </button>
+          </nav>
+        </div>
+      </footer>
+    }
+  </section>
+</div>
+
+<!-- Drawer: detalhes da obrigação -->
+@if (detalhe; as d) {
+  <app-obrigacao-detalhe
+    [obrigacao]="d.p" [empresa]="d.empresa" [situacao]="d.situacao" [dias]="d.dias"
+    [isAdmin]="isAdmin" [podeAnexar]="d.podeAnexar" [ocupado]="d.p.id === idAcaoCarregando" [desfazendo]="d.p.id === idDesfazendo"
+    (fechar)="fecharDetalhe()" (anexar)="abrirAnexar(d)" (entregar)="marcarEntregue(d)"
+    (prorrogar)="abrirProrrogar(d)" (reabrir)="reabrir(d)"
+    (pagar)="abrirPagamento(d)" (desfazerPagamento)="desfazerPagamento(d)" />
+}
+
+<!-- Modal: confirmar pagamento da guia -->
+@if (pagando; as pg) {
+  <app-obrigacao-pagamento [obrigacao]="pg.p" [empresa]="pg.empresa" (fechar)="fecharPagamento($event)" (confirmado)="aoConfirmarPagamento($event)" />
+}
+
+<!-- Modal: anexar guia / enviar documento -->
+@if (anexando; as a) {
+  <app-obrigacao-anexar [obrigacao]="a.p" [empresa]="a.empresa" (fechar)="anexando = null" (enviado)="aoAnexar($event)" />
+}
+
+<!-- Modal: prorrogar vencimento -->
+@if (prorrogando; as l) {
+  <div class="modal-backdrop" (click)="fecharProrrogar()">
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="prorrogar-titulo" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" id="prorrogar-titulo">Prorrogar vencimento</h2>
+          <p class="modal-subtitle">{{ l.p.nomeObrigacao || 'Obrigação' }} · {{ l.empresa }}</p>
+        </div>
+        <button type="button" class="btn-icon sm" (click)="fecharProrrogar()" aria-label="Fechar"><app-icon name="x" [size]="18" /></button>
+      </div>
+      <form class="modal-body stack-lg" (ngSubmit)="salvarVencimento()" id="form-prorrogar">
+        <dl class="dl">
+          <div>
+            <dt>Vencimento atual</dt>
+            <dd class="tnum">{{ l.p.dataVencimento | date:'dd/MM/yyyy' }}</dd>
+          </div>
+          <div>
+            <dt>Situação</dt>
+            <dd><span class="badge" [class]="'badge ' + prazoClasse(l)">{{ l.dias | prazo }}</span></dd>
+          </div>
+        </dl>
+        <div class="field">
+          <label class="field-label" for="nova-data">Novo vencimento <span class="req">*</span></label>
+          <input id="nova-data" class="input tnum" type="date" name="novaData" [(ngModel)]="novaDataVencimento" required autofocus />
+          <div class="row wrap atalhos">
+            @for (d of atalhosProrrogar; track d) {
+              <button type="button" class="chip" (click)="aplicarAtalho(d)">+{{ d }} dias</button>
+            }
+          </div>
+          @if (novaDataVencimento) {
+            <span class="field-hint" [class.text-danger]="(novaDataDias ?? 0) < 0">
+              <app-icon name="info" [size]="12" /> @if ((novaDataDias ?? 0) < 0) { Esta data já passou — escolha uma data futura } @else { Novo prazo: {{ novaDataDias | prazo }} }
+            </span>
+          }
+        </div>
+      </form>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="fecharProrrogar()" [disabled]="salvandoVencimento">Cancelar</button>
+        <button type="submit" form="form-prorrogar" class="btn btn-primary" [disabled]="salvandoVencimento || !novaDataVencimento || novaDataVencimento === l.p.dataVencimento">
+          @if (salvandoVencimento) { <span class="spinner"></span> Salvando… } @else { Salvar novo prazo }
+        </button>
+      </div>
+    </div>
+  </div>
+}

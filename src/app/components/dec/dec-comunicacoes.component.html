@@ -1,0 +1,309 @@
+<div class="page">
+  <header class="page-header">
+    <div class="page-header-text">
+      <h1 class="page-title">Comunicações DEC</h1>
+      <p class="page-subtitle sub">
+        <span>Domicílio Eletrônico do Contribuinte · SEFAZ-TO</span>
+        @if (status && configurada) {
+          <span class="sub-sync" [title]="status.ultimaSincronizacao ? 'Última sincronização: ' + (status.ultimaSincronizacao | date:'dd/MM/yyyy HH:mm') : ''">
+            <app-icon name="refresh" [size]="13" /> {{ atualizado }}
+          </span>
+        }
+      </p>
+    </div>
+    @if (isAdmin && configurada && !onboarding) {
+      <div class="page-actions">
+        <button type="button" class="btn btn-secondary" (click)="sincronizar()" [disabled]="sincronizando || carregando">
+          @if (sincronizando) { <span class="spinner"></span> Sincronizando… }
+          @else { <app-icon name="refresh" [size]="16" /> Sincronizar agora }
+        </button>
+      </div>
+    }
+  </header>
+
+  @if (carregando && !lista.length) {
+    <!-- ================= CARREGANDO ================= -->
+    <section class="grid-4 kpis" aria-busy="true">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <div class="kpi"><span class="skeleton skeleton-line sk-w50"></span><span class="skeleton kpi-sk"></span><span class="skeleton skeleton-line sk-w70"></span></div>
+      }
+    </section>
+    <section class="card table-card">
+      <div class="table-wrap">
+        <table class="table">
+          <tbody>
+            @for (s of skeletonRows; track s) {
+              <tr>
+                <td class="sk-cell"><span class="skeleton sk-chip"></span></td>
+                <td><span class="skeleton skeleton-line sk-w70"></span></td>
+                <td><span class="skeleton skeleton-line sk-w90"></span><span class="skeleton skeleton-line sk-w50 sk-gap"></span></td>
+                <td><span class="skeleton skeleton-line sk-w50"></span></td>
+                <td><span class="skeleton skeleton-line sk-w50"></span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  } @else if (erro) {
+    <!-- ================= ERRO ================= -->
+    <section class="card">
+      <div class="empty">
+        <span class="empty-icon icon-erro"><app-icon name="alert-circle" [size]="22" /></span>
+        <span class="empty-title">Não foi possível carregar as comunicações</span>
+        <span class="empty-text">{{ erro }}</span>
+        <button type="button" class="btn btn-secondary" (click)="carregar()"><app-icon name="refresh" [size]="16" /> Tentar novamente</button>
+      </div>
+    </section>
+
+  } @else if (onboarding) {
+    <!-- ================= INTEGRAÇÃO NÃO CONFIGURADA ================= -->
+    <section class="card onb">
+      <span class="icon-tile lg accent"><app-icon name="mail" [size]="22" /></span>
+      @if (isAdmin) {
+        <h2 class="onb-title">Integração com o DEC ainda não configurada</h2>
+        <p class="onb-text">
+          Quando estiver ligada, as notificações, intimações e alertas que a SEFAZ-TO envia às empresas pelo DEC aparecem aqui,
+          com urgência e prazo de ciência — sincronizadas do DEC Monitor a cada 10 minutos, somente para leitura.
+        </p>
+        <ol class="onb-steps">
+          <li>
+            <span class="onb-num">1</span>
+            <div>
+              <strong>No DEC Monitor</strong>
+              <p>Defina <code>INTEGRACAO_TOKEN</code> e <code>INTEGRACAO_ESCRITORIO_CNPJ</code> e publique.</p>
+            </div>
+          </li>
+          <li>
+            <span class="onb-num">2</span>
+            <div>
+              <strong>No backend do Gerenciador</strong>
+              <p>Defina <code>DEC_URL</code> e <code>DEC_TOKEN</code> (o mesmo token do passo 1) e reinicie o servidor.</p>
+            </div>
+          </li>
+          <li>
+            <span class="onb-num">3</span>
+            <div>
+              <strong>Pronto</strong>
+              <p>A primeira sincronização acontece em até 10 minutos. Depois, volte a esta tela.</p>
+            </div>
+          </li>
+        </ol>
+        <button type="button" class="btn btn-secondary" (click)="carregar()"><app-icon name="refresh" [size]="16" /> Verificar novamente</button>
+      } @else {
+        <h2 class="onb-title">Em breve as comunicações da SEFAZ aparecerão aqui</h2>
+        <p class="onb-text">
+          Notificações, intimações e alertas enviados à sua empresa pelo Domicílio Eletrônico do Contribuinte serão exibidos nesta tela,
+          com os prazos de ciência e de resposta.
+        </p>
+      }
+    </section>
+
+  } @else {
+
+    @if (isAdmin && status?.ultimoErro) {
+      <div class="alert alert-danger aviso" role="alert">
+        <app-icon name="alert-triangle" [size]="18" />
+        <div class="aviso-text">
+          <div class="alert-title">A última sincronização com o DEC falhou</div>
+          {{ status?.ultimoErro }}
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" (click)="sincronizar()" [disabled]="sincronizando">Tentar agora</button>
+      </div>
+    }
+    @if (status?.configurada === false) {
+      <div class="alert alert-warning aviso" role="status">
+        <app-icon name="info" [size]="18" />
+        <div class="aviso-text">
+          <div class="alert-title">Integração com o DEC desligada</div>
+          Exibindo as últimas comunicações sincronizadas; novas comunicações não chegarão até a integração ser reativada.
+        </div>
+      </div>
+    }
+
+    <!-- ================= KPIs (filtros) ================= -->
+    <section class="grid-4 kpis" aria-label="Resumo">
+      <button type="button" class="kpi is-danger" [class.is-urgent]="kpiAtencao.length > 0" [class.active]="situacao === 'atencao'"
+              (click)="setSituacao('atencao')" [attr.aria-pressed]="situacao === 'atencao'">
+        <div class="kpi-head">
+          <span class="kpi-label">Exigem atenção</span>
+          <span class="icon-tile sm danger"><app-icon name="alert-triangle" [size]="16" /></span>
+        </div>
+        <div class="kpi-main">
+          <span class="kpi-value">{{ kpiAtencao.length }}</span>
+          @if (kpiAtencao.length) {
+            @if (menorTacitaAtencao != null) {
+              <span class="badge badge-soft badge-danger tnum">Ciência tácita {{ menorTacitaAtencao === 0 ? 'hoje' : menorTacitaAtencao === 1 ? 'amanhã' : 'em ' + menorTacitaAtencao + ' dias' }}</span>
+            } @else { <span class="badge badge-soft badge-danger">Urgente</span> }
+          } @else { <span class="badge badge-soft badge-success">Sob controle</span> }
+        </div>
+        <div class="kpi-foot">
+          <span class="truncate">
+            @if (kpiAtencao.length) { Sem ciência e urgentes ou com tácita em até 3 dias@if (isAdmin) { · {{ empresasAtencao }} empresa(s) } }
+            @else { Nada urgente sem ciência }
+          </span>
+          <span class="kpi-link">Ver <app-icon name="arrow-right" [size]="14" /></span>
+        </div>
+      </button>
+
+      <button type="button" class="kpi is-warning" [class.active]="situacao === 'semCiencia'"
+              (click)="setSituacao('semCiencia')" [attr.aria-pressed]="situacao === 'semCiencia'">
+        <div class="kpi-head">
+          <span class="kpi-label">Sem ciência</span>
+          <span class="icon-tile sm warning"><app-icon name="eye-off" [size]="16" /></span>
+        </div>
+        <div class="kpi-main">
+          <span class="kpi-value">{{ contar('semCiencia') }}</span>
+          @if (menorTacitaSemCiencia != null && menorTacitaSemCiencia <= 5) {
+            <span class="badge badge-soft badge-warning tnum">Próxima tácita {{ menorTacitaSemCiencia === 0 ? 'hoje' : 'em ' + menorTacitaSemCiencia + 'd' }}</span>
+          }
+        </div>
+        <div class="kpi-foot">
+          <span class="truncate">Ainda não abertas no DEC</span>
+          <span class="kpi-link">Ver <app-icon name="arrow-right" [size]="14" /></span>
+        </div>
+      </button>
+
+      <button type="button" class="kpi" [class.active]="situacao === 'recentes'"
+              (click)="setSituacao('recentes')" [attr.aria-pressed]="situacao === 'recentes'">
+        <div class="kpi-head">
+          <span class="kpi-label">Últimos 7 dias</span>
+          <span class="icon-tile sm"><app-icon name="inbox" [size]="16" /></span>
+        </div>
+        <div class="kpi-main">
+          <span class="kpi-value">{{ contar('recentes') }}</span>
+          @if (hoje) { <span class="badge badge-soft badge-info tnum">{{ hoje }} hoje</span> }
+        </div>
+        <div class="kpi-foot">
+          <span class="truncate">Chegaram no DEC esta semana</span>
+          <span class="kpi-link">Ver <app-icon name="arrow-right" [size]="14" /></span>
+        </div>
+      </button>
+
+      @if (mostraKpiSemEmpresa) {
+        <button type="button" class="kpi" [class.active]="situacao === 'semEmpresa'"
+                (click)="setSituacao('semEmpresa')" [attr.aria-pressed]="situacao === 'semEmpresa'">
+          <div class="kpi-head">
+            <span class="kpi-label">CNPJ não cadastrado</span>
+            <span class="icon-tile sm accent"><app-icon name="building" [size]="16" /></span>
+          </div>
+          <div class="kpi-main">
+            <span class="kpi-value">{{ contar('semEmpresa') }}</span>
+            <span class="badge badge-soft badge-neutral tnum">{{ cnpjsSemEmpresa }} {{ cnpjsSemEmpresa === 1 ? 'CNPJ' : 'CNPJs' }}</span>
+          </div>
+          <div class="kpi-foot">
+            <span class="truncate">Cadastre para vincular à empresa</span>
+            <span class="kpi-link">Ver <app-icon name="arrow-right" [size]="14" /></span>
+          </div>
+        </button>
+      } @else {
+        <button type="button" class="kpi" [class.active]="situacao === 'todas'"
+                (click)="setSituacao('todas')" [attr.aria-pressed]="situacao === 'todas'">
+          <div class="kpi-head">
+            <span class="kpi-label">Total</span>
+            <span class="icon-tile sm neutral"><app-icon name="mail" [size]="16" /></span>
+          </div>
+          <div class="kpi-main"><span class="kpi-value">{{ base.length }}</span></div>
+          <div class="kpi-foot">
+            <span class="truncate">Últimos 180 dias</span>
+            <span class="kpi-link">Ver todas <app-icon name="arrow-right" [size]="14" /></span>
+          </div>
+        </button>
+      }
+    </section>
+
+    <!-- ================= FILTROS ================= -->
+    @if (lista.length) {
+    <section class="filter-card filtros">
+      <div class="filtros-top">
+        <label class="input-icon search">
+          <app-icon name="search" [size]="16" />
+          <input #buscaInput class="input" type="search" placeholder="Buscar assunto, protocolo, razão social ou CNPJ…  ( / )"
+                 [(ngModel)]="busca" (ngModelChange)="aoMudarFiltro()" aria-label="Buscar comunicações" />
+        </label>
+        @if (isAdmin && (empresas.length || semEmpresa)) {
+          <select class="select" [(ngModel)]="idEmpresaFiltro" (ngModelChange)="aoMudarFiltro()" aria-label="Empresa">
+            <option [ngValue]="null">Todas as empresas</option>
+            @if (semEmpresa) { <option [ngValue]="SEM_EMPRESA">CNPJ não cadastrado ({{ semEmpresa }})</option> }
+            @for (e of empresas; track e.id) { <option [ngValue]="e.id">{{ e.nome }}</option> }
+          </select>
+        }
+        <span class="spacer"></span>
+        @if (situacao !== 'todas') {
+          <button type="button" class="chip active" (click)="setSituacao('todas')" title="Remover filtro do indicador">
+            {{ situacao === 'atencao' ? 'Exigem atenção' : situacao === 'semCiencia' ? 'Sem ciência' : situacao === 'recentes' ? 'Últimos 7 dias' : 'CNPJ não cadastrado' }}
+            <app-icon name="x" [size]="13" />
+          </button>
+        }
+        @if (temFiltro) {
+          <button type="button" class="link text-sm" (click)="limparFiltros()">Limpar filtros</button>
+        }
+      </div>
+
+      @if (temChipUrgencia) {
+      <div class="filter-chips" role="group" aria-label="Urgência">
+        <span class="fc-label">Urgência</span>
+        @for (u of urgencias; track u) {
+          @if (contarUrgencia(u) || urgencia === u) {
+            <button type="button" class="chip" [ngClass]="tomChip(u) === 'neutral' ? '' : 'chip-' + tomChip(u)" [class.active]="urgencia === u"
+                    (click)="setUrgencia(u)" [attr.aria-pressed]="urgencia === u">
+              {{ urgenciaLabel[u] }} <span class="count">{{ contarUrgencia(u) }}</span>
+            </button>
+          }
+        }
+      </div>
+      }
+
+      @if (tipos.length > 1) {
+        <div class="filter-chips" role="group" aria-label="Tipo">
+          <span class="fc-label">Tipo</span>
+          @for (t of tipos; track t.tipo) {
+            <button type="button" class="chip" [class.active]="tipo === t.tipo" (click)="setTipo(t.tipo)" [attr.aria-pressed]="tipo === t.tipo">
+              {{ tipoLabel[t.tipo] || t.tipo }} <span class="count">{{ t.total }}</span>
+            </button>
+          }
+        </div>
+      }
+    </section>
+    }
+
+    <!-- ================= TABELA ================= -->
+    <section class="card table-card">
+      @if (!lista.length) {
+        <div class="empty">
+          <span class="empty-icon icon-ok"><app-icon name="inbox" [size]="22" /></span>
+          <span class="empty-title">Nenhuma comunicação no DEC nos últimos 180 dias</span>
+          <span class="empty-text">Assim que a SEFAZ-TO enviar algo pelo DEC, a comunicação aparece aqui automaticamente.</span>
+        </div>
+      } @else if (!filtradas.length) {
+        <div class="empty">
+          <span class="empty-icon"><app-icon [name]="situacao === 'atencao' || situacao === 'semCiencia' ? 'check-circle' : 'search'" [size]="22" /></span>
+          <span class="empty-title">
+            @switch (situacao) {
+              @case ('atencao') { Nada exige atenção agora }
+              @case ('semCiencia') { Todas as comunicações já têm ciência }
+              @case ('recentes') { Nada chegou nos últimos 7 dias }
+              @default { Nenhum resultado }
+            }
+          </span>
+          <span class="empty-text">Nenhuma comunicação corresponde aos filtros selecionados.</span>
+          <button type="button" class="btn btn-secondary" (click)="limparFiltros()"><app-icon name="x" [size]="16" /> Limpar filtros</button>
+        </div>
+      } @else {
+        <app-dec-tabela [itens]="itensPagina" [mostrarEmpresa]="isAdmin" [ordem]="ordem" [podeCadastrar]="isAdmin"
+                        [selecionadoId]="detalhe?.id ?? null" (abrir)="abrir($event)" (ordenar)="ordem = $event; pagina = 1" />
+        <app-paginador [total]="filtradas.length" rotulo="comunicações" [(pagina)]="pagina" [(porPagina)]="porPagina" />
+      }
+    </section>
+
+    <p class="footnote">
+      <app-icon name="lock" [size]="14" />
+      Somente leitura — ciência e respostas são feitas no DEC. Sincronização automática a cada 10 minutos.
+    </p>
+  }
+</div>
+
+@if (detalhe; as d) {
+  <app-dec-detalhe [comunicacao]="d" [podeCadastrar]="isAdmin" (fechar)="fechar()" />
+}

@@ -1,0 +1,97 @@
+<div class="dsb-top">
+  <button type="button" class="novo" [class.active]="!!menuNovo" (click)="toggleNovo($event)" [disabled]="desabilitado"
+          aria-haspopup="menu" [attr.aria-expanded]="!!menuNovo">
+    <app-icon name="plus" [size]="22" [stroke]="2" />
+    <span>Novo</span>
+  </button>
+  <button type="button" class="btn-icon sm dsb-close" (click)="fechar.emit()" title="Fechar" aria-label="Fechar painel de pastas">
+    <app-icon name="x" [size]="18" />
+  </button>
+</div>
+
+<nav class="dsb-nav" aria-label="Navegação de arquivos">
+  <button type="button" class="nav-item" [class.active]="secao === 'pasta' && pastaAtualId === null && !emBusca"
+          [class.is-drop]="dropTargetId === 'raiz'"
+          (click)="abrirPasta(null)"
+          (dragover)="onDragOver($event, null)" (dragleave)="onDragLeave(null)" (drop)="onDrop($event, null)">
+    <app-icon name="hard-drive" [size]="18" />
+    <span class="truncate">Meus arquivos</span>
+  </button>
+  <button type="button" class="nav-item" [class.active]="secao === 'recentes'" (click)="abrirSecao('recentes')">
+    <app-icon name="clock" [size]="18" />
+    <span class="truncate">Recentes</span>
+  </button>
+  <button type="button" class="nav-item" [class.active]="secao === 'vencendo'" (click)="abrirSecao('vencendo')">
+    <app-icon name="calendar-clock" [size]="18" />
+    <span class="truncate">Vencendo</span>
+    @if (qtdVencendo) {
+      <span class="count tnum" [class.count-danger]="temVencido" [title]="temVencido ? 'Há documentos vencidos' : 'Vencem nos próximos 30 dias'">{{ qtdVencendo }}</span>
+    }
+  </button>
+  <button type="button" class="nav-item" [class.active]="secao === 'lixeira'" [class.is-drop]="lixeiraDrop && arrastando"
+          (click)="abrirSecao('lixeira')" title="Arquivos excluídos (arraste arquivos para cá para excluí-los)"
+          (dragover)="onDragOverLixeira($event)" (dragleave)="lixeiraDrop = false" (drop)="onDropLixeira($event)">
+    <app-icon name="trash" [size]="18" />
+    <span class="truncate">Lixeira</span>
+  </button>
+</nav>
+
+<div class="tree-head">
+  <button type="button" class="tree-toggle" (click)="alternarArvore()" [attr.aria-expanded]="arvoreAberta" aria-controls="dsb-arvore">
+    <app-icon [name]="arvoreAberta ? 'chevron-down' : 'chevron-right'" [size]="14" [stroke]="2" />
+    Pastas
+  </button>
+  @if (!desabilitado) {
+    <button type="button" class="btn-icon sm" (click)="novaPasta.emit(); fechar.emit()" title="Nova pasta" aria-label="Nova pasta">
+      <app-icon name="folder-plus" [size]="15" />
+    </button>
+  }
+</div>
+
+@if (arvoreAberta) {
+  <div class="tree" id="dsb-arvore" role="tree" aria-label="Pastas da empresa">
+    @for (no of nos; track no.pasta.id) {
+      <div class="node" role="treeitem" tabindex="0"
+           [class.active]="ativo(no)" [class.is-drop]="dropTargetId === no.pasta.id"
+           [attr.aria-expanded]="no.temFilhos ? no.aberto : null" [attr.aria-level]="no.nivel + 1"
+           [style.padding-left.px]="4 + no.nivel * 14" [title]="no.pasta.nome"
+           (click)="abrirPasta(no.pasta.id)" (keydown.enter)="abrirPasta(no.pasta.id)"
+           (keydown.arrowright)="!no.aberto && no.temFilhos && alternar(no)" (keydown.arrowleft)="no.aberto && alternar(no)"
+           (dragover)="onDragOver($event, no)" (dragleave)="onDragLeave(no.pasta.id)" (drop)="onDrop($event, no.pasta.id)">
+        @if (no.temFilhos) {
+          <button type="button" class="chev" tabindex="-1" (click)="alternar(no, $event)" [attr.aria-label]="(no.aberto ? 'Recolher ' : 'Expandir ') + no.pasta.nome">
+            <app-icon [name]="no.aberto ? 'chevron-down' : 'chevron-right'" [size]="14" [stroke]="2" />
+          </button>
+        } @else {
+          <span class="chev"></span>
+        }
+        <app-icon class="fic" [name]="ativo(no) || dropTargetId === no.pasta.id ? 'folder-open' : 'folder'" [size]="16" />
+        <span class="truncate">{{ no.pasta.nome }}</span>
+      </div>
+    } @empty {
+      <p class="tree-empty">
+        @if (desabilitado) { Nenhuma empresa selecionada. } @else { Nenhuma pasta ainda. Use <strong>+ Novo</strong> para criar. }
+      </p>
+    }
+  </div>
+}
+
+<div class="storage" [title]="nomeEmpresa ? 'Armazenamento de ' + nomeEmpresa : 'Armazenamento'">
+  <app-icon name="pie-chart" [size]="16" />
+  <div class="storage-txt">
+    <span class="storage-label">Armazenamento</span>
+    <span class="tnum"><strong>{{ totalBytes | bytes }}</strong> em {{ totalArquivos }} {{ totalArquivos === 1 ? 'arquivo' : 'arquivos' }}</span>
+  </div>
+</div>
+
+@if (menuNovo) {
+  <app-context-menu [x]="menuNovo.x" [y]="menuNovo.y" [yAcima]="menuNovo.yAcima" rotulo="Novo" (fechar)="menuNovo = null">
+    <button type="button" class="menu-item" role="menuitem" (click)="escolherNovo('pasta')">
+      <app-icon name="folder-plus" [size]="17" /> Nova pasta
+    </button>
+    <div class="menu-sep"></div>
+    <button type="button" class="menu-item" role="menuitem" (click)="escolherNovo('enviar')">
+      <app-icon name="upload" [size]="17" /> Enviar arquivos
+    </button>
+  </app-context-menu>
+}

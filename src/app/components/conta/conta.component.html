@@ -1,0 +1,261 @@
+<div [class.page]="!emModal" [class.modal-backdrop]="emModal" (click)="fecharPeloFundo($event)">
+  <div class="conta" [class.modal]="emModal" [class.modal-lg]="emModal" [class.conta-modal]="emModal"
+       [attr.role]="emModal ? 'dialog' : null" [attr.aria-modal]="emModal ? 'true' : null" [attr.aria-label]="emModal ? 'Minha conta' : null">
+
+    @if (!emModal) {
+      <header class="page-header">
+        <div class="page-header-text">
+          <h1 class="page-title">Minha conta</h1>
+          <p class="page-subtitle">Seus dados de acesso, senha e sessão no Gerenciador Diniz.</p>
+        </div>
+      </header>
+    } @else {
+      <header class="cm-head">
+        <span class="avatar avatar-lg" [ngClass]="(perfil?.nome || '') | avatarCor">{{ (perfil?.nome || '') | iniciais }}</span>
+        <div class="cm-id">
+          <strong class="truncate">{{ perfil?.nome || 'Minha conta' }}</strong>
+          <span class="truncate">{{ perfil?.email }}</span>
+        </div>
+        <button type="button" class="btn-icon" (click)="fechar.emit()" aria-label="Fechar"><app-icon name="x" [size]="18" /></button>
+      </header>
+      <nav class="tabs cm-tabs" role="tablist">
+        <button type="button" class="tab" [class.active]="aba === 'perfil'" (click)="aba = 'perfil'"><app-icon name="user" [size]="15" /> Perfil</button>
+        <button type="button" class="tab" [class.active]="aba === 'seguranca'" (click)="aba = 'seguranca'"><app-icon name="shield" [size]="15" /> Segurança</button>
+        <button type="button" class="tab" [class.active]="aba === 'sessao'" (click)="aba = 'sessao'"><app-icon name="clock" [size]="15" /> Sessão</button>
+      </nav>
+    }
+
+    <div class="cm-body">
+
+    <!-- ============ PERFIL ============ -->
+    @if (!emModal || aba === 'perfil') {
+    <section class="card" aria-labelledby="ct-perfil">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title" id="ct-perfil"><app-icon name="user" [size]="16" /> Perfil</h2>
+          <p class="card-subtitle">Como você aparece para o escritório e nos registros do sistema.</p>
+        </div>
+      </div>
+
+      @if (carregando) {
+        <div class="card-body">
+          <div class="hero">
+            <span class="avatar avatar-xl skeleton"></span>
+            <div class="stack">
+              <span class="skeleton skeleton-line sk-nome"></span>
+              <span class="skeleton skeleton-line sk-email"></span>
+            </div>
+          </div>
+        </div>
+      } @else if (erroCarregar || !perfil) {
+        <div class="empty">
+          <span class="empty-icon"><app-icon name="alert-triangle" [size]="22" /></span>
+          <p class="empty-title">Não foi possível carregar sua conta</p>
+          <p class="empty-text">Verifique sua conexão com o servidor e tente novamente.</p>
+          <button type="button" class="btn btn-secondary" (click)="carregar()"><app-icon name="refresh" [size]="15" /> Tentar novamente</button>
+        </div>
+      } @else {
+        <div class="card-body">
+          <div class="hero">
+            <span class="avatar avatar-xl" [class]="'avatar avatar-xl ' + (perfil.nome | avatarCor)">{{ perfil.nome | iniciais }}</span>
+            <div class="hero-text">
+              <h3 class="hero-nome truncate">{{ perfil.nome }}</h3>
+              <p class="text-mute truncate">{{ perfil.email }}</p>
+              <div class="row mt-sm">
+                <span class="badge" [class.badge-primary]="isAdmin" [class.badge-neutral]="!isAdmin">
+                  <app-icon [name]="isAdmin ? 'shield-check' : 'user'" [size]="12" [stroke]="2" />
+                  {{ isAdmin ? 'Administrador' : 'Funcionário' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-grid mt-xl">
+            <form class="field" (ngSubmit)="salvarNome()" novalidate>
+              <label class="field-label" for="ct-nome">Nome de exibição <span class="req">*</span></label>
+              <div class="nome-row">
+                <input id="ct-nome" name="nome" class="input" type="text" maxlength="120" autocomplete="name"
+                       [(ngModel)]="nome" [class.is-invalid]="!nomeValido" [disabled]="salvandoNome" />
+                <button type="submit" class="btn btn-secondary" [disabled]="!nomeAlterado || !nomeValido || salvandoNome">
+                  @if (salvandoNome) { <span class="spinner"></span> Salvando… }
+                  @else { <app-icon name="check" [size]="15" [stroke]="2" /> Salvar }
+                </button>
+              </div>
+              @if (!nomeValido) {
+                <span class="field-error"><app-icon name="alert-circle" [size]="13" /> Informe o seu nome.</span>
+              } @else if (nomeAlterado && !salvandoNome) {
+                <span class="field-hint">Alteração não salva · <button type="button" class="link-btn" (click)="desfazerNome()">Desfazer</button></span>
+              } @else {
+                <span class="field-hint">Aparece no menu, nos envios de arquivos e no registro de atividades.</span>
+              }
+            </form>
+
+            <div class="field">
+              <label class="field-label" for="ct-email">E-mail de acesso</label>
+              <div class="input-icon">
+                <app-icon name="mail" [size]="16" />
+                <input id="ct-email" class="input" type="email" [value]="perfil.email" readonly aria-describedby="ct-email-hint" />
+              </div>
+              <span class="field-hint" id="ct-email-hint">Para alterar o e-mail, fale com o escritório.</span>
+            </div>
+          </div>
+
+          <dl class="dl mt-xl">
+            <div>
+              <dt>Empresa vinculada</dt>
+              <dd>
+                @if (empresa) {
+                  <span class="emp">
+                    <span class="icon-tile sm neutral"><app-icon name="building" [size]="14" /></span>
+                    <span class="truncate">
+                      <span class="cell-main">{{ empresa.nomeFantasia }}</span>
+                      <span class="cell-sub tnum">{{ empresa.cnpj | documento }}</span>
+                    </span>
+                  </span>
+                } @else {
+                  <span class="text-mute">—</span>
+                }
+              </dd>
+            </div>
+            <div>
+              <dt>Membro desde</dt>
+              <dd class="tnum">{{ perfil.dataCriacao ? (perfil.dataCriacao | date:'dd/MM/yyyy') : '—' }}</dd>
+            </div>
+          </dl>
+        </div>
+      }
+    </section>
+    }
+
+    <!-- ============ SEGURANÇA ============ -->
+    @if (!emModal || aba === 'seguranca') {
+    <section class="card" aria-labelledby="ct-seg">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title" id="ct-seg"><app-icon name="shield" [size]="16" /> Segurança · Alterar senha</h2>
+          <p class="card-subtitle">Use uma senha que você não utiliza em outros sites.</p>
+        </div>
+      </div>
+
+      <form (ngSubmit)="alterarSenha()" novalidate>
+        <!-- ajuda gerenciadores de senha a associar a conta -->
+        <input type="email" name="username" autocomplete="username" [value]="perfil?.email ?? ''" hidden />
+
+        <div class="card-body senha-grid">
+          <div class="stack-lg">
+            <div class="field">
+              <label class="field-label" for="ct-atual">Senha atual <span class="req">*</span></label>
+              <div class="input-icon">
+                <app-icon name="lock" [size]="16" />
+                <input id="ct-atual" name="senhaAtual" class="input pw-input" [type]="visivel.atual ? 'text' : 'password'"
+                       autocomplete="current-password" [(ngModel)]="senhaAtual" (ngModelChange)="aoDigitar()"
+                       (blur)="tocado.atual = true" [class.is-invalid]="erroAtual" [disabled]="salvandoSenha" />
+                <button type="button" class="btn-icon sm input-clear" (click)="alternarVisivel('atual')"
+                        [attr.aria-label]="visivel.atual ? 'Ocultar senha' : 'Mostrar senha'" [title]="visivel.atual ? 'Ocultar senha' : 'Mostrar senha'">
+                  <app-icon [name]="visivel.atual ? 'eye-off' : 'eye'" [size]="16" />
+                </button>
+              </div>
+              @if (erroAtual) { <span class="field-error"><app-icon name="alert-circle" [size]="13" /> {{ erroAtual }}</span> }
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="ct-nova">Nova senha <span class="req">*</span></label>
+              <div class="input-icon">
+                <app-icon name="lock" [size]="16" />
+                <input id="ct-nova" name="novaSenha" class="input pw-input" [type]="visivel.nova ? 'text' : 'password'"
+                       autocomplete="new-password" placeholder="Mínimo de 8 caracteres" [(ngModel)]="novaSenha" (ngModelChange)="aoDigitar()"
+                       (blur)="tocado.nova = true" [class.is-invalid]="erroNova" [disabled]="salvandoSenha" aria-describedby="ct-regras" />
+                <button type="button" class="btn-icon sm input-clear" (click)="alternarVisivel('nova')"
+                        [attr.aria-label]="visivel.nova ? 'Ocultar senha' : 'Mostrar senha'" [title]="visivel.nova ? 'Ocultar senha' : 'Mostrar senha'">
+                  <app-icon [name]="visivel.nova ? 'eye-off' : 'eye'" [size]="16" />
+                </button>
+              </div>
+              @if (novaSenha) {
+                <div class="pw-meter">
+                  <div class="progress" [class]="'progress ' + forcaSenha.tom"><span [style.width.%]="forcaSenha.nivel"></span></div>
+                  <span class="text-xs" [class]="'text-xs text-' + forcaSenha.tom">{{ forcaSenha.label }}</span>
+                </div>
+              }
+              @if (erroNova) { <span class="field-error"><app-icon name="alert-circle" [size]="13" /> {{ erroNova }}</span> }
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="ct-confirmar">Confirmar nova senha <span class="req">*</span></label>
+              <div class="input-icon">
+                <app-icon name="lock" [size]="16" />
+                <input id="ct-confirmar" name="confirmarSenha" class="input pw-input" [type]="visivel.confirmar ? 'text' : 'password'"
+                       autocomplete="new-password" placeholder="Repita a nova senha" [(ngModel)]="confirmarSenha" (ngModelChange)="aoDigitar()"
+                       (blur)="tocado.confirmar = true" [class.is-invalid]="erroConfirmar" [disabled]="salvandoSenha" />
+                <button type="button" class="btn-icon sm input-clear" (click)="alternarVisivel('confirmar')"
+                        [attr.aria-label]="visivel.confirmar ? 'Ocultar senha' : 'Mostrar senha'" [title]="visivel.confirmar ? 'Ocultar senha' : 'Mostrar senha'">
+                  <app-icon [name]="visivel.confirmar ? 'eye-off' : 'eye'" [size]="16" />
+                </button>
+              </div>
+              @if (erroConfirmar) {
+                <span class="field-error"><app-icon name="alert-circle" [size]="13" /> {{ erroConfirmar }}</span>
+              } @else if (confirmacaoOk) {
+                <span class="field-hint text-success"><app-icon name="check" [size]="13" [stroke]="2.5" /> As senhas coincidem.</span>
+              }
+            </div>
+          </div>
+
+          <aside class="regras" id="ct-regras" aria-live="polite">
+            <p class="eyebrow">A nova senha precisa ter</p>
+            <ul>
+              <li [class.ok]="regraTamanho"><app-icon [name]="regraTamanho ? 'check-circle' : 'circle'" [size]="15" /> No mínimo 8 caracteres</li>
+              <li [class.ok]="regraLetraNumero"><app-icon [name]="regraLetraNumero ? 'check-circle' : 'circle'" [size]="15" /> Letras e números</li>
+              <li [class.ok]="regraDiferente"><app-icon [name]="regraDiferente ? 'check-circle' : 'circle'" [size]="15" /> Diferente da senha atual</li>
+            </ul>
+            <p class="text-xs text-mute">Dica: misture maiúsculas, minúsculas e símbolos para uma senha forte.</p>
+          </aside>
+
+          @if (erroSenha) {
+            <div class="alert alert-danger span-all" role="alert">
+              <app-icon name="alert-triangle" [size]="16" />
+              <span>{{ erroSenha }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="card-footer">
+          @if (temAlgoDigitado) {
+            <button type="button" class="btn btn-ghost" (click)="limparSenha()" [disabled]="salvandoSenha">Limpar</button>
+          }
+          <button type="submit" class="btn btn-primary" [disabled]="!senhaValida || salvandoSenha">
+            @if (salvandoSenha) { <span class="spinner"></span> Alterando… }
+            @else { <app-icon name="lock" [size]="15" /> Alterar senha }
+          </button>
+        </div>
+      </form>
+    </section>
+    }
+
+    <!-- ============ SESSÃO ============ -->
+    @if (!emModal || aba === 'sessao') {
+    <section class="card" aria-labelledby="ct-sessao">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title" id="ct-sessao"><app-icon name="clock" [size]="16" /> Sessão</h2>
+          <p class="card-subtitle">Acesso neste navegador.</p>
+        </div>
+      </div>
+      <div class="card-body sessao">
+        <span class="icon-tile"><app-icon name="log-in" [size]="18" /></span>
+        <div class="sessao-text">
+          <p class="fw-600">Você está conectado neste navegador</p>
+          <p class="text-sm text-mute">
+            Cada sessão dura 8 horas a partir do login.
+            @if (expiraEm) { Esta expira em <span class="tnum">{{ expiraEm | date:'dd/MM/yyyy' }} às {{ expiraEm | date:'HH:mm' }}</span>. }
+            Depois disso, será preciso entrar novamente.
+          </p>
+        </div>
+        <button type="button" class="btn btn-danger-ghost" (click)="sair()">
+          <app-icon name="log-out" [size]="15" /> Sair
+        </button>
+      </div>
+    </section>
+    }
+    </div>
+
+  </div>
+</div>

@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { ArquivoResponseDTO } from '../models/arquivo-response.dto';
 import { StatusArquivo } from '../models/enums/status-arquivo.enum';
 import { CategoriaFiscal } from '../models/enums/categoria-fiscal.enum';
+import { environment } from '../../environments/environment';
 
 export interface UploadArquivoParams {
   arquivo: File;
@@ -21,7 +22,7 @@ export interface UploadArquivoParams {
 })
 export class ArquivoService {
 
-  private readonly API = 'http://localhost:8080/arquivos';
+  private readonly API = `${environment.apiUrl}/arquivos`;
 
   constructor(private http: HttpClient) {}
 
@@ -35,6 +36,11 @@ export class ArquivoService {
 
   buscarPorEmpresa(idEmpresa: number): Observable<ArquivoResponseDTO[]> {
     return this.http.get<ArquivoResponseDTO[]>(`${this.API}/empresa/${idEmpresa}`);
+  }
+
+  /** Arquivos anexados a uma obrigação pendente. */
+  porObrigacao(idObrigacao: number): Observable<ArquivoResponseDTO[]> {
+    return this.http.get<ArquivoResponseDTO[]>(`${this.API}/obrigacao/${idObrigacao}`);
   }
 
   vencendoEm(dias: number = 7): Observable<ArquivoResponseDTO[]> {

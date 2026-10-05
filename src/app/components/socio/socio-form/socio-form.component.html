@@ -1,134 +1,175 @@
-<div class="form-wrapper">
+<div class="modal-backdrop" (click)="tentarFechar()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sf-titulo" (click)="$event.stopPropagation()">
 
-  <div class="form-header">
-    <div class="header-info">
-      @if (modo === 'novo') {
-        <span class="form-badge badge-novo">Novo Sócio</span>
-        <h2 class="form-titulo">Cadastrar Sócio</h2>
-      } @else if (modo === 'editar') {
-        <span class="form-badge badge-editar">Editar</span>
-        <h2 class="form-titulo">{{ socio?.nome }}</h2>
-      } @else {
-        <span class="form-badge badge-detalhes">Detalhes</span>
-        <h2 class="form-titulo">{{ socio?.nome }}</h2>
-      }
-    </div>
-    <button class="btn-fechar" (click)="fechar.emit()">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-      </svg>
-    </button>
-  </div>
-
-  <div class="form-body">
-
-    <!-- DETALHES -->
-    @if (modo === 'detalhes' && socio) {
-      <div class="detalhes-grid">
-        <div class="detalhe-item detalhe-full">
-          <span class="detalhe-label">Nome</span>
-          <span class="detalhe-valor">{{ socio.nome }}</span>
-        </div>
-        <div class="detalhe-item">
-          <span class="detalhe-label">CPF</span>
-          <span class="detalhe-valor">{{ formatarCpf(socio.cpf) }}</span>
-        </div>
-        <div class="detalhe-item">
-          <span class="detalhe-label">Empresa</span>
-          <span class="detalhe-valor">{{ getNomeEmpresa(socio.idEmpresa) }}</span>
-        </div>
-      </div>
-      <div class="form-acoes">
-        <button class="btn-secundario" (click)="fechar.emit()">Fechar</button>
-        <button class="btn-primario" (click)="irParaEdicao()">Editar</button>
-      </div>
-    }
-
-    <!-- NOVO / EDITAR -->
-    @if (modo === 'novo' || modo === 'editar') {
-      <div class="campos">
-
-        <div class="campo">
-          <label>Nome <span class="obrigatorio">*</span></label>
-          <input
-            type="text"
-            [(ngModel)]="dto.nome"
-            placeholder="Ex: Gabriel Diniz"
-            [class.campo-erro]="erros['nome']"
-          />
-          @if (erros['nome']) {
-            <span class="mensagem-erro">{{ erros['nome'] }}</span>
-          }
-        </div>
-
-        <div class="campo">
-          <label>CPF <span class="obrigatorio">*</span></label>
-          <input
-            type="text"
-            [(ngModel)]="dto.cpf"
-            placeholder="000.000.000-00"
-            maxlength="14"
-            (input)="mascaraCpf($event)"
-            [class.campo-erro]="erros['cpf']"
-          />
-          @if (erros['cpf']) {
-            <span class="mensagem-erro">{{ erros['cpf'] }}</span>
-          }
-        </div>
-
-        <div class="campo">
-          <label>Empresa <span class="obrigatorio">*</span></label>
-          <select
-            [(ngModel)]="dto.idEmpresa"
-            [class.campo-erro]="erros['idEmpresa']"
-          >
-            <option [ngValue]="0" disabled>Selecione uma empresa...</option>
-            @for (empresa of empresas; track empresa.id) {
-              <option [ngValue]="empresa.id">{{ empresa.nomeFantasia }}</option>
+    <div class="modal-header">
+      <div class="mh-main">
+        @if (modo === 'novo') {
+          <span class="icon-tile"><app-icon name="handshake" [size]="18" /></span>
+        } @else {
+          <span class="avatar avatar-lg" [class]="(socio?.nome | avatarCor)">{{ socio?.nome | iniciais }}</span>
+        }
+        <div class="truncate">
+          <h2 class="modal-title truncate" id="sf-titulo">{{ modo === 'novo' ? 'Novo sócio' : socio?.nome }}</h2>
+          <p class="modal-subtitle truncate">
+            @switch (modo) {
+              @case ('novo') { Adicione um sócio ao quadro societário de uma empresa. }
+              @case ('editar') { Editando sócio de {{ getNomeEmpresa(socio?.idEmpresa ?? 0) }} }
+              @default { Sócio de {{ getNomeEmpresa(socio?.idEmpresa ?? 0) }} }
             }
-          </select>
-          @if (erros['idEmpresa']) {
-            <span class="mensagem-erro">{{ erros['idEmpresa'] }}</span>
-          }
+          </p>
         </div>
-
-        <div class="campo">
-          <label>Participação (%)</label>
-          <input
-            type="number"
-            [(ngModel)]="dto.participacao"
-            min="0"
-            max="100"
-            step="0.01"
-            placeholder="Ex.: 50.00"
-          />
-        </div>
-
-        <div class="campo campo-check">
-          <label>
-            <input type="checkbox" [(ngModel)]="dto.administrador" />
-            Administrador da empresa
-          </label>
-        </div>
-
       </div>
+      <button type="button" class="btn-icon" (click)="tentarFechar()" aria-label="Fechar" title="Fechar (Esc)">
+        <app-icon name="x" [size]="18" />
+      </button>
+    </div>
 
-      @if (erroGeral) {
-        <p class="erro-geral">{{ erroGeral }}</p>
-      }
-
-      <div class="form-acoes">
-        <button class="btn-secundario" (click)="fechar.emit()" [disabled]="salvando">Cancelar</button>
-        <button class="btn-primario" (click)="salvar()" [disabled]="salvando">
-          @if (salvando) {
-            <span class="spinner-sm"></span>
-          } @else {
-            {{ modo === 'novo' ? 'Cadastrar' : 'Salvar' }}
-          }
+    @if (modo === 'detalhes' && socio) {
+      <!-- ============ DETALHES ============ -->
+      <div class="modal-body">
+        <dl class="dl">
+          <div class="span-2">
+            <dt>Nome</dt>
+            <dd>{{ socio.nome }}</dd>
+          </div>
+          <div>
+            <dt>CPF</dt>
+            <dd class="tnum">{{ socio.cpf | documento }}</dd>
+          </div>
+          <div>
+            <dt>Função</dt>
+            <dd>
+              @if (socio.administrador) {
+                <span class="badge badge-primary"><app-icon name="shield-check" [size]="12" [stroke]="2" /> Administrador</span>
+              } @else {
+                <span class="badge badge-neutral">Sócio</span>
+              }
+            </dd>
+          </div>
+          <div>
+            <dt>Empresa</dt>
+            <dd>
+              {{ getNomeEmpresa(socio.idEmpresa) }}
+              @if (getCnpjEmpresa(socio.idEmpresa); as cnpj) { <span class="cell-sub tnum">{{ cnpj | documento }}</span> }
+            </dd>
+          </div>
+          <div>
+            <dt>Participação no capital</dt>
+            <dd>
+              @if (socio.participacao != null) {
+                <div class="part">
+                  <span class="tnum fw-600">{{ socio.participacao | number:'1.0-2' }}%</span>
+                  <div class="progress"><span [style.width.%]="socio.participacao > 100 ? 100 : socio.participacao"></span></div>
+                </div>
+              } @else {
+                <span class="text-faint">Não informada</span>
+              }
+            </dd>
+          </div>
+        </dl>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="fechar.emit()">Fechar</button>
+        <button type="button" class="btn btn-primary" (click)="irParaEdicao()">
+          <app-icon name="pencil" [size]="15" /> Editar sócio
         </button>
       </div>
+    } @else {
+      <!-- ============ NOVO / EDITAR ============ -->
+      <form class="modal-form" (ngSubmit)="salvar()" novalidate autocomplete="off">
+        <div class="modal-body">
+
+          <section class="form-section">
+            <h3 class="form-section-title">Dados pessoais</h3>
+            <p class="form-section-desc">Identificação do sócio pessoa física.</p>
+            <div class="form-grid">
+              <div class="field span-2">
+                <label class="field-label" for="sf-nome">Nome completo <span class="req">*</span></label>
+                <input #primeiroCampo id="sf-nome" name="nome" class="input" type="text" [(ngModel)]="dto.nome"
+                       (ngModelChange)="limparErro('nome')" placeholder="Ex.: Gabriel Diniz" [class.is-invalid]="erros['nome']" />
+                @if (erros['nome']) { <span class="field-error"><app-icon name="alert-circle" [size]="13" /> {{ erros['nome'] }}</span> }
+              </div>
+              <div class="field">
+                <label class="field-label" for="sf-cpf">CPF <span class="req">*</span></label>
+                <div class="input-icon">
+                  <app-icon name="id-card" [size]="16" />
+                  <input id="sf-cpf" name="cpf" class="input tnum" type="text" inputmode="numeric" [ngModel]="dto.cpf"
+                         placeholder="000.000.000-00" maxlength="14" (input)="mascaraCpf($event)" [class.is-invalid]="erros['cpf']" />
+                </div>
+                @if (erros['cpf']) {
+                  <span class="field-error"><app-icon name="alert-circle" [size]="13" /> {{ erros['cpf'] }}</span>
+                } @else if (cpfSuspeito) {
+                  <span class="field-hint text-warning"><app-icon name="alert-triangle" [size]="12" /> Os dígitos verificadores não conferem. Confira o CPF.</span>
+                } @else {
+                  <span class="field-hint">Somente números; a máscara é aplicada automaticamente.</span>
+                }
+              </div>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <h3 class="form-section-title">Participação societária</h3>
+            <p class="form-section-desc">Empresa, percentual do capital social e responsabilidade legal.</p>
+            <div class="form-grid">
+              <div class="field span-2">
+                <label class="field-label" for="sf-empresa">Empresa <span class="req">*</span></label>
+                <select id="sf-empresa" name="idEmpresa" class="select" [(ngModel)]="dto.idEmpresa"
+                        (ngModelChange)="limparErro('idEmpresa')" [class.is-invalid]="erros['idEmpresa']">
+                  <option [ngValue]="0" disabled>Selecione uma empresa…</option>
+                  @for (empresa of empresas; track empresa.id) {
+                    <option [ngValue]="empresa.id">{{ empresa.nomeFantasia }}</option>
+                  }
+                </select>
+                @if (erros['idEmpresa']) { <span class="field-error"><app-icon name="alert-circle" [size]="13" /> {{ erros['idEmpresa'] }}</span> }
+              </div>
+
+              <div class="field">
+                <label class="field-label" for="sf-part">Participação</label>
+                <div class="input-suffix">
+                  <input id="sf-part" name="participacao" class="input tnum" type="number" inputmode="decimal"
+                         [(ngModel)]="dto.participacao" (ngModelChange)="limparErro('participacao')"
+                         min="0" max="100" step="0.01" placeholder="0,00" [class.is-invalid]="erros['participacao'] || excedeCapital" />
+                  <span class="suffix">%</span>
+                </div>
+                @if (erros['participacao']) {
+                  <span class="field-error"><app-icon name="alert-circle" [size]="13" /> {{ erros['participacao'] }}</span>
+                } @else if (excedeCapital) {
+                  <span class="field-error"><app-icon name="alert-triangle" [size]="13" /> Ultrapassa 100% — disponível: {{ participacaoDisponivel | number:'1.0-2' }}%.</span>
+                } @else if (participacaoDisponivel != null) {
+                  <span class="field-hint">Disponível nesta empresa: <strong class="tnum">{{ participacaoDisponivel | number:'1.0-2' }}%</strong></span>
+                } @else {
+                  <span class="field-hint">Opcional. Percentual do capital social.</span>
+                }
+              </div>
+
+              <div class="field admin-field">
+                <span class="field-label">Administração</span>
+                <label class="switch">
+                  <input type="checkbox" name="administrador" [(ngModel)]="dto.administrador" />
+                  <span class="track"></span>
+                  <span>Sócio administrador</span>
+                </label>
+                <span class="field-hint">Responde legalmente pela empresa.</span>
+              </div>
+            </div>
+          </section>
+
+          @if (erroGeral) {
+            <div class="alert alert-danger mt-lg" role="alert">
+              <app-icon name="alert-triangle" [size]="16" />
+              <span>{{ erroGeral }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="tentarFechar()" [disabled]="salvando">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="salvando">
+            @if (salvando) { <span class="spinner"></span> Salvando… }
+            @else { <app-icon name="check" [size]="15" [stroke]="2" /> {{ modo === 'novo' ? 'Cadastrar sócio' : 'Salvar alterações' }} }
+          </button>
+        </div>
+      </form>
     }
-
   </div>
-
 </div>

@@ -1,139 +1,108 @@
-<div class="page-wrapper">
+<div class="page">
 
-  <!-- HEADER -->
-  <div class="page-header">
-    <div class="header-left">
-      <h1 class="page-titulo">Pastas</h1>
-      <span class="page-subtitulo">{{ pastas.length }} pasta(s) cadastrada(s)</span>
+  <header class="page-header">
+    <div class="page-header-text">
+      <h1 class="page-title">Pastas</h1>
+      <p class="page-subtitle tnum">{{ pastas.length }} {{ pastas.length === 1 ? 'pasta cadastrada' : 'pastas cadastradas' }}</p>
     </div>
-    <button class="btn-novo" (click)="abrirFormNovo()">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-      </svg>
-      Nova Pasta
-    </button>
+    <div class="page-actions">
+      <button class="btn btn-primary" (click)="abrirFormNovo()">
+        <app-icon name="folder-plus" [size]="16" [stroke]="2" /> Nova pasta
+      </button>
+    </div>
+  </header>
+
+  <div class="filter-card">
+    <div class="input-icon search">
+      <app-icon name="search" [size]="16" />
+      <input class="input" type="search" placeholder="Buscar por nome ou descrição" [(ngModel)]="termoBusca" (ngModelChange)="filtrar()" aria-label="Buscar pastas" />
+    </div>
+    <select class="select" [(ngModel)]="filtroEmpresa" (ngModelChange)="filtrar()" aria-label="Filtrar por empresa">
+      <option [ngValue]="null">Todas as empresas</option>
+      @for (e of empresas; track e.id) { <option [ngValue]="e.id">{{ e.nomeFantasia }}</option> }
+    </select>
   </div>
 
-  <!-- BARRA DE BUSCA -->
-  <div class="barra-busca">
-    <div class="input-busca-wrapper">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-      <input
-        type="text"
-        placeholder="Buscar pasta..."
-        [(ngModel)]="termoBusca"
-        (input)="filtrar()"
-      />
-    </div>
-  </div>
-
-  <!-- TABELA -->
-  <div class="tabela-wrapper">
-    @if (carregando) {
-      <div class="estado-vazio">
-        <span class="spinner"></span>
-        <p>Carregando pastas...</p>
-      </div>
-    } @else if (pastasFiltradas.length === 0) {
-      <div class="estado-vazio">
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-        </svg>
-        <p>Nenhuma pasta encontrada.</p>
-      </div>
-    } @else {
-      <table class="tabela">
+  <div class="card table-card">
+    <div class="table-wrap">
+      <table class="table">
         <thead>
           <tr>
-            <th>Nome</th>
-            <th>Descrição</th>
+            <th>Pasta</th>
             <th>Empresa</th>
-            <th>Pasta Pai</th>
-            <th></th>
+            <th>Pasta pai</th>
+            <th class="col-actions">Ações</th>
           </tr>
         </thead>
         <tbody>
-          @for (pasta of pastasFiltradas; track pasta.id) {
-            <tr>
-              <td class="td-nome">
-                <div class="td-nome-wrapper">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b8952a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                  </svg>
-                  {{ pasta.nome }}
-                </div>
-              </td>
-              <td>{{ pasta.descricao ?? '—' }}</td>
-              <td>{{ getNomeEmpresa(pasta.idEmpresa) }}</td>
-              <td>{{ getNomePasta(pasta.idPastaPai) }}</td>
-              <td class="td-acoes">
-                <div class="menu-wrapper">
-                  <button class="btn-menu" (click)="toggleMenu(pasta.id!, $event); $event.stopPropagation()">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
-                    </svg>
-                  </button>
-                  @if (menuAbertoId === pasta.id) {
-                    <div class="menu-dropdown" [style.top.px]="menuPosicao.top" [style.right.px]="menuPosicao.right">
-                      <button (click)="verDetalhes(pasta)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                        </svg>
-                        Ver detalhes
-                      </button>
-                      <button (click)="abrirFormEdicao(pasta)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                        Editar
-                      </button>
-                      <button class="btn-deletar" (click)="confirmarDelete(pasta)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                        </svg>
-                        Deletar
-                      </button>
+          @if (carregando) {
+            @for (r of skeletonRows; track r) {
+              <tr>
+                <td><div class="cell-entity"><span class="icon-tile sm skeleton"></span><span class="skeleton skeleton-line sk-1"></span></div></td>
+                <td><span class="skeleton skeleton-line sk-2"></span></td>
+                <td><span class="skeleton skeleton-line sk-2"></span></td>
+                <td class="col-actions"><span class="skeleton skeleton-line sk-3"></span></td>
+              </tr>
+            }
+          } @else {
+            @for (pasta of paginaItens; track pasta.id) {
+              <tr class="clickable" (click)="verDetalhes(pasta)">
+                <td>
+                  <div class="cell-entity">
+                    <span class="icon-tile sm"><app-icon name="folder" [size]="15" /></span>
+                    <div class="truncate">
+                      <span class="cell-main">{{ pasta.nome }}</span>
+                      @if (pasta.descricao) { <span class="cell-sub truncate">{{ pasta.descricao }}</span> }
                     </div>
-                  }
-                </div>
-              </td>
-            </tr>
+                  </div>
+                </td>
+                <td>{{ getNomeEmpresa(pasta.idEmpresa) }}</td>
+                <td>
+                  @if (pasta.idPastaPai) { <span class="row-sm"><app-icon name="folder" [size]="14" /> {{ getNomePasta(pasta.idPastaPai) }}</span> }
+                  @else { <span class="badge badge-neutral">Raiz</span> }
+                </td>
+                <td class="col-actions" (click)="$event.stopPropagation()">
+                  <div class="row-actions">
+                    <button class="btn-icon sm bordered" (click)="verDetalhes(pasta)" title="Ver detalhes" aria-label="Ver detalhes"><app-icon name="eye" [size]="15" /></button>
+                    <button class="btn-icon sm bordered" (click)="abrirFormEdicao(pasta)" title="Editar" aria-label="Editar"><app-icon name="pencil" [size]="15" /></button>
+                    <button class="btn-icon sm bordered danger" (click)="confirmarDelete(pasta)" [disabled]="deletandoId === pasta.id" title="Excluir" aria-label="Excluir">
+                      @if (deletandoId === pasta.id) { <span class="spinner sp-sm"></span> } @else { <app-icon name="trash" [size]="15" /> }
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
           }
         </tbody>
       </table>
+    </div>
+
+    @if (!carregando && pastasFiltradas.length === 0) {
+      <div class="empty">
+        <span class="empty-icon"><app-icon [name]="temFiltro ? 'search' : 'folder'" [size]="22" /></span>
+        <p class="empty-title">{{ temFiltro ? 'Nenhuma pasta encontrada' : 'Nenhuma pasta cadastrada' }}</p>
+        <p class="empty-text">{{ temFiltro ? 'Ajuste a busca ou limpe os filtros.' : 'Crie pastas para organizar os arquivos de cada empresa.' }}</p>
+        @if (temFiltro) {
+          <button class="btn btn-secondary" (click)="limparFiltros()"><app-icon name="x" [size]="15" /> Limpar filtros</button>
+        } @else {
+          <button class="btn btn-secondary" (click)="abrirFormNovo()"><app-icon name="folder-plus" [size]="15" /> Criar pasta</button>
+        }
+      </div>
+    }
+
+    @if (!carregando && pastasFiltradas.length > 0) {
+      <app-paginador [total]="pastasFiltradas.length" rotulo="pastas" [(pagina)]="pagina" [(porPagina)]="porPagina" />
     }
   </div>
-
 </div>
 
-<!-- PAINEL LATERAL -->
 @if (painelAberto) {
-  <div class="overlay" (click)="fecharPainel()"></div>
-  <div class="painel-lateral" [class.painel-aberto]="painelAberto">
-    <app-pasta-form
-      [pasta]="pastaSelecionada"
-      [modo]="modoPainel"
-      [empresas]="empresas"
-      [pastas]="pastas"
-      (fechar)="fecharPainel()"
-      (salvo)="onPastaSalva()"
-    />
-  </div>
-}
-
-<!-- MODAL CONFIRMAÇÃO DELETE -->
-@if (pastaParaDeletar) {
-  <div class="overlay" (click)="cancelarDelete()"></div>
-  <div class="modal-confirmacao">
-    <h3>Deletar pasta</h3>
-    <p>Tem certeza que deseja deletar <strong>{{ pastaParaDeletar.nome }}</strong>? Esta ação não pode ser desfeita.</p>
-    <div class="modal-acoes">
-      <button class="btn-cancelar" (click)="cancelarDelete()">Cancelar</button>
-      <button class="btn-confirmar-delete" (click)="deletar()" [disabled]="deletando">
-        @if (deletando) { <span class="spinner-sm"></span> } @else { Deletar }
-      </button>
-    </div>
-  </div>
+  <app-pasta-form
+    [pasta]="pastaSelecionada"
+    [modo]="modoPainel"
+    [empresas]="empresas"
+    [pastas]="pastas"
+    (fechar)="fecharPainel()"
+    (salvo)="onPastaSalva()"
+  />
 }

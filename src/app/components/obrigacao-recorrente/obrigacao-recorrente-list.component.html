@@ -1,0 +1,318 @@
+<div class="page">
+  <header class="page-header">
+    <div class="page-header-text">
+      <h1 class="page-title">Obrigações recorrentes</h1>
+      <p class="page-subtitle">
+        @if (carregando && !obrigacoes.length) { Carregando… }
+        @else {
+          <span class="tnum">{{ obrigacoes.length }}</span> modelo(s) ·
+          <span class="tnum">{{ totalAtivas }}</span> ativo(s) ·
+          <span class="tnum">{{ totalEmpresas }}</span> empresa(s)
+        }
+      </p>
+    </div>
+    <div class="page-actions">
+      <a routerLink="/obrigacoes-pendentes" class="btn btn-secondary">
+        <app-icon name="list-checks" [size]="16" /> Ver pendências
+      </a>
+      @if (isAdmin) {
+        <button type="button" class="btn btn-primary" (click)="abrirNova()" title="Nova obrigação (N)">
+          <app-icon name="plus" [size]="16" /> Nova obrigação
+        </button>
+      }
+    </div>
+  </header>
+
+  <div class="alert alert-info intro">
+    <app-icon name="info" [size]="18" />
+    <div>Cada modelo gera automaticamente uma <strong>pendência</strong> por período (mês, trimestre ou ano) para a empresa,
+      com vencimento no dia configurado. <strong>Escritório entrega</strong>: o escritório anexa a guia ou declaração;
+      <strong>Cliente envia</strong>: o cliente manda os documentos pelo portal.</div>
+  </div>
+
+  <section class="filter-card">
+      <label class="input-icon search">
+        <app-icon name="search" [size]="16" />
+        <input #buscaInput class="input" type="search" placeholder="Buscar obrigação ou empresa…"
+               [(ngModel)]="busca" (ngModelChange)="aoMudarFiltro()" aria-label="Buscar" />
+      </label>
+      @if (empresas.length > 1) {
+        <select class="select" [(ngModel)]="idEmpresaFiltro" (ngModelChange)="aoMudarFiltro()" aria-label="Empresa">
+          <option [ngValue]="null">Todas as empresas</option>
+          @for (e of empresas; track e.id) { <option [ngValue]="e.id">{{ e.nomeFantasia }}</option> }
+        </select>
+      }
+      <select class="select sel-periodo" [(ngModel)]="periodicidadeFiltro" (ngModelChange)="aoMudarFiltro()" aria-label="Periodicidade">
+        <option [ngValue]="null">Qualquer periodicidade</option>
+        @for (p of periodicidades; track p) { <option [ngValue]="p">{{ periodLabel[p] }}</option> }
+      </select>
+      <div class="filter-chips" role="group" aria-label="Situação">
+        <button type="button" class="chip" [class.active]="filtroAtivo === 'todas'" (click)="setFiltroAtivo('todas')">
+          Todas <span class="count">{{ contar('todas') }}</span>
+        </button>
+        <button type="button" class="chip chip-success" [class.active]="filtroAtivo === 'ativas'" (click)="setFiltroAtivo('ativas')">
+          Ativas <span class="count">{{ contar('ativas') }}</span>
+        </button>
+        <button type="button" class="chip" [class.active]="filtroAtivo === 'inativas'" (click)="setFiltroAtivo('inativas')">
+          Inativas <span class="count">{{ contar('inativas') }}</span>
+        </button>
+        <span class="chip-sep" aria-hidden="true"></span>
+        <button type="button" class="chip chip-info" [class.active]="responsavelFiltro === Resp.ESCRITORIO" (click)="setResponsavel(Resp.ESCRITORIO)"
+                [attr.aria-pressed]="responsavelFiltro === Resp.ESCRITORIO">
+          <app-icon name="briefcase" [size]="14" /> Escritório <span class="count">{{ contarResp(Resp.ESCRITORIO) }}</span>
+        </button>
+        <button type="button" class="chip chip-accent" [class.active]="responsavelFiltro === Resp.CLIENTE" (click)="setResponsavel(Resp.CLIENTE)"
+                [attr.aria-pressed]="responsavelFiltro === Resp.CLIENTE">
+          <app-icon name="send" [size]="14" /> Cliente envia <span class="count">{{ contarResp(Resp.CLIENTE) }}</span>
+        </button>
+      </div>
+  </section>
+
+  <section class="card table-card">
+
+    @if (carregando && !obrigacoes.length) {
+      <div class="table-wrap">
+        <table class="table">
+          <tbody>
+            @for (s of skeletonRows; track s) {
+              <tr>
+                <td><span class="skeleton skeleton-line sk-a"></span></td>
+                <td><span class="skeleton skeleton-line sk-b"></span></td>
+                <td><span class="skeleton skeleton-line sk-c"></span></td>
+                <td><span class="skeleton skeleton-line sk-c"></span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else if (!obrigacoes.length) {
+      <div class="empty">
+        <div class="empty-icon"><app-icon name="repeat" [size]="22" /></div>
+        <div class="empty-title">Nenhuma obrigação recorrente</div>
+        <div class="empty-text">Cadastre DAS, FGTS, DCTFWeb e outras obrigações para gerar as pendências de cada empresa automaticamente.</div>
+        @if (isAdmin) {
+          <button type="button" class="btn btn-primary" (click)="abrirNova()"><app-icon name="plus" [size]="16" /> Nova obrigação</button>
+        }
+      </div>
+    } @else if (!filtradas.length) {
+      <div class="empty">
+        <div class="empty-icon"><app-icon name="search" [size]="22" /></div>
+        <div class="empty-title">Nenhum resultado</div>
+        <div class="empty-text">Nenhuma obrigação corresponde aos filtros aplicados.</div>
+        <button type="button" class="btn btn-secondary" (click)="limparFiltros()"><app-icon name="x" [size]="16" /> Limpar filtros</button>
+      </div>
+    } @else {
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Obrigação</th>
+              <th>Empresa</th>
+              <th>Periodicidade</th>
+              <th>Vencimento</th>
+              <th>Arquivo esperado</th>
+              <th>Ativa</th>
+              <th class="col-actions"><span class="sr-only">Ações</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (o of itensPagina; track o.id) {
+              <tr [class.clickable]="isAdmin" [class.inativa]="!o.ativo" (click)="editar(o)">
+                <td>
+                  <div class="cell-entity">
+                    <span class="icon-tile sm" [class.neutral]="!o.ativo"><app-icon name="repeat" [size]="15" /></span>
+                    <div class="min0">
+                      <span class="cell-main nome-resp">
+                        <span class="truncate">{{ o.nome }}</span>
+                        @if (responsavel(o) === Resp.CLIENTE) { <span class="badge badge-accent resp">Cliente envia</span> }
+                        @else { <span class="badge badge-primary resp">Escritório</span> }
+                      </span>
+                      @if (o.descricao) { <span class="cell-sub truncate desc">{{ o.descricao }}</span> }
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="cell-entity">
+                    <span [class]="'avatar avatar-sm ' + (getNomeEmpresa(o.idEmpresa) | avatarCor)">{{ getNomeEmpresa(o.idEmpresa) | iniciais }}</span>
+                    <span class="truncate emp-nome">{{ getNomeEmpresa(o.idEmpresa) }}</span>
+                  </div>
+                </td>
+                <td><span [class]="'badge ' + periodoClasse(o.periodicidade)">{{ periodLabel[o.periodicidade] }}</span></td>
+                <td class="nowrap">
+                  <span class="cell-main tnum">Todo dia {{ o.diaVencimento }}</span>
+                  <span class="cell-sub">{{ sufixoPeriodo[o.periodicidade] }}</span>
+                </td>
+                <td>
+                  @if (o.tipoArquivoEsperado) { <span class="tag">{{ o.tipoArquivoEsperado }}</span> }
+                  @else { <span class="text-faint text-sm">Qualquer</span> }
+                </td>
+                <td (click)="$event.stopPropagation()">
+                  <label class="switch" [title]="o.ativo ? 'Inativar' : 'Ativar'">
+                    <input type="checkbox" [checked]="o.ativo" [disabled]="!isAdmin || idAlternando === o.id"
+                           (change)="alternarAtivo(o, $event)" [attr.aria-label]="(o.ativo ? 'Inativar ' : 'Ativar ') + o.nome" />
+                    <span class="track"></span>
+                  </label>
+                </td>
+                <td class="col-actions">
+                  @if (isAdmin) {
+                  <div class="row-actions">
+                    <button type="button" class="btn-icon sm bordered" (click)="editar(o); $event.stopPropagation()" title="Editar" aria-label="Editar">
+                      <app-icon name="pencil" [size]="15" />
+                    </button>
+                    <button type="button" class="btn-icon sm bordered danger" (click)="deletar(o, $event)" title="Excluir" aria-label="Excluir">
+                      <app-icon name="trash" [size]="15" />
+                    </button>
+                  </div>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="table-footer">
+        <span class="tnum">Mostrando <strong>{{ faixa.de }}</strong> a <strong>{{ faixa.ate }}</strong> de <strong>{{ faixa.total }}</strong> obrigações</span>
+        <div class="table-footer-right">
+          <label class="rows-per-page">
+            <span class="hide-sm">Linhas por página</span>
+            <select class="select" [(ngModel)]="porPagina" (ngModelChange)="pagina = 1" aria-label="Linhas por página">
+              @for (n of opcoesPorPagina; track n) { <option [ngValue]="n">{{ n }}</option> }
+            </select>
+          </label>
+          <nav class="pagination" aria-label="Paginação">
+            <button type="button" class="page-btn nav" (click)="irPara(paginaAtual - 1)" [disabled]="paginaAtual === 1" aria-label="Página anterior">
+              <app-icon name="chevron-left" [size]="16" />
+            </button>
+            @for (n of paginas; track $index) {
+              @if (n === -1) { <span class="page-ellipsis">…</span> }
+              @else {
+                <button type="button" class="page-btn tnum" [class.active]="n === paginaAtual" (click)="irPara(n)"
+                        [attr.aria-current]="n === paginaAtual ? 'page' : null">{{ n }}</button>
+              }
+            }
+            <button type="button" class="page-btn nav" (click)="irPara(paginaAtual + 1)" [disabled]="paginaAtual === totalPaginas" aria-label="Próxima página">
+              <app-icon name="chevron-right" [size]="16" />
+            </button>
+          </nav>
+        </div>
+      </footer>
+    }
+  </section>
+</div>
+
+<!-- Modal: criar / editar -->
+@if (formAberto) {
+  <div class="modal-backdrop" (click)="fecharForm()">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rec-titulo" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" id="rec-titulo">{{ editando ? 'Editar obrigação' : 'Nova obrigação recorrente' }}</h2>
+          <p class="modal-subtitle">{{ editando ? editando.nome : 'Defina quando e como a obrigação se repete.' }}</p>
+        </div>
+        <button type="button" class="btn-icon sm" (click)="fecharForm()" aria-label="Fechar"><app-icon name="x" [size]="18" /></button>
+      </div>
+
+      <form class="modal-body" id="form-recorrente" (ngSubmit)="salvar()" novalidate>
+        @if (erro) {
+          <div class="alert alert-danger mb-lg"><app-icon name="alert-circle" [size]="18" /><div>{{ erro }}</div></div>
+        }
+        <div class="form-grid">
+          <div class="field span-2">
+            <label class="field-label" for="rec-empresa">Empresa <span class="req">*</span></label>
+            <select id="rec-empresa" class="select" name="idEmpresa" [(ngModel)]="form.idEmpresa"
+                    [class.is-invalid]="tentouSalvar && erroEmpresa">
+              <option [ngValue]="0" disabled>Selecione a empresa…</option>
+              @for (e of empresas; track e.id) { <option [ngValue]="e.id">{{ e.nomeFantasia }}</option> }
+            </select>
+            @if (tentouSalvar && erroEmpresa) { <span class="field-error">Selecione a empresa.</span> }
+          </div>
+
+          <div class="field span-2">
+            <label class="field-label" for="rec-nome">Nome <span class="req">*</span></label>
+            <input id="rec-nome" class="input" name="nome" [(ngModel)]="form.nome" placeholder="Ex.: DAS — Simples Nacional"
+                   [class.is-invalid]="tentouSalvar && erroNome" autocomplete="off" />
+            @if (tentouSalvar && erroNome) { <span class="field-error">Informe o nome da obrigação.</span> }
+          </div>
+
+          <div class="field span-2">
+            <label class="field-label" for="rec-desc">Descrição</label>
+            <input id="rec-desc" class="input" name="descricao" [(ngModel)]="form.descricao" placeholder="Opcional — ex.: Documento de Arrecadação do Simples" />
+          </div>
+
+          <div class="field span-2">
+            <span class="field-label">Periodicidade <span class="req">*</span></span>
+            <div class="segmented" role="radiogroup" aria-label="Periodicidade">
+              @for (p of periodicidades; track p) {
+                <button type="button" role="radio" [attr.aria-checked]="form.periodicidade === p"
+                        [class.active]="form.periodicidade === p" (click)="form.periodicidade = p">{{ periodLabel[p] }}</button>
+              }
+            </div>
+          </div>
+
+          <div class="field span-2">
+            <span class="field-label">Quem entrega <span class="req">*</span></span>
+            <div class="resp-cards" role="radiogroup" aria-label="Responsável pela obrigação">
+              @for (r of opcoesResponsavel; track r.valor) {
+                <button type="button" role="radio" class="resp-card" [class.active]="form.responsavel === r.valor"
+                        [class.is-cliente]="r.valor === Resp.CLIENTE"
+                        [attr.aria-checked]="form.responsavel === r.valor" (click)="form.responsavel = r.valor">
+                  <span class="icon-tile sm" [class.accent]="r.valor === Resp.CLIENTE"><app-icon [name]="r.icone" [size]="15" /></span>
+                  <span class="min0">
+                    <span class="resp-title">{{ r.titulo }}</span>
+                    <span class="resp-help">{{ r.ajuda }}</span>
+                  </span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="rec-dia">Dia de vencimento <span class="req">*</span></label>
+            <input id="rec-dia" class="input tnum" type="number" min="1" max="31" name="dia" [(ngModel)]="form.diaVencimento"
+                   [class.is-invalid]="tentouSalvar && erroDia" />
+            @if (tentouSalvar && erroDia) { <span class="field-error">Use um dia entre 1 e 31.</span> }
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="rec-tipo">Arquivo esperado</label>
+            <select id="rec-tipo" class="select" name="tipo" [(ngModel)]="form.tipoArquivoEsperado">
+              <option [ngValue]="null">Qualquer formato</option>
+              @for (t of tiposArquivo; track t) { <option [ngValue]="t">{{ t }}</option> }
+            </select>
+          </div>
+
+          @if (resumoForm) {
+            <div class="resumo span-2">
+              <app-icon name="calendar-clock" [size]="16" /> <span>{{ resumoForm }}</span>
+            </div>
+          }
+
+          <div class="field span-2">
+            <label class="switch">
+              <input type="checkbox" name="ativo" [(ngModel)]="form.ativo" />
+              <span class="track"></span>
+              <span>
+                <span class="fw-500">Obrigação ativa</span>
+                <span class="field-hint block">{{ form.ativo && !editando ? 'Ao salvar, a próxima pendência já é gerada.' : 'Inativas não geram novas pendências.' }}</span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </form>
+
+      <div class="modal-footer">
+        @if (editando) {
+          <button type="button" class="btn btn-danger-ghost" (click)="excluirEditando()" [disabled]="salvando">
+            <app-icon name="trash" [size]="16" /> Excluir
+          </button>
+          <span class="spacer"></span>
+        }
+        <button type="button" class="btn btn-secondary" (click)="fecharForm()" [disabled]="salvando">Cancelar</button>
+        <button type="submit" form="form-recorrente" class="btn btn-primary" [disabled]="salvando">
+          @if (salvando) { <span class="spinner"></span> Salvando… } @else { {{ editando ? 'Salvar alterações' : 'Criar obrigação' }} }
+        </button>
+      </div>
+    </div>
+  </div>
+}

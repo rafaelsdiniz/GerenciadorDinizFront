@@ -1,0 +1,169 @@
+<div class="drawer-backdrop" (click)="fechar.emit()"></div>
+<aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="det-titulo">
+  <div class="modal-header">
+    <div class="det-head">
+      <span class="icon-tile" [class.danger]="situacao === 'VENCIDA'" [class.warning]="situacao === 'PENDENTE'" [class.success]="entregue">
+        <app-icon [name]="entregue ? 'file-check' : 'file-clock'" [size]="18" />
+      </span>
+      <div class="min0">
+        <span class="eyebrow">Detalhes da obrigação</span>
+        <h2 class="modal-title" id="det-titulo">{{ obrigacao.nomeObrigacao || 'Obrigação avulsa' }}</h2>
+        @if (empresa) { <p class="modal-subtitle truncate">{{ empresa }}</p> }
+      </div>
+    </div>
+    <button type="button" class="btn-icon sm" (click)="fechar.emit()" aria-label="Fechar" title="Fechar (Esc)">
+      <app-icon name="x" [size]="18" />
+    </button>
+  </div>
+
+  <div class="modal-body stack-lg">
+    <div class="det-badges">
+      <span [class]="'badge badge-dot ' + statusClasse">{{ statusTexto }}</span>
+      <span class="badge" [class.badge-accent]="cliente" [class.badge-primary]="!cliente">
+        <app-icon [name]="cliente ? 'send' : 'briefcase'" [size]="12" /> {{ rotuloResponsavel }}
+      </span>
+      @if (pagamento; as pg) {
+        <span [class]="'badge ' + pg.classe"><app-icon [name]="pg.icone" [size]="12" /> {{ pg.texto }}</span>
+      }
+      @if (!obrigacao.idObrigacaoRecorrente) { <span class="badge badge-neutral">Avulsa</span> }
+    </div>
+
+    <dl class="dl det-dl">
+      <div>
+        <dt>Competência</dt>
+        <dd class="tnum">{{ obrigacao.competencia || '—' }}</dd>
+      </div>
+      <div>
+        <dt>Vencimento</dt>
+        <dd class="tnum">
+          {{ obrigacao.dataVencimento | date:'dd/MM/yyyy' }}
+          @if (!entregue) { <span [class]="'badge prazo ' + prazoClasse">{{ dias | prazo }}</span> }
+        </dd>
+      </div>
+      <div>
+        <dt>Entrega</dt>
+        <dd class="tnum">{{ obrigacao.dataEntrega ? (obrigacao.dataEntrega | date:'dd/MM/yyyy') : '—' }}</dd>
+      </div>
+      <div>
+        <dt>Responsável</dt>
+        <dd>{{ cliente ? 'Cliente envia os documentos' : 'Escritório entrega a guia' }}</dd>
+      </div>
+    </dl>
+
+    @if (pagamento; as pg) {
+      <section>
+        <div class="section-label">
+          <h2>Pagamento</h2>
+        </div>
+        <div class="pag-box">
+          <dl class="dl det-dl">
+            <div>
+              <dt>Situação</dt>
+              <dd><span [class]="'badge badge-dot ' + pg.classe">{{ situacaoPag === 'PAGO' ? 'Paga' : pg.texto }}</span></dd>
+            </div>
+            <div>
+              <dt>Data do pagamento</dt>
+              <dd class="tnum">
+                @if (obrigacao.dataPagamento) {
+                  {{ obrigacao.dataPagamento | date:'dd/MM/yyyy' }}
+                  @if (pagoAposVencimento) { <span class="pag-apos">Após o vencimento</span> }
+                } @else { <span class="text-faint">—</span> }
+              </dd>
+            </div>
+          </dl>
+          @if (aguardaPagamento) {
+            <p class="pag-hint" [class.is-danger]="situacaoPag === 'ATRASADO'">
+              <app-icon [name]="situacaoPag === 'ATRASADO' ? 'alert-circle' : 'info'" [size]="14" />
+              @if (situacaoPag === 'ATRASADO') { A guia venceu e o pagamento não foi confirmado. Se já foi paga, informe a data do pagamento. }
+              @else { Guia entregue pelo escritório. Após pagar, confirme o pagamento aqui. }
+            </p>
+          }
+        </div>
+      </section>
+    }
+
+    <section>
+      <div class="section-label">
+        <h2>Arquivos anexados</h2>
+        <span class="tnum">{{ arquivos.length }}</span>
+      </div>
+
+      @if (carregando && !arquivos.length) {
+        <div class="loading-block"><span class="spinner"></span> Carregando arquivos…</div>
+      } @else if (erro) {
+        <div class="alert alert-danger" role="alert">
+          <app-icon name="alert-triangle" [size]="16" />
+          <span>{{ erro }} <button type="button" class="link" (click)="carregarArquivos()">Tentar novamente</button></span>
+        </div>
+      } @else if (!arquivos.length) {
+        <div class="empty det-empty">
+          <div class="empty-icon"><app-icon name="paperclip" [size]="22" /></div>
+          <div class="empty-title">Nenhum arquivo anexado</div>
+          <div class="empty-text">
+            {{ entregue ? 'Esta obrigação foi marcada como entregue sem anexo.' : (cliente ? 'Envie o documento para o escritório por aqui.' : 'Anexe a guia ou o recibo para registrar a entrega.') }}
+          </div>
+        </div>
+      } @else {
+        <ul class="det-files">
+          @for (f of arquivos; track f.a.id) {
+            <li class="det-file">
+              <span class="icon-tile sm" [ngClass]="f.v.tom"><app-icon [name]="f.v.icone" [size]="15" /></span>
+              <div class="det-file-body">
+                <span class="det-file-name truncate" [title]="f.a.nomeOriginal">{{ f.a.nomeOriginal }}</span>
+                <span class="det-file-meta tnum">
+                  @if (f.a.dataCriacao) { Enviado em {{ f.a.dataCriacao | date:'dd/MM/yyyy HH:mm' }} }
+                  @if (f.a.nomeUsuario) { por {{ f.a.nomeUsuario }} }
+                  · {{ f.a.tamanho | bytes }}
+                </span>
+                @if (f.a.descricao) { <span class="det-file-desc truncate">{{ f.a.descricao }}</span> }
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" (click)="baixar(f.a)" [disabled]="baixandoId === f.a.id"
+                      [attr.aria-label]="'Baixar ' + f.a.nomeOriginal">
+                @if (baixandoId === f.a.id) { <span class="spinner"></span> } @else { <app-icon name="download" [size]="14" /> }
+                <span class="hide-xs">Download</span>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  </div>
+
+  <div class="modal-footer">
+    @if (entregue) {
+      @if (isAdmin) {
+        <button type="button" class="btn btn-danger-ghost" (click)="reabrir.emit()" [disabled]="ocupado">
+          @if (ocupado && !desfazendo) { <span class="spinner"></span> } @else { <app-icon name="rotate-ccw" [size]="16" /> }
+          Reabrir
+        </button>
+        @if (situacaoPag === 'PAGO') {
+          <button type="button" class="btn btn-ghost" (click)="desfazerPagamento.emit()" [disabled]="ocupado">
+            @if (desfazendo) { <span class="spinner"></span> } @else { <app-icon name="x-circle" [size]="16" /> }
+            Desfazer pagamento
+          </button>
+        }
+      }
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-secondary" (click)="fechar.emit()">Fechar</button>
+      @if (aguardaPagamento) {
+        <button type="button" class="btn btn-primary" (click)="pagar.emit()" [disabled]="ocupado">
+          <app-icon name="banknote" [size]="16" /> Confirmar pagamento
+        </button>
+      }
+    } @else {
+      <button type="button" class="btn-icon bordered" (click)="prorrogar.emit()" title="Prorrogar vencimento" aria-label="Prorrogar vencimento">
+        <app-icon name="calendar-clock" [size]="16" />
+      </button>
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-secondary" (click)="entregar.emit()" [disabled]="ocupado">
+        @if (ocupado) { <span class="spinner"></span> } @else { <app-icon name="check" [size]="16" /> }
+        Marcar entregue
+      </button>
+      @if (podeAnexar) {
+        <button type="button" class="btn btn-primary" (click)="anexar.emit()" [disabled]="ocupado">
+          <app-icon [name]="cliente ? 'upload' : 'paperclip'" [size]="16" /> {{ rotuloAnexar }}
+        </button>
+      }
+    }
+  </div>
+</aside>

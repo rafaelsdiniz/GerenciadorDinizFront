@@ -1,0 +1,228 @@
+<div class="page">
+  <header class="page-header">
+    <div class="page-header-text">
+      <h1 class="page-title">Calendário fiscal</h1>
+      <p class="page-subtitle">
+        @if (carregando) { Carregando vencimentos… }
+        @else {
+          <span class="tnum">{{ resumo.total }}</span> evento(s) em {{ mesNome }}
+          @if (resumo.vencidos) { · <span class="text-danger tnum">{{ resumo.vencidos }} vencido(s)</span> }
+          @if (resumo.pendentes) { · <span class="text-warning tnum">{{ resumo.pendentes }} pendente(s)</span> }
+          @if (nomeEmpresa) { · {{ nomeEmpresa }} }
+        }
+      </p>
+    </div>
+    <div class="page-actions">
+      <a routerLink="/obrigacoes-pendentes" [queryParams]="idEmpresa ? { empresa: idEmpresa } : {}" class="btn btn-secondary">
+        <app-icon name="list-checks" [size]="16" /> Ver pendências
+      </a>
+    </div>
+  </header>
+
+  <!-- Barra: navegação do mês + filtros -->
+  <section class="filter-card cal-bar">
+    <div class="mes-nav">
+      <button type="button" class="btn-icon sm bordered" (click)="navegar(-1)" title="Mês anterior (PageUp)" aria-label="Mês anterior">
+        <app-icon name="chevron-left" [size]="16" />
+      </button>
+      <h2 class="mes-rotulo" aria-live="polite">{{ rotuloMes() }}</h2>
+      <button type="button" class="btn-icon sm bordered" (click)="navegar(1)" title="Próximo mês (PageDown)" aria-label="Próximo mês">
+        <app-icon name="chevron-right" [size]="16" />
+      </button>
+      <button type="button" class="btn btn-secondary btn-sm" (click)="hojeBtn()" [disabled]="ehMesAtual && selecionadoIso === hojeIso" title="Ir para hoje (T)">
+        Hoje
+      </button>
+      @if (carregando) { <span class="spinner text-mute" aria-label="Carregando"></span> }
+    </div>
+
+    <div class="filtros">
+      @if (empresas.length > 1) {
+        <select class="select" [(ngModel)]="idEmpresa" (ngModelChange)="aoMudarEmpresa()" aria-label="Empresa">
+          @for (e of empresas; track e.id) { <option [ngValue]="e.id">{{ e.nomeFantasia }}</option> }
+        </select>
+      }
+      <div class="filter-chips" role="group" aria-label="Tipo de evento">
+        <button type="button" class="chip" [class.active]="filtroTipo === 'TODOS'" (click)="setFiltroTipo('TODOS')">
+          Todos <span class="count">{{ contarTipo('TODOS') }}</span>
+        </button>
+        <button type="button" class="chip chip-info" [class.active]="filtroTipo === 'OBRIGACAO'" (click)="setFiltroTipo('OBRIGACAO')">
+          <app-icon name="list-checks" [size]="14" /> Obrigações <span class="count">{{ contarTipo('OBRIGACAO') }}</span>
+        </button>
+        <button type="button" class="chip chip-info" [class.active]="filtroTipo === 'ARQUIVO'" (click)="setFiltroTipo('ARQUIVO')">
+          <app-icon name="file-text" [size]="14" /> Arquivos <span class="count">{{ contarTipo('ARQUIVO') }}</span>
+        </button>
+        @if (contarTipo('DEC')) {
+          <button type="button" class="chip chip-danger" [class.active]="filtroTipo === 'DEC'" (click)="setFiltroTipo('DEC')">
+            <app-icon name="inbox" [size]="14" /> DEC <span class="count">{{ contarTipo('DEC') }}</span>
+          </button>
+        }
+      </div>
+      @if (!estreito) {
+        <div class="segmented" role="group" aria-label="Visualização">
+          <button type="button" [class.active]="vista === 'mes'" (click)="vista = 'mes'"><app-icon name="grid" [size]="14" /> Mês</button>
+          <button type="button" [class.active]="vista === 'lista'" (click)="vista = 'lista'"><app-icon name="list" [size]="14" /> Lista</button>
+        </div>
+      }
+    </div>
+  </section>
+
+  @if (idEmpresa == null && !carregando) {
+    <div class="card">
+      <div class="empty">
+        <div class="empty-icon"><app-icon name="building" [size]="22" /></div>
+        <div class="empty-title">Nenhuma empresa disponível</div>
+        <div class="empty-text">Cadastre uma empresa para acompanhar os vencimentos no calendário.</div>
+      </div>
+    </div>
+  } @else if (vistaEfetiva === 'mes') {
+    <div class="cal-layout">
+      <!-- Grade do mês -->
+      <section class="card cal-card" [class.is-loading]="carregando">
+        <div class="cal-head" aria-hidden="true">
+          @for (d of diasSemana; track d) { <span>{{ d }}</span> }
+        </div>
+        <div class="cal-grid" role="grid" [attr.aria-label]="rotuloMes()">
+          @for (cel of celulas; track cel.iso) {
+            <button type="button" class="cel" role="gridcell"
+                    [class.fora]="!cel.doMes" [class.hoje]="cel.hoje" [class.fds]="cel.fimDeSemana"
+                    [class.sel]="cel.iso === selecionadoIso" [class.tem]="cel.eventos.length"
+                    [attr.aria-selected]="cel.iso === selecionadoIso" [attr.aria-label]="diaAriaLabel(cel)"
+                    (click)="abrirDia(cel)">
+              <span class="cel-num tnum">{{ cel.diaMes }}</span>
+              @if (cel.eventos.length) {
+                <span class="cel-pills">
+                  @for (ev of cel.eventos.slice(0, maxPills); track ev.tipo + ev.idReferencia + ev.status) {
+                    <span class="pill" [class]="'pill t-' + tom(ev)" [title]="ev.titulo + ' — ' + statusTexto(ev)">
+                      <span class="pill-dot"></span><span class="truncate">{{ ev.titulo }}</span>
+                    </span>
+                  }
+                  @if (cel.eventos.length > maxPills) {
+                    <span class="mais">+{{ cel.eventos.length - maxPills }} mais</span>
+                  }
+                </span>
+                <span class="cel-dots" aria-hidden="true">
+                  @for (ev of cel.eventos.slice(0, 4); track ev.tipo + ev.idReferencia + ev.status) {
+                    <span class="dot" [class]="'dot ' + tom(ev)"></span>
+                  }
+                </span>
+              }
+            </button>
+          }
+        </div>
+        <footer class="legenda">
+          <span class="leg"><span class="dot danger"></span> Vencido</span>
+          <span class="leg"><span class="dot warning"></span> Pendente</span>
+          <span class="leg"><span class="dot success"></span> Entregue</span>
+          <span class="leg"><span class="dot"></span> Arquivado</span>
+          <span class="leg"><span class="ring"></span> Hoje</span>
+          <span class="spacer"></span>
+          <span class="text-faint text-xs hide-md">Atalhos: <span class="kbd">PgUp</span> <span class="kbd">PgDn</span> <span class="kbd">T</span></span>
+        </footer>
+      </section>
+
+      <!-- Painel do dia selecionado -->
+      <aside class="card dia-card" aria-live="polite">
+        <div class="card-header">
+          <div class="min0">
+            <div class="eyebrow">{{ selecionado.data | date:'EEEE' }}</div>
+            <div class="dia-titulo">{{ selecionado.data | date:"d 'de' MMMM" }}</div>
+          </div>
+          @if (selecionado.hoje) { <span class="badge badge-info">Hoje</span> }
+          @else if (selecionado.eventos.length) { <span class="count">{{ selecionado.eventos.length }}</span> }
+        </div>
+        @if (carregando) {
+          <div class="list">
+            @for (s of [1, 2, 3]; track s) {
+              <div class="list-item">
+                <span class="skeleton sk-tile"></span>
+                <div class="list-item-body stack"><span class="skeleton skeleton-line sk-70"></span><span class="skeleton skeleton-line sk-40"></span></div>
+              </div>
+            }
+          </div>
+        } @else if (!selecionado.eventos.length) {
+          <div class="empty empty-sm">
+            <div class="empty-icon"><app-icon name="calendar-check" [size]="22" /></div>
+            <div class="empty-title">Nada para este dia</div>
+            <div class="empty-text">
+              @if (agenda.length) { Selecione um dia marcado na grade para ver os vencimentos. }
+              @else { Nenhum vencimento em {{ mesNome }}. Use as setas para ver outros meses. }
+            </div>
+          </div>
+        } @else {
+          <div class="list">
+            @for (ev of selecionado.eventos; track ev.tipo + ev.idReferencia + ev.status) {
+              <ng-container *ngTemplateOutlet="itemEvento; context: { $implicit: ev }" />
+            }
+          </div>
+        }
+        @if (agenda.length && !carregando) {
+          <div class="proximos">
+            <div class="eyebrow">Neste mês</div>
+            <div class="proximos-dias">
+              @for (d of agenda; track d.iso) {
+                <button type="button" class="dia-chip tnum" [class.active]="d.iso === selecionadoIso" (click)="selecionadoIso = d.iso"
+                        [title]="(d.data | date:'dd/MM/yyyy') + ' — ' + d.eventos.length + ' evento(s)'">
+                  {{ d.data | date:'dd' }}
+                  <span class="dot" [class]="'dot ' + tom(d.eventos[0])"></span>
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </aside>
+    </div>
+  } @else {
+    <!-- Vista lista / agenda (padrão no celular) -->
+    <section class="card">
+      @if (carregando) {
+        <div class="loading-block"><span class="spinner"></span> Carregando agenda…</div>
+      } @else if (!agenda.length) {
+        <div class="empty">
+          <div class="empty-icon"><app-icon name="calendar-check" [size]="22" /></div>
+          <div class="empty-title">Nenhum vencimento em {{ mesNome }}</div>
+          <div class="empty-text">Não há obrigações ou arquivos com vencimento neste mês{{ filtroTipo !== 'TODOS' ? ' para o filtro selecionado' : '' }}.</div>
+          <div class="row wrap center">
+            <button type="button" class="btn btn-secondary" (click)="navegar(-1)"><app-icon name="chevron-left" [size]="16" /> Mês anterior</button>
+            <button type="button" class="btn btn-secondary" (click)="navegar(1)">Próximo mês <app-icon name="chevron-right" [size]="16" /></button>
+          </div>
+        </div>
+      } @else {
+        @for (d of agenda; track d.iso) {
+          <div class="ag-dia" [class.ag-hoje]="d.hoje">
+            <div class="ag-data">
+              <span class="ag-num tnum">{{ d.data | date:'dd' }}</span>
+              <span class="ag-sem">{{ d.data | date:'EEE' }}</span>
+            </div>
+            <div class="list ag-lista">
+              @for (ev of d.eventos; track ev.tipo + ev.idReferencia + ev.status) {
+                <ng-container *ngTemplateOutlet="itemEvento; context: { $implicit: ev }" />
+              }
+            </div>
+          </div>
+        }
+      }
+      <footer class="legenda">
+        <span class="leg"><span class="dot danger"></span> Vencido</span>
+        <span class="leg"><span class="dot warning"></span> Pendente</span>
+        <span class="leg"><span class="dot success"></span> Entregue</span>
+        <span class="leg"><span class="dot"></span> Arquivado</span>
+      </footer>
+    </section>
+  }
+</div>
+
+<ng-template #itemEvento let-ev>
+  <a class="list-item ev-item" [routerLink]="linkEvento(ev).link" [queryParams]="linkEvento(ev).params"
+     [title]="ev.tipo === 'ARQUIVO' ? 'Abrir arquivo' : ev.tipo === 'DEC' ? 'Ver comunicação do DEC' : 'Ver nas pendências'">
+    <span class="icon-tile sm" [class]="'icon-tile sm ' + (tom(ev) === 'info' ? '' : tom(ev))">
+      <app-icon [name]="ev.tipo === 'ARQUIVO' ? 'file-text' : ev.tipo === 'DEC' ? 'inbox' : 'list-checks'" [size]="15" />
+    </span>
+    <span class="list-item-body">
+      <span class="list-item-title truncate block">{{ ev.titulo }}</span>
+      <span class="list-item-sub block truncate">
+        {{ ev.tipo === 'ARQUIVO' ? 'Arquivo' : ev.tipo === 'DEC' ? 'DEC · SEFAZ-TO' : 'Obrigação' }}@if (categoriaTexto(ev)) { · {{ categoriaTexto(ev) }} }@if (ev.descricao) { · {{ ev.descricao }} }
+      </span>
+    </span>
+    <span class="badge badge-dot" [class]="'badge badge-dot badge-' + tom(ev)">{{ statusTexto(ev) }}</span>
+  </a>
+</ng-template>

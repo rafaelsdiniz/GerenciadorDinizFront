@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ArquivoService } from '../../../services/arquivo.service';
@@ -10,15 +10,27 @@ import { PastaResponseDTO } from '../../../models/pasta-response.dto';
 import { StatusArquivo, StatusArquivoLabel } from '../../../models/enums/status-arquivo.enum';
 import { CategoriaFiscal, CategoriaFiscalLabel } from '../../../models/enums/categoria-fiscal.enum';
 import { ArquivoFormComponent } from '../arquivo-form/arquivo-form.component';
+import { IconComponent } from '../../../shared/icon.component';
+import { ToastService } from '../../../shared/ui/toast.service';
+import { ConfirmService } from '../../../shared/ui/confirm.service';
+import { PaginadorComponent, paginar } from '../../../shared/ui/paginador.component';
+import { BytesPipe, PrazoPipe, PrazoTomPipe } from '../../../pipes/formatos.pipe';
 
 @Component({
   selector: 'app-arquivo-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, ArquivoFormComponent],
+  imports: [CommonModule, FormsModule, ArquivoFormComponent, IconComponent, PaginadorComponent, BytesPipe, PrazoPipe, PrazoTomPipe],
   templateUrl: './arquivo-list.component.html',
   styleUrl: './arquivo-list.component.css'
 })
 export class ArquivoListComponent implements OnInit {
+  private arquivoService = inject(ArquivoService);
+  private empresaService = inject(EmpresaService);
+  private pastaService = inject(PastaService);
+  private toast = inject(ToastService);
+  private confirm = inject(ConfirmService);
+
+  readonly skeletonRows = [1, 2, 3, 4, 5];
 
   arquivos: ArquivoResponseDTO[] = [];
   arquivosFiltrados: ArquivoResponseDTO[] = [];
@@ -37,6 +49,9 @@ export class ArquivoListComponent implements OnInit {
   categoriaList = Object.values(CategoriaFiscal);
   categoriaLabel = CategoriaFiscalLabel;
 
+  pagina = 1;
+  porPagina = 10;
+
   carregando = false;
   menuAbertoId: number | null = null;
   menuPosicao = { top: 0, right: 0 };
@@ -49,18 +64,8 @@ export class ArquivoListComponent implements OnInit {
   arquivoVencimento: ArquivoResponseDTO | null = null;
   novaDataVencimento = '';
 
-  arquivoParaDeletar: ArquivoResponseDTO | null = null;
-  deletando = false;
+  deletandoId: number | null = null;
   salvando = false;
-
-  toastVisivel = false;
-  toastMensagem = '';
-
-  constructor(
-    private arquivoService: ArquivoService,
-    private empresaService: EmpresaService,
-    private pastaService: PastaService
-  ) {}
 
   ngOnInit(): void {
     this.carregar();
@@ -68,22 +73,29 @@ export class ArquivoListComponent implements OnInit {
     this.carregarPastas();
   }
 
+  get paginaItens(): ArquivoResponseDTO[] { return paginar(this.arquivosFiltrados, this.pagina, this.porPagina); }
+  get temFiltro(): boolean {
+    return !!this.termoBusca.trim() || !!this.idEmpresaFiltro || !!this.idPastaFiltro || !!this.statusFiltro || !!this.categoriaFiltro;
+  }
+  contarStatus(s: StatusArquivo): number { return this.arquivos.filter(a => a.status === s).length; }
+
   carregar(): void {
     this.carregando = true;
     this.arquivoService.listar().subscribe({
       next: (data) => {
         this.arquivos = data;
-        this.arquivosFiltrados = data;
         this.carregando = false;
+        this.filtrar(false);
       },
-      error: () => { this.carregando = false; }
+      error: () => {
+        this.carregando = false;
+        this.toast.error('Não foi possível carregar os arquivos');
+      }
     });
   }
 
   carregarEmpresas(): void {
-    this.empresaService.listar().subscribe({
-      next: (data) => { this.empresas = data; }
-    });
+    this.empresaService.listar().subscribe({ next: (data) => { this.empresas = data; } });
   }
 
   carregarPastas(): void {
@@ -96,39 +108,40 @@ export class ArquivoListComponent implements OnInit {
   }
 
   onEmpresaChange(): void {
-    if (this.idEmpresaFiltro) {
-      this.pastasFiltradas = this.pastas.filter(p => p.idEmpresa === this.idEmpresaFiltro);
-    } else {
-      this.pastasFiltradas = this.pastas;
-    }
+    this.pastasFiltradas = this.idEmpresaFiltro ? this.pastas.filter(p => p.idEmpresa === this.idEmpresaFiltro) : this.pastas;
     this.idPastaFiltro = null;
     this.filtrar();
   }
 
-  filtrar(): void {
-    let resultado = this.arquivos;
-    const termo = this.termoBusca.toLowerCase();
+  setStatus(s: StatusArquivo | ''): void {
+    this.statusFiltro = s;
+    this.filtrar();
+  }
 
+  limparFiltros(): void {
+    this.termoBusca = '';
+    this.idEmpresaFiltro = null;
+    this.idPastaFiltro = null;
+    this.statusFiltro = '';
+    this.categoriaFiltro = '';
+    this.pastasFiltradas = this.pastas;
+    this.filtrar();
+  }
+
+  filtrar(resetPagina = true): void {
+    let resultado = this.arquivos;
+    const termo = this.termoBusca.toLowerCase().trim();
     if (termo) {
       resultado = resultado.filter(a =>
         a.nomeOriginal.toLowerCase().includes(termo) ||
-        (a.descricao?.toLowerCase().includes(termo) ?? false)
-      );
+        (a.descricao?.toLowerCase().includes(termo) ?? false));
     }
-    if (this.idEmpresaFiltro) {
-      resultado = resultado.filter(a => a.idEmpresa === this.idEmpresaFiltro);
-    }
-    if (this.idPastaFiltro) {
-      resultado = resultado.filter(a => a.idPasta === this.idPastaFiltro);
-    }
-    if (this.statusFiltro) {
-      resultado = resultado.filter(a => a.status === this.statusFiltro);
-    }
-    if (this.categoriaFiltro) {
-      resultado = resultado.filter(a => a.categoriaFiscal === this.categoriaFiltro);
-    }
-
+    if (this.idEmpresaFiltro) resultado = resultado.filter(a => a.idEmpresa === this.idEmpresaFiltro);
+    if (this.idPastaFiltro) resultado = resultado.filter(a => a.idPasta === this.idPastaFiltro);
+    if (this.statusFiltro) resultado = resultado.filter(a => a.status === this.statusFiltro);
+    if (this.categoriaFiltro) resultado = resultado.filter(a => a.categoriaFiscal === this.categoriaFiltro);
     this.arquivosFiltrados = resultado;
+    if (resetPagina) this.pagina = 1;
   }
 
   getNomeEmpresa(idEmpresa: number): string {
@@ -139,59 +152,50 @@ export class ArquivoListComponent implements OnInit {
     return this.pastas.find(p => p.id === idPasta)?.nome ?? '—';
   }
 
-  formatarTamanho(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
-
-  badgeStatusClasse(status: StatusArquivo | null): string {
+  badgeStatus(status: StatusArquivo | null): string {
     switch (status) {
-      case StatusArquivo.PENDENTE: return 'badge-status badge-pendente';
-      case StatusArquivo.ENTREGUE: return 'badge-status badge-entregue';
-      case StatusArquivo.VENCIDO: return 'badge-status badge-vencido';
-      case StatusArquivo.ARQUIVADO: return 'badge-status badge-arquivado';
-      default: return 'badge-status';
+      case StatusArquivo.ENTREGUE: return 'badge-success';
+      case StatusArquivo.PENDENTE: return 'badge-warning';
+      case StatusArquivo.VENCIDO: return 'badge-danger';
+      default: return 'badge-neutral';
     }
   }
 
-  textoVencimento(arquivo: ArquivoResponseDTO): string {
-    if (!arquivo.dataVencimento) return '—';
-    const dias = arquivo.diasParaVencer;
-    if (dias == null) return arquivo.dataVencimento;
-    if (dias < 0) return `${arquivo.dataVencimento} (vencido há ${Math.abs(dias)}d)`;
-    if (dias === 0) return `${arquivo.dataVencimento} (hoje)`;
-    return `${arquivo.dataVencimento} (em ${dias}d)`;
-  }
-
+  // ---------- menu de ações ----------
   toggleMenu(id: number, event: MouseEvent): void {
-    if (this.menuAbertoId === id) {
-      this.menuAbertoId = null;
-      return;
-    }
-    const btn = event.currentTarget as HTMLElement;
-    const rect = btn.getBoundingClientRect();
-    this.menuPosicao = {
-      top: rect.bottom + 4,
-      right: window.innerWidth - rect.right
-    };
+    event.stopPropagation();
+    if (this.menuAbertoId === id) { this.menuAbertoId = null; return; }
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    this.menuPosicao = { top: rect.bottom + 4, right: window.innerWidth - rect.right };
     this.menuAbertoId = id;
   }
 
+  @HostListener('document:click')
+  @HostListener('window:scroll')
+  fecharMenu(): void { this.menuAbertoId = null; }
+
+  @HostListener('document:keydown.escape')
+  onEsc(): void {
+    if (this.salvando) return;
+    this.menuAbertoId = null;
+    this.arquivoStatus = null;
+    this.arquivoVencimento = null;
+  }
+
+  // ---------- upload ----------
   abrirFormUpload(): void {
     this.painelAberto = true;
     this.menuAbertoId = null;
   }
 
-  fecharPainel(): void {
-    this.painelAberto = false;
-  }
+  fecharPainel(): void { this.painelAberto = false; }
 
   onArquivoSalvo(): void {
     this.fecharPainel();
     this.carregar();
   }
 
+  // ---------- ações ----------
   download(arquivo: ArquivoResponseDTO): void {
     this.menuAbertoId = null;
     this.arquivoService.download(arquivo.id!).subscribe({
@@ -202,16 +206,18 @@ export class ArquivoListComponent implements OnInit {
         a.download = arquivo.nomeOriginal;
         a.click();
         window.URL.revokeObjectURL(url);
-      }
+      },
+      error: () => this.toast.error('Não foi possível baixar o arquivo', arquivo.nomeOriginal)
     });
   }
 
   copiarLink(arquivo: ArquivoResponseDTO): void {
     this.menuAbertoId = null;
     const link = `${window.location.origin}/api/arquivos/${arquivo.id}/download`;
-    navigator.clipboard.writeText(link).then(() => {
-      this.mostrarToast('Link copiado para a área de transferência!');
-    });
+    navigator.clipboard.writeText(link).then(
+      () => this.toast.success('Link copiado', 'Cole onde quiser compartilhar.'),
+      () => this.toast.error('Não foi possível copiar o link')
+    );
   }
 
   abrirAlterarStatus(arquivo: ArquivoResponseDTO): void {
@@ -221,6 +227,7 @@ export class ArquivoListComponent implements OnInit {
   }
 
   cancelarAlterarStatus(): void {
+    if (this.salvando) return;
     this.arquivoStatus = null;
     this.novoStatus = '';
   }
@@ -232,10 +239,13 @@ export class ArquivoListComponent implements OnInit {
       next: () => {
         this.salvando = false;
         this.arquivoStatus = null;
-        this.mostrarToast('Status atualizado.');
+        this.toast.success('Status atualizado');
         this.carregar();
       },
-      error: () => { this.salvando = false; }
+      error: () => {
+        this.salvando = false;
+        this.toast.error('Não foi possível atualizar o status');
+      }
     });
   }
 
@@ -246,6 +256,7 @@ export class ArquivoListComponent implements OnInit {
   }
 
   cancelarAlterarVencimento(): void {
+    if (this.salvando) return;
     this.arquivoVencimento = null;
     this.novaDataVencimento = '';
   }
@@ -257,39 +268,36 @@ export class ArquivoListComponent implements OnInit {
       next: () => {
         this.salvando = false;
         this.arquivoVencimento = null;
-        this.mostrarToast('Vencimento atualizado.');
+        this.toast.success('Vencimento atualizado');
         this.carregar();
       },
-      error: () => { this.salvando = false; }
+      error: () => {
+        this.salvando = false;
+        this.toast.error('Não foi possível atualizar o vencimento');
+      }
     });
   }
 
-  confirmarDelete(arquivo: ArquivoResponseDTO): void {
-    this.arquivoParaDeletar = arquivo;
+  async confirmarDelete(arquivo: ArquivoResponseDTO): Promise<void> {
     this.menuAbertoId = null;
-  }
-
-  cancelarDelete(): void {
-    this.arquivoParaDeletar = null;
-  }
-
-  deletar(): void {
-    if (!this.arquivoParaDeletar?.id) return;
-    this.deletando = true;
-    this.arquivoService.deletar(this.arquivoParaDeletar.id).subscribe({
+    const ok = await this.confirm.ask({
+      titulo: 'Mover para a lixeira?',
+      mensagem: `"${arquivo.nomeOriginal}" irá para a lixeira. Você pode restaurá-lo depois.`,
+      confirmar: 'Mover para lixeira',
+      tom: 'danger'
+    });
+    if (!ok) return;
+    this.deletandoId = arquivo.id;
+    this.arquivoService.deletar(arquivo.id).subscribe({
       next: () => {
-        this.deletando = false;
-        this.arquivoParaDeletar = null;
-        this.mostrarToast('Arquivo movido para a lixeira.');
+        this.deletandoId = null;
+        this.toast.success('Arquivo movido para a lixeira', arquivo.nomeOriginal);
         this.carregar();
       },
-      error: () => { this.deletando = false; }
+      error: () => {
+        this.deletandoId = null;
+        this.toast.error('Não foi possível mover o arquivo para a lixeira');
+      }
     });
-  }
-
-  mostrarToast(mensagem: string): void {
-    this.toastMensagem = mensagem;
-    this.toastVisivel = true;
-    setTimeout(() => { this.toastVisivel = false; }, 3000);
   }
 }

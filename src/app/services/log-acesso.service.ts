@@ -3,11 +3,12 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { LogAcessoResponseDTO } from '../models/log-acesso-response.dto';
 import { AcaoLog } from '../models/enums/acao-log.enum';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class LogAcessoService {
 
-  private readonly API = 'http://localhost:8080/logs';
+  private readonly API = `${environment.apiUrl}/logs`;
 
   constructor(private http: HttpClient) {}
 
