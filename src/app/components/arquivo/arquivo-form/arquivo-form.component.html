@@ -38,6 +38,12 @@
         <input #inputArquivo type="file" class="sr-only" multiple tabindex="-1"
                (change)="onArquivoSelecionado($event)"
                accept=".pdf,.xml,.xls,.xlsx,.csv,.doc,.docx,.txt,.jpg,.jpeg,.png" />
+        @if (podeFotografar) {
+          <button type="button" class="btn btn-secondary btn-block mt-sm" (click)="inputFoto.click()" [disabled]="enviando">
+            <app-icon name="camera" [size]="16" /> Tirar foto
+          </button>
+          <input #inputFoto type="file" class="sr-only" tabindex="-1" accept="image/*" capture="environment" (change)="onFotoTirada($event)" />
+        }
         @if (erros['arquivo']) {
           <span class="field-error mt-sm"><app-icon name="alert-circle" [size]="14" /> {{ erros['arquivo'] }}</span>
         }
@@ -68,6 +74,21 @@
               </div>
             }
           </div>
+        }
+
+        @if (arquivosSelecionados.length === 1) {
+          <app-leitura-ia class="mt-lg" [analise]="analise" [carregando]="analisando" [erro]="erroAnalise"
+                          [conferencia]="idObrigacaoPendente ? 'a obrigação e a empresa' : (idEmpresa ? 'a empresa' : '')">
+            @if (obrigacaoSugerida; as op) {
+              <div class="ia-sugestao">
+                <app-icon name="calendar-check" [size]="15" />
+                <span>Parece ser a guia de <strong>{{ op.nomeObrigacao }}</strong> (vence {{ op.dataVencimento | date:'dd/MM/yyyy' }}).</span>
+                <button type="button" class="btn btn-secondary btn-sm" (click)="vincularSugerida(op)" [disabled]="enviando">Vincular</button>
+              </div>
+            }
+          </app-leitura-ia>
+        } @else if (arquivosSelecionados.length > 1) {
+          <p class="ia-multi"><app-icon name="sparkles" [size]="13" /> A leitura inteligente analisa um arquivo por vez. Guias vinculadas a uma obrigação são lidas automaticamente após o envio.</p>
         }
       </section>
 
@@ -110,26 +131,29 @@
         <div class="form-grid">
           <div class="field">
             <label class="field-label" for="up-cat">Categoria fiscal</label>
-            <select id="up-cat" name="categoriaFiscal" class="select" [(ngModel)]="categoriaFiscal" [disabled]="enviando">
+            <select id="up-cat" name="categoriaFiscal" class="select" [(ngModel)]="categoriaFiscal" (ngModelChange)="daIa.categoria = false" [disabled]="enviando">
               <option [ngValue]="''">Sem categoria</option>
               @for (cat of categorias; track cat) {
                 <option [ngValue]="cat">{{ categoriaLabel[cat] }}</option>
               }
             </select>
+            @if (daIa.categoria) { <span class="field-hint ia-hint"><app-icon name="sparkles" [size]="12" /> {{ rotuloIa }}</span> }
           </div>
           <div class="field">
             <label class="field-label" for="up-venc">Data de vencimento</label>
-            <input id="up-venc" name="dataVencimento" type="date" class="input" [(ngModel)]="dataVencimento" [disabled]="enviando" />
+            <input id="up-venc" name="dataVencimento" type="date" class="input" [(ngModel)]="dataVencimento" (ngModelChange)="daIa.vencimento = false" [disabled]="enviando" />
+            @if (daIa.vencimento) { <span class="field-hint ia-hint"><app-icon name="sparkles" [size]="12" /> {{ rotuloIa }}</span> }
           </div>
           <div class="field span-2">
             <label class="field-label" for="up-desc">Descrição</label>
-            <input id="up-desc" name="descricao" type="text" class="input" [(ngModel)]="descricao" [disabled]="enviando"
+            <input id="up-desc" name="descricao" type="text" class="input" [(ngModel)]="descricao" (ngModelChange)="daIa.descricao = false" [disabled]="enviando"
                    placeholder="Ex.: DAS competência 03/2026" maxlength="255" />
+            @if (daIa.descricao) { <span class="field-hint ia-hint"><app-icon name="sparkles" [size]="12" /> {{ rotuloIa }} — edite se quiser</span> }
           </div>
           @if (obrigacoesPendentes.length > 0) {
             <div class="field span-2">
               <label class="field-label" for="up-obrig">Vincular a uma obrigação pendente</label>
-              <select id="up-obrig" name="idObrigacaoPendente" class="select" [(ngModel)]="idObrigacaoPendente" [disabled]="enviando">
+              <select id="up-obrig" name="idObrigacaoPendente" class="select" [(ngModel)]="idObrigacaoPendente" (ngModelChange)="atualizarLeitura()" [disabled]="enviando">
                 <option [ngValue]="null">Nenhuma</option>
                 @for (op of obrigacoesPendentes; track op.id) {
                   <option [ngValue]="op.id">{{ op.nomeObrigacao || 'Obrigação' }} — vence em {{ op.dataVencimento | date:'dd/MM/yyyy' }}</option>

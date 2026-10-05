@@ -10,6 +10,14 @@ escritório Diniz Assessoria Contábil e as empresas clientes, com as comunicaç
 **Logins de demonstração** (senha `123456`): escritório `rafael@diniz.com.br` · cliente `maria@paoquente.com.br`.
 Dentro do sistema, abra **Como usar** no menu lateral para o roteiro de teste.
 
+## Módulos
+
+Painel · Pendências (com confirmação de pagamento e mensagens por obrigação) · Calendário · Comunicações DEC ·
+Arquivos estilo Drive (com lixeira e leitura de guias por IA) · Empresas · Certidões negativas · Fechamento mensal ·
+Relatórios (PDF/CSV) · Obrigações recorrentes · Usuários · Sócios · Auditoria · Assistente virtual (chatbot) · Como usar.
+
+O sistema também pode ser instalado no celular (PWA) e enviar documentos pela câmera.
+
 ![Painel](docs/prints/painel.png)
 
 ## Telas

@@ -1507,3 +1507,15 @@ input.input[type='date'][value='']::-webkit-datetime-edit { color: var(--ink-fai
 .page-btn.active { background: var(--primary); box-shadow: 0 3px 8px rgba(32, 66, 184, .3); }
 .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
 .badge { font-weight: 600; }
+
+/* ============================================================
+   IMPRESSÃO DOS RELATÓRIOS (/relatorios) — a página põe a classe
+   body.rel-print; aqui escondemos o shell e deixamos só a folha.
+   ============================================================ */
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body.rel-print { background: #fff !important; }
+  body.rel-print .sidebar, body.rel-print .sb-collapse, body.rel-print .sb-scrim, body.rel-print .topbar,
+  body.rel-print .main > :not(.content), body.rel-print app-ui-host { display: none !important; }
+  body.rel-print .main { margin-left: 0 !important; min-height: 0 !important; }
+}

@@ -24,6 +24,8 @@ import { CategoriaFiscal, CategoriaFiscalLabel } from '../../../models/enums/cat
 import { AcaoLogLabel } from '../../../models/enums/acao-log.enum';
 import { IconComponent } from '../../../shared/icon.component';
 import { DecService } from '../../../services/dec.service';
+import { CertidaoService } from '../../../services/certidao.service';
+import { CertidaoResumoDTO } from '../../../models/certidao.dto';
 import { ComunicacaoDecDTO, TipoDecLabel, UrgenciaDecLabel, decPrecisaAtencao, tomUrgenciaDec } from '../../../models/comunicacao-dec.dto';
 import { BytesPipe, PrazoPipe, PrazoTomPipe, IniciaisPipe, AvatarCorPipe } from '../../../pipes/formatos.pipe';
 
@@ -142,6 +144,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   };
 
+  certidoesResumo: CertidaoResumoDTO | null = null;
+
   // DEC (somente leitura)
   decComunicacoes: ComunicacaoDecDTO[] = [];
   readonly tipoDecLabel = TipoDecLabel;
@@ -179,6 +183,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private logService: LogAcessoService,
     private obrigacaoPendenteService: ObrigacaoPendenteService,
     private decService: DecService,
+    private certidaoService: CertidaoService,
     private router: Router
   ) {}
 
@@ -261,6 +266,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.carregando = false;
       },
       error: () => { this.carregando = false; }
+    });
+
+    this.certidaoService.resumo(this.isAdmin ? null : this.idEmpresaUsuario).subscribe({
+      next: (r) => { this.certidoesResumo = r; this.montarSlides(); },
+      error: () => { this.certidoesResumo = null; }
     });
 
     this.decService.listar().subscribe({
@@ -414,6 +424,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
         texto: 'Chegaram na caixa da SEFAZ-TO e ainda estão sem ciência' + (menor <= 0 ? ' — a ciência tácita é hoje.' : ' — a primeira vira ciência tácita em ' + menor + (menor === 1 ? ' dia.' : ' dias.')),
         cta: 'Ver comunicações',
         rota: '/dec'
+      });
+    }
+    const cert = this.certidoesResumo;
+    if (cert && (cert.vencidas > 0 || cert.vencendo > 0)) {
+      const partes = [];
+      if (cert.vencidas) partes.push(cert.vencidas + (cert.vencidas === 1 ? ' vencida' : ' vencidas'));
+      if (cert.vencendo) partes.push(cert.vencendo + ' vencendo em até 15 dias');
+      s.push({
+        tom: cert.vencidas ? 'danger' : 'primary',
+        icone: 'shield-check',
+        titulo: 'Certidões: ' + partes.join(' e '),
+        texto: (this.isAdmin ? cert.empresasComAlerta + (cert.empresasComAlerta === 1 ? ' empresa precisa' : ' empresas precisam') + ' renovar certidões. ' : '')
+          + 'Certidão vencida impede licitações, financiamentos e alguns contratos.',
+        cta: 'Ver certidões',
+        rota: '/certidoes',
+        queryParams: { status: cert.vencidas ? 'vencida' : 'vencendo' }
       });
     }
     if (this.totalVencidosGeral > 0) {

@@ -13,7 +13,10 @@ import { ArquivoResponseDTO } from '../../../models/arquivo-response.dto';
 import { ObrigacaoPendenteResponseDTO } from '../../../models/obrigacao-pendente-response.dto';
 import { IconComponent } from '../../../shared/icon.component';
 import { ContaComponent } from '../../conta/conta.component';
+import { MensagensNotificacaoComponent } from '../../mensagens/mensagens-notificacao.component';
+import { MensagemService } from '../../../services/mensagem.service';
 import { PrazoPipe, PrazoTomPipe, IniciaisPipe } from '../../../pipes/formatos.pipe';
+import { AssistenteComponent } from '../../assistente/assistente.component';
 
 interface NavItem {
   label: string;
@@ -31,7 +34,7 @@ interface NavSecao {
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, IconComponent, ContaComponent, PrazoPipe, PrazoTomPipe, IniciaisPipe],
+  imports: [CommonModule, RouterModule, FormsModule, IconComponent, ContaComponent, MensagensNotificacaoComponent, PrazoPipe, PrazoTomPipe, IniciaisPipe, AssistenteComponent],
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.css'
 })
@@ -72,6 +75,7 @@ export class LayoutComponent implements OnInit {
     private obrigacaoService: ObrigacaoPendenteService,
     private usuarioService: UsuarioService,
     private decService: DecService,
+    private mensagemService: MensagemService,
     private router: Router
   ) {}
 
@@ -119,6 +123,9 @@ export class LayoutComponent implements OnInit {
         titulo: 'Operação',
         itens: [
           empresa,
+          { label: 'Certidões', icon: 'shield-check', link: ['/certidoes'] },
+          ...(this.isAdmin ? [{ label: 'Fechamento mensal', icon: 'layers', link: ['/fechamento'] }] : []),
+          { label: 'Relatórios', icon: 'bar-chart', link: ['/relatorios'] },
           ...(this.isAdmin ? [{ label: 'Obrigações recorrentes', icon: 'repeat', link: ['/obrigacoes-recorrentes'] }] : []),
         ]
       },
@@ -142,6 +149,7 @@ export class LayoutComponent implements OnInit {
   atualizadoEm = new Date();
 
   carregarNotificacoes(): void {
+    this.mensagemService.naoLidas().subscribe({ next: (n) => this.msgsNaoLidas = n?.total ?? 0, error: () => {} });
     this.decService.listar().subscribe({
       next: (lista) => {
         const abertas = lista.filter(c => !c.cienteEm && !c.encerrada && c.status !== 'RESOLVIDA' && c.status !== 'ARQUIVADA');
@@ -177,10 +185,12 @@ export class LayoutComponent implements OnInit {
 
   /** Comunicações do DEC que ainda não tiveram ciência (contador do menu). */
   decSemCiencia = 0;
+  /** Mensagens não lidas nas conversas das obrigações. */
+  msgsNaoLidas = 0;
   decAtencao: ComunicacaoDecDTO[] = [];
 
   get totalNotificacoes(): number {
-    return this.arquivosVencendo.length + this.obrigacoesVencidas.length + this.obrigacoesVencendo.length + this.decAtencao.length;
+    return this.arquivosVencendo.length + this.obrigacoesVencidas.length + this.obrigacoesVencendo.length + this.decAtencao.length + this.msgsNaoLidas;
   }
 
   abrirDec(): void {

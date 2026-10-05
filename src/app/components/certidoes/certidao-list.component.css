@@ -1,0 +1,23 @@
+.kpis { margin-bottom: var(--sp-lg); }
+.kpi-sk { width: 56px; height: 30px; }
+
+.filter-card { justify-content: flex-start; }
+.filter-card .select { width: auto; min-width: 200px; }
+
+.sk-w60 { display: block; width: 60%; }
+.sk-w40 { display: block; width: 40%; }
+.sk-w30 { display: block; width: 30%; }
+
+.nota { margin-top: var(--sp-lg); }
+
+@media (max-width: 720px) {
+  .page-actions { width: 100%; justify-content: space-between; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .kpi { padding: 14px; gap: 10px; }
+  .kpi .kpi-value { font-size: 26px; }
+  .kpi-extra, .kpi-foot .truncate { display: none; }
+  .kpi-foot { justify-content: flex-end; }
+  .filter-card .search { max-width: none; flex-basis: 100%; }
+  .filter-card .select { flex: 1 1 100%; }
+  .filter-chips { flex-wrap: nowrap; overflow-x: auto; width: 100%; padding-bottom: 2px; }
+}

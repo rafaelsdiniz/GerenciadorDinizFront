@@ -1,0 +1,99 @@
+/* Dados da leitura inteligente — layout específico; cores pelos tokens globais. */
+:host { display: contents; }
+
+/* ---- compacto ---- */
+.dl-linha { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin-top: 4px; min-width: 0; }
+.dl-valor { color: var(--ink); font-weight: 600; }
+.dl-meta { font-size: 12px; color: var(--ink-mute); }
+.dl-ia { display: inline-flex; color: var(--accent-fg); }
+.dl-copiar, .dl-ler { height: 26px; padding: 0 8px; font-size: 12px; }
+.dl-ler { margin-top: 4px; color: var(--accent-fg); }
+.dl-auto { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 12px; color: var(--accent-fg); }
+
+/* ---- completo ---- */
+.dl-box, .dl-cta {
+  position: relative;
+  border: 1px solid var(--primary-100);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, var(--primary-50) 0, var(--canvas) 52px);
+  overflow: hidden;
+  /* host é display: contents → vira item flex do painel; não pode encolher */
+  flex-shrink: 0;
+}
+.dl-box::before, .dl-cta::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+}
+.dl-box { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 12px; container-type: inline-size; }
+/* painel estreito (coluna "ⓘ" do Drive): tipo e CNPJ em linha inteira */
+@container (max-width: 340px) {
+  .dl-grid > div:first-child, .dl-grid > div:last-child { grid-column: span 2; }
+}
+.dl-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; font-size: 14px; color: var(--ink); }
+.dl-head strong { white-space: nowrap; }
+.dl-head .btn { height: 28px; }
+.dl-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent-bg);
+  color: var(--accent-fg);
+  border: 1px solid var(--accent-200);
+}
+.dl-mark.lg { width: 36px; height: 36px; }
+
+.dl-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; margin: 0; }
+.dl-grid dt { font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-mute); }
+.dl-grid dd { margin: 2px 0 0; font-size: 14px; color: var(--ink); overflow-wrap: anywhere; }
+
+.dl-codigo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 10px;
+  border: 1px dashed var(--hairline-strong);
+  border-radius: var(--radius-md);
+  background: var(--canvas-soft);
+  color: var(--ink-mute);
+}
+.dl-codigo-num {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.dl-alertas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.dl-alertas li {
+  display: flex;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  background: var(--warning-bg);
+  color: var(--warning-fg);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.dl-alertas app-icon { margin-top: 2px; }
+.dl-rodape { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; justify-content: space-between; }
+.dl-rodape .btn { height: 28px; }
+.dl-quando { font-size: 12px; color: var(--ink-mute); }
+.dl-vazio { margin: 0; }
+
+.dl-cta { display: flex; align-items: center; gap: 12px; padding: 14px; }
+.dl-cta-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.dl-cta-text strong { font-size: 14px; color: var(--ink); }
+.dl-cta-text span { font-size: 13px; color: var(--ink-mute); }
+
+@media (max-width: 520px) {
+  .dl-cta { flex-wrap: wrap; }
+  .dl-cta .btn { width: 100%; }
+}

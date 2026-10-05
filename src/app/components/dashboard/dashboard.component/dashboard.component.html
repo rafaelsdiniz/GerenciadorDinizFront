@@ -147,7 +147,7 @@
           <div class="stack" style="flex: 1; gap: 6px"><span class="skeleton skeleton-line" style="width: 40%"></span><span class="skeleton skeleton-line" style="width: 65%"></span></div>
         </div>
       } @else {
-        @for (s of slides; track s.titulo) {
+        @for (s of slides.slice(0, 3); track s.titulo) {
           <div class="sit-row" [ngClass]="'tone-' + s.tom">
             <span class="icon-tile" [ngClass]="s.tom === 'primary' ? 'warning' : s.tom"><app-icon [name]="s.icone" [size]="18" /></span>
             <div class="sit-text">

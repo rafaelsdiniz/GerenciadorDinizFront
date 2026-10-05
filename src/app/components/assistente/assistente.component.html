@@ -1,0 +1,94 @@
+@if (!aberto) {
+  <button #fab type="button" class="as-fab" [class.pulsar]="pulsar" [class.acima]="acimaFab"
+          (click)="abrir()" aria-label="Abrir o Assistente Diniz" aria-haspopup="dialog">
+    <app-icon name="sparkles" [size]="24" [stroke]="1.9" />
+    @if (naoLida) { <span class="as-badge" aria-label="Nova resposta"></span> }
+    <span class="as-tip" aria-hidden="true">Assistente Diniz</span>
+  </button>
+}
+
+@if (aberto) {
+  <section class="as-panel" role="dialog" aria-modal="false" aria-labelledby="as-titulo" (keydown)="aoTeclarPainel($event)">
+    <header class="as-head">
+      <span class="as-avatar" aria-hidden="true"><app-icon name="sparkles" [size]="18" [stroke]="2" /></span>
+      <div class="as-head-txt">
+        <h2 id="as-titulo">Assistente Diniz</h2>
+        <p><span class="as-dot" [class.on]="ia"></span>{{ ia ? 'IA · responde com os dados da sua conta' : 'Respostas automáticas' }}</p>
+      </div>
+      <button type="button" class="btn-icon sm" (click)="limpar()" [disabled]="!mensagens.length && !enviando"
+              title="Limpar conversa" aria-label="Limpar conversa"><app-icon name="rotate-ccw" [size]="16" /></button>
+      <button type="button" class="btn-icon sm as-min" (click)="minimizar()" title="Minimizar" aria-label="Minimizar">
+        <app-icon name="minus" [size]="18" /></button>
+      <button type="button" class="btn-icon sm" (click)="fechar()" title="Fechar (Esc)" aria-label="Fechar">
+        <app-icon name="x" [size]="18" /></button>
+    </header>
+
+    <div #lista class="as-list" aria-live="polite" aria-relevant="additions" role="log" aria-label="Conversa com o assistente">
+      <div class="as-msg as-bot as-welcome">
+        <div class="as-bubble">
+          <p><strong>Olá{{ nome ? ', ' + nome : '' }}!</strong> Sou o assistente do portal Diniz.</p>
+          <p>Pergunte sobre prazos, guias, documentos, comunicações da SEFAZ ou como usar o sistema. Respondo com os dados da sua conta.</p>
+        </div>
+        <div class="as-chips" role="group" aria-label="Sugestões de perguntas">
+          @if (carregandoStatus && !status) {
+            @for (i of [1, 2, 3]; track i) { <span class="as-chip skeleton" aria-hidden="true"></span> }
+          } @else {
+            @for (s of sugestoes; track s) {
+              <button type="button" class="as-chip" (click)="usarSugestao(s)" [disabled]="enviando">{{ s }}</button>
+            }
+          }
+        </div>
+      </div>
+
+      @for (m of mensagens; track m.id) {
+        <div class="as-msg" [class.as-user]="m.papel === 'usuario'" [class.as-bot]="m.papel === 'assistente'">
+          @if (m.papel === 'usuario') {
+            <div class="as-bubble">{{ m.texto }}</div>
+          } @else {
+            <div class="as-bubble" [class.as-erro]="m.erro">
+              @if (m.erro) { <app-icon name="alert-circle" [size]="16" class="as-erro-ico" /> }
+              <div class="as-md" [innerHTML]="m.html"></div>
+              @if (m.repetir) {
+                <button type="button" class="btn btn-sm btn-outline as-retry" (click)="enviar(m.repetir)" [disabled]="enviando">
+                  <app-icon name="refresh" [size]="14" /> Tentar novamente
+                </button>
+              }
+            </div>
+            @if (m.acoes?.length) {
+              <div class="as-acoes">
+                @for (a of m.acoes; track a.rotulo) {
+                  <a class="as-acao" [routerLink]="a.rota" [queryParams]="a.queryParams ?? null" (click)="irPara($event, a)">
+                    {{ a.rotulo }} <app-icon name="arrow-right" [size]="14" />
+                  </a>
+                }
+              </div>
+            }
+            @if (m.nota) { <p class="as-nota">{{ m.nota }}</p> }
+          }
+        </div>
+      }
+
+      @if (enviando) {
+        <div class="as-msg as-bot" aria-label="O assistente está escrevendo">
+          <div class="as-bubble as-typing"><span></span><span></span><span></span></div>
+        </div>
+      }
+    </div>
+
+    <form class="as-form" (ngSubmit)="enviar()">
+      <div class="as-field">
+        <label for="as-campo" class="sr-only">Sua pergunta</label>
+        <textarea #campo id="as-campo" name="pergunta" rows="1" [maxlength]="max" [(ngModel)]="texto"
+                  (keydown)="aoTeclar($event)" (input)="ajustarAltura()"
+                  placeholder="Pergunte algo sobre a sua conta…" autocomplete="off"></textarea>
+        <button type="submit" class="as-send" [disabled]="!podeEnviar" aria-label="Enviar pergunta">
+          <app-icon name="send" [size]="17" />
+        </button>
+      </div>
+      <div class="as-foot">
+        <span>Enter envia · Shift+Enter quebra linha</span>
+        <span class="tnum" [class.as-limite]="texto.length > max - 100">{{ texto.length }}/{{ max }}</span>
+      </div>
+    </form>
+  </section>
+}

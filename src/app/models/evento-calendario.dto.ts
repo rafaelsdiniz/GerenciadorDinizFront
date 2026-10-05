@@ -1,6 +1,6 @@
 export interface EventoCalendarioDTO {
   data: string;
-  tipo: 'ARQUIVO' | 'OBRIGACAO' | 'DEC';
+  tipo: 'ARQUIVO' | 'OBRIGACAO' | 'DEC' | 'CERTIDAO';
   idReferencia: number;
   titulo: string;
   descricao: string | null;

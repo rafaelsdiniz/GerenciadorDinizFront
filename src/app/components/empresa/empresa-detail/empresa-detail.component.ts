@@ -31,6 +31,7 @@ import { EmpresaFormComponent } from '../empresa-form/empresa-form.component';
 import { PaginadorComponent, paginar } from '../../../shared/ui/paginador.component';
 import { DecTabelaComponent } from '../../dec/dec-tabela/dec-tabela.component';
 import { DecDetalheComponent } from '../../dec/dec-detalhe/dec-detalhe.component';
+import { CertidoesEmpresaComponent } from '../../certidoes/certidoes-empresa/certidoes-empresa.component';
 import { decMenorTacita, decOrdenar, decSemCiencia } from '../../dec/dec.util';
 
 export type AcaoChecklist = 'arquivos' | 'editar' | 'socios' | 'calendario';
@@ -57,7 +58,7 @@ export interface Vencimento {
   cliente?: boolean;
 }
 
-type AbaId = 'visao' | 'dados' | 'socios' | 'dec' | 'checklist';
+type AbaId = 'visao' | 'dados' | 'socios' | 'dec' | 'certidoes' | 'checklist';
 
 interface Aba {
   id: AbaId;
@@ -68,7 +69,7 @@ interface Aba {
 @Component({
   selector: 'app-empresa-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, IconComponent, EmpresaFormComponent, PaginadorComponent, DecTabelaComponent, DecDetalheComponent,
+  imports: [CommonModule, RouterModule, IconComponent, EmpresaFormComponent, PaginadorComponent, DecTabelaComponent, DecDetalheComponent, CertidoesEmpresaComponent,
     DocumentoPipe, TelefonePipe, IniciaisPipe, AvatarCorPipe, PrazoPipe, PrazoTomPipe],
   templateUrl: './empresa-detail.component.html',
   styleUrl: './empresa-detail.component.css'
@@ -90,6 +91,7 @@ export class EmpresaDetailComponent implements OnInit {
     { id: 'dados', label: 'Dados cadastrais', icone: 'id-card' },
     { id: 'socios', label: 'Sócios', icone: 'users' },
     { id: 'dec', label: 'DEC', icone: 'mail' },
+    { id: 'certidoes', label: 'Certidões', icone: 'shield-check' },
     { id: 'checklist', label: 'Checklist', icone: 'list-checks' }
   ];
   filtroChecklist: 'todos' | 'pendentes' | 'ok' = 'todos';

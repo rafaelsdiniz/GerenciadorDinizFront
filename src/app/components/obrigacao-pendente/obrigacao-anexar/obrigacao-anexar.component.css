@@ -42,3 +42,9 @@
 
 /* Abre por cima do drawer de detalhes */
 .modal-backdrop { z-index: calc(var(--z-modal) + 1); }
+
+/* Leitura inteligente (IA) */
+.ia-exemplo { display: flex; align-items: center; gap: 6px; margin: var(--sp-sm) 0 0; font-size: 12.5px; color: var(--ink-mute); }
+.ia-exemplo app-icon { color: var(--accent-fg); }
+.ia-exemplo .link { font-size: 12.5px; }
+.ia-aplica, .ia-hint { display: inline-flex; align-items: center; gap: 4px; margin: 0; font-size: 12px; color: var(--accent-fg); }

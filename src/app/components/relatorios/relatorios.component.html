@@ -1,0 +1,375 @@
+<div class="page rel-page">
+  <header class="page-header no-print">
+    <div class="page-header-text">
+      <span class="eyebrow">Gestão</span>
+      <h1 class="page-title">Relatórios</h1>
+      <p class="page-subtitle">Escolha o relatório, ajuste os parâmetros e imprima, salve em PDF ou exporte para planilha.</p>
+    </div>
+    <div class="page-actions">
+      <button type="button" class="btn btn-secondary" (click)="exportarCsv()" [disabled]="carregando || !temDados">
+        <app-icon name="file-spreadsheet" [size]="16" /> Exportar CSV
+      </button>
+      <button type="button" class="btn btn-primary" (click)="imprimir()" [disabled]="carregando || !temDados">
+        <app-icon name="printer" [size]="16" /> Imprimir / Salvar PDF
+      </button>
+    </div>
+  </header>
+
+  <div class="rel-layout">
+    <!-- ============ parâmetros ============ -->
+    <aside class="card rel-panel no-print" aria-label="Parâmetros do relatório">
+      <div class="field-label">Tipo de relatório</div>
+      <div class="rel-tipos" role="radiogroup" aria-label="Tipo de relatório">
+        @for (t of tipos; track t.id) {
+          <button type="button" class="rel-tipo" role="radio" [class.active]="tipo === t.id"
+                  [attr.aria-checked]="tipo === t.id" (click)="escolherTipo(t.id)">
+            <span class="icon-tile sm" [class.accent]="tipo === t.id"><app-icon [name]="t.icon" [size]="16" /></span>
+            <span class="rel-tipo-txt"><strong>{{ t.titulo }}</strong><small>{{ t.desc }}</small></span>
+          </button>
+        }
+      </div>
+
+      <div class="rel-params">
+        @if (tipo === 'mensal') {
+          <div class="field">
+            <label class="field-label" for="rel-empresa">Empresa</label>
+            @if (isAdmin) {
+              <select id="rel-empresa" class="select" [(ngModel)]="idEmpresa" (ngModelChange)="gerar()">
+                @for (e of empresas; track e.id) {
+                  <option [ngValue]="e.id">{{ nomeEmpresa(e) }}</option>
+                }
+              </select>
+            } @else {
+              <div class="rel-fixo" id="rel-empresa">
+                <app-icon name="building" [size]="16" />
+                <span>{{ nomeEmpresa(empresas[0]) }}</span>
+              </div>
+            }
+          </div>
+        }
+
+        @if (tipo !== 'pendencias') {
+          <div class="field">
+            <label class="field-label" for="rel-comp">Competência</label>
+            <div class="rel-comp">
+              <button type="button" class="btn-icon bordered" (click)="mudarCompetencia(-1)" aria-label="Competência anterior">
+                <app-icon name="chevron-left" [size]="16" />
+              </button>
+              <input id="rel-comp" class="input tnum" type="month" [max]="competenciaMax"
+                     [ngModel]="competencia" (ngModelChange)="aoEditarCompetencia($event)">
+              <button type="button" class="btn-icon bordered" (click)="mudarCompetencia(1)" [disabled]="!podeAvancar"
+                      aria-label="Próxima competência">
+                <app-icon name="chevron-right" [size]="16" />
+              </button>
+            </div>
+            <span class="field-hint">Mês de apuração ({{ competenciaExtenso }}). Os vencimentos caem no mês seguinte: {{ movimento }}.</span>
+          </div>
+        } @else {
+          <p class="field-hint">Todas as obrigações ainda não entregues{{ isAdmin ? ', de todas as empresas,' : '' }} agrupadas por empresa e ordenadas pelo vencimento mais próximo.</p>
+        }
+      </div>
+
+      <div class="footnote">
+        <app-icon name="info" [size]="14" />
+        <span>Para PDF, clique em <strong>Imprimir</strong> e escolha "Salvar como PDF" no destino.</span>
+      </div>
+    </aside>
+
+    <!-- ============ prévia ============ -->
+    <section class="rel-preview" aria-live="polite">
+      @if (carregando) {
+        <div class="sheet" aria-busy="true">
+          <div class="skeleton sk-band"></div>
+          @for (s of skeleton; track s) {
+            <div class="skeleton skeleton-line" [style.width.%]="100 - s * 9"></div>
+          }
+          <div class="skeleton sk-table"></div>
+        </div>
+      } @else if (erro) {
+        <div class="sheet">
+          <div class="empty">
+            <div class="empty-icon"><app-icon name="alert-triangle" [size]="22" /></div>
+            <div class="empty-title">Não foi possível gerar o relatório</div>
+            <div class="empty-text">Verifique a conexão com o servidor e tente novamente.</div>
+            <button type="button" class="btn btn-secondary" (click)="tentarNovamente()"><app-icon name="refresh" [size]="16" /> Tentar novamente</button>
+          </div>
+        </div>
+      } @else if (temDados) {
+        <article class="sheet">
+          <header class="sh-band">
+            <img src="images/logo/logo-final.png" alt="Diniz Contabilidade" class="sh-logo">
+            <div class="sh-title">
+              <span>{{ tipoAtual.titulo }}</span>
+              @if (tipo === 'pendencias') {
+                <strong>Posição em {{ geradoEm | date:'dd/MM/yyyy' }}</strong>
+              } @else {
+                <strong>Competência {{ competenciaRotulo }}</strong>
+              }
+            </div>
+          </header>
+
+          <!-- ======== RELATÓRIO MENSAL ======== -->
+          @if (mensal; as m) {
+            <dl class="sh-dados">
+              <div><dt>Razão social</dt><dd>{{ m.empresa.razaoSocial || '—' }}</dd></div>
+              <div><dt>Nome fantasia</dt><dd>{{ m.empresa.nomeFantasia || '—' }}</dd></div>
+              <div><dt>CNPJ</dt><dd class="tnum">{{ m.empresa.cnpj | documento }}</dd></div>
+              <div><dt>Regime tributário</dt><dd>{{ m.regime }}</dd></div>
+              <div><dt>Competência</dt><dd class="tnum">{{ competenciaRotulo }}</dd></div>
+              <div><dt>Movimento</dt><dd class="tnum">{{ movimento }}</dd></div>
+            </dl>
+
+            <div class="sh-kpis">
+              <div class="sh-kpi"><span>Obrigações</span><strong>{{ m.resumo.total }}</strong></div>
+              <div class="sh-kpi t-success"><span>No prazo</span><strong>{{ m.resumo.noPrazo }}</strong></div>
+              <div class="sh-kpi t-warning"><span>Com atraso</span><strong>{{ m.resumo.atraso }}</strong></div>
+              <div class="sh-kpi t-info"><span>Pendentes</span><strong>{{ m.resumo.pendentes }}</strong></div>
+              <div class="sh-kpi t-danger"><span>Vencidas</span><strong>{{ m.resumo.vencidas }}</strong></div>
+              <div class="sh-kpi" [class]="'t-' + tomTaxa(m.resumo.taxa)"><span>Taxa no prazo</span>
+                <strong>{{ m.resumo.taxa == null ? '—' : m.resumo.taxa + '%' }}</strong></div>
+            </div>
+
+            <p class="legend">Taxa no prazo = entregues no prazo ÷ obrigações já resolvidas (entregues + vencidas). Pendentes ainda no prazo não contam.</p>
+
+            <h3 class="sh-h">Obrigações da competência <small>{{ m.obrigacoes.length }}</small></h3>
+            @if (m.obrigacoes.length) {
+              <div class="sh-scroll">
+                <table class="rt">
+                  <thead><tr>
+                    <th>Obrigação</th><th>Responsável</th><th>Vencimento</th><th>Entrega</th><th>Status</th><th>Pagamento</th>
+                    @if (m.temValor) { <th class="num">Valor da guia</th> }
+                  </tr></thead>
+                  <tbody>
+                    @for (l of m.obrigacoes; track l.o.id) {
+                      <tr>
+                        <td class="strong">{{ l.nome }}</td>
+                        <td>{{ l.responsavel }}</td>
+                        <td class="tnum">{{ l.o.dataVencimento | date:'dd/MM/yyyy' }}</td>
+                        <td class="tnum">{{ l.o.dataEntrega ? (l.o.dataEntrega | date:'dd/MM/yyyy') : '—' }}</td>
+                        <td><span class="badge badge-{{ situacao[l.sit].tom }}" [title]="situacao[l.sit].label">{{ situacao[l.sit].curto }}</span></td>
+                        <td>
+                          @if (l.pagTom) { <span class="badge badge-soft badge-{{ l.pagTom }}" [title]="l.pagamento">{{ l.pagCurto }}</span>@if (l.pagData) { <small class="sub tnum">{{ l.pagData }}</small> } }
+                          @else { <span class="mute">—</span> }
+                        </td>
+                        @if (m.temValor) { <td class="num tnum">{{ moeda(l.valor) }}</td> }
+                      </tr>
+                    }
+                  </tbody>
+                  @if (m.temValor) {
+                    <tfoot><tr><td colspan="6">Total das guias</td><td class="num tnum">{{ moeda(m.totalValor) }}</td></tr></tfoot>
+                  }
+                </table>
+              </div>
+            } @else {
+              <p class="sh-vazio">Nenhuma obrigação registrada para esta competência.</p>
+            }
+
+            <h3 class="sh-h">Documentos enviados no período <small>{{ m.arquivos.length }}</small></h3>
+            @if (m.arquivos.length) {
+              <div class="sh-scroll">
+                <table class="rt">
+                  <thead><tr><th>Documento</th><th>Categoria</th><th>Enviado por</th><th>Data</th></tr></thead>
+                  <tbody>
+                    @for (a of m.arquivos; track a.id) {
+                      <tr>
+                        <td class="strong">{{ a.nomeOriginal || a.nome }}</td>
+                        <td>{{ categoria(a) }}</td>
+                        <td>{{ a.nomeUsuario || '—' }}</td>
+                        <td class="tnum">{{ a.dataCriacao | date:'dd/MM/yyyy' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <p class="sh-vazio">Nenhum documento enviado entre {{ movimento }}.</p>
+            }
+
+            @if (m.certidoes) {
+              <h3 class="sh-h">Certidões <small>{{ m.certidoes.length }}</small></h3>
+              @if (m.certidoes.length) {
+                <div class="sh-scroll">
+                  <table class="rt">
+                    <thead><tr><th>Certidão</th><th>Órgão</th><th>Situação</th><th>Emissão</th><th>Validade</th></tr></thead>
+                    <tbody>
+                      @for (c of m.certidoes; track $index) {
+                        <tr>
+                          <td class="strong">{{ c.nome }}</td>
+                          <td>{{ c.orgao }}</td>
+                          <td><span class="badge badge-{{ c.tom }}">{{ c.situacao }}</span></td>
+                          <td class="tnum">{{ c.emissao }}</td>
+                          <td class="tnum">{{ c.validade }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              } @else {
+                <p class="sh-vazio">Nenhuma certidão cadastrada para a empresa.</p>
+              }
+            }
+
+            <h3 class="sh-h">Comunicações do DEC no período <small>{{ m.dec.length }}</small></h3>
+            @if (m.dec.length) {
+              <div class="sh-scroll">
+                <table class="rt">
+                  <thead><tr><th>Assunto</th><th>Tipo</th><th>Disponibilizada</th><th>Ciência</th><th>Status</th></tr></thead>
+                  <tbody>
+                    @for (c of m.dec; track c.id) {
+                      <tr>
+                        <td class="strong">{{ c.assunto }}</td>
+                        <td>{{ tipoDecLabel[c.tipo] || c.tipo }}</td>
+                        <td class="tnum">{{ c.disponibilizadaEm | date:'dd/MM/yyyy' }}</td>
+                        <td class="tnum">
+                          @if (c.cienteEm) { {{ c.cienteEm | date:'dd/MM/yyyy' }} }
+                          @else { <span class="badge badge-warning">Sem ciência</span> }
+                        </td>
+                        <td>{{ statusDecLabel[c.status] || c.status }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <p class="sh-vazio">Nenhuma comunicação do DEC disponibilizada entre {{ movimento }}.</p>
+            }
+
+            <h3 class="sh-h">Observações</h3>
+            <ul class="sh-obs">
+              @for (o of observacoes; track $index) { <li>{{ o }}</li> }
+            </ul>
+          }
+
+          <!-- ======== CARTEIRA ======== -->
+          @if (carteira; as c) {
+            <div class="sh-kpis">
+              <div class="sh-kpi"><span>Empresas</span><strong>{{ c.linhas.length }}</strong></div>
+              <div class="sh-kpi"><span>Obrigações</span><strong>{{ c.total.total }}</strong></div>
+              <div class="sh-kpi" [class]="'t-' + tomTaxa(c.total.taxa)"><span>Taxa no prazo</span>
+                <strong>{{ c.total.taxa == null ? '—' : c.total.taxa + '%' }}</strong></div>
+              <div class="sh-kpi t-danger"><span>Vencidas</span><strong>{{ c.total.vencidas }}</strong></div>
+              <div class="sh-kpi t-warning"><span>Guias a pagar</span><strong>{{ c.total.guiasAPagar }}</strong></div>
+              <div class="sh-kpi t-info"><span>DEC sem ciência</span><strong>{{ c.dec }}</strong></div>
+            </div>
+
+            <h3 class="sh-h">Ranking de atenção <small>{{ c.ranking.length ? 'top ' + c.ranking.length : '' }}</small></h3>
+            @if (c.ranking.length) {
+              <ol class="rank">
+                @for (l of c.ranking; track l.empresa.id; let i = $index) {
+                  <li>
+                    <span class="rank-pos">{{ i + 1 }}</span>
+                    <div class="rank-body">
+                      <div class="rank-top"><strong>{{ nomeEmpresa(l.empresa) }}</strong><small>{{ l.motivo }}</small></div>
+                      <div class="bar"><span [class.danger]="l.r.vencidas" [style.width.%]="pct(l.score, c.maxScore)"></span></div>
+                    </div>
+                  </li>
+                }
+              </ol>
+            } @else {
+              <p class="sh-vazio">Nenhuma empresa exige atenção nesta competência.</p>
+            }
+
+            <h3 class="sh-h">Empresas da carteira <small>{{ c.linhas.length }}</small></h3>
+            <div class="sh-scroll">
+              <table class="rt rt-num">
+                <thead><tr>
+                  <th>Empresa</th><th class="num" title="Obrigações">Obrig.</th><th class="num" title="Entregues">Entreg.</th><th class="num" title="Pendentes">Pend.</th>
+                  <th class="num" title="Vencidas">Venc.</th><th>Taxa no prazo</th><th class="num" title="Guias aguardando pagamento">Guias a pagar</th><th class="num" title="Comunicações DEC sem ciência">DEC s/ ciência</th>
+                </tr></thead>
+                <tbody>
+                  @for (l of c.linhas; track l.empresa.id) {
+                    <tr>
+                      <td><span class="strong">{{ nomeEmpresa(l.empresa) }}</span><small class="sub tnum">{{ l.empresa.cnpj | documento }}</small></td>
+                      <td class="num tnum">{{ l.r.total }}</td>
+                      <td class="num tnum">{{ l.r.noPrazo + l.r.atraso }}</td>
+                      <td class="num tnum">{{ l.r.pendentes }}</td>
+                      <td class="num tnum" [class.t-danger]="l.r.vencidas">{{ l.r.vencidas }}</td>
+                      <td>
+                        <div class="taxa">
+                          <div class="dist" [attr.title]="'No prazo ' + l.r.noPrazo + ' · Atraso ' + l.r.atraso + ' · Pendentes ' + l.r.pendentes + ' · Vencidas ' + l.r.vencidas">
+                            <span class="s-ok" [style.width.%]="pct(l.r.noPrazo, l.r.total)"></span>
+                            <span class="s-late" [style.width.%]="pct(l.r.atraso, l.r.total)"></span>
+                            <span class="s-pend" [style.width.%]="pct(l.r.pendentes, l.r.total)"></span>
+                            <span class="s-venc" [style.width.%]="pct(l.r.vencidas, l.r.total)"></span>
+                          </div>
+                          <span class="tnum">{{ l.r.taxa == null ? '—' : l.r.taxa + '%' }}</span>
+                        </div>
+                      </td>
+                      <td class="num tnum">{{ l.r.guiasAPagar }}</td>
+                      <td class="num tnum">{{ l.dec }}</td>
+                    </tr>
+                  }
+                </tbody>
+                <tfoot><tr>
+                  <td>Total</td>
+                  <td class="num tnum">{{ c.total.total }}</td>
+                  <td class="num tnum">{{ c.total.noPrazo + c.total.atraso }}</td>
+                  <td class="num tnum">{{ c.total.pendentes }}</td>
+                  <td class="num tnum">{{ c.total.vencidas }}</td>
+                  <td class="tnum">{{ c.total.taxa == null ? '—' : c.total.taxa + '%' }}</td>
+                  <td class="num tnum">{{ c.total.guiasAPagar }}</td>
+                  <td class="num tnum">{{ c.dec }}</td>
+                </tr></tfoot>
+              </table>
+            </div>
+            <div class="legend">
+              <span><i class="s-ok"></i>Entregue no prazo</span><span><i class="s-late"></i>Com atraso</span>
+              <span><i class="s-pend"></i>Pendente</span><span><i class="s-venc"></i>Vencida</span>
+            </div>
+            <p class="legend">Taxa no prazo = entregues no prazo ÷ obrigações já resolvidas (entregues + vencidas). Pendentes ainda no prazo não contam.</p>
+          }
+
+          <!-- ======== PENDÊNCIAS ======== -->
+          @if (pendencias; as p) {
+            <div class="sh-kpis k4">
+              <div class="sh-kpi"><span>Em aberto</span><strong>{{ p.total }}</strong></div>
+              <div class="sh-kpi t-danger"><span>Vencidas</span><strong>{{ p.vencidas }}</strong></div>
+              <div class="sh-kpi t-warning"><span>Vencem em 7 dias</span><strong>{{ p.semana }}</strong></div>
+              <div class="sh-kpi"><span>Empresas</span><strong>{{ p.grupos.length }}</strong></div>
+            </div>
+            @for (g of p.grupos; track g.nome) {
+              <div class="grp">
+                <h3 class="sh-h">{{ g.nome }} <small>{{ g.cnpj }} · {{ g.itens.length }} em aberto{{ g.vencidas ? ' · ' + g.vencidas + ' vencida' + (g.vencidas > 1 ? 's' : '') : '' }}</small></h3>
+                <div class="sh-scroll">
+                  <table class="rt">
+                    <thead><tr><th>Obrigação</th><th>Competência</th><th>Responsável</th><th>Vencimento</th><th>Prazo</th></tr></thead>
+                    <tbody>
+                      @for (l of g.itens; track l.o.id) {
+                        <tr>
+                          <td class="strong">{{ l.nome }}</td>
+                          <td class="tnum">{{ l.competencia }}</td>
+                          <td>{{ l.responsavel }}</td>
+                          <td class="tnum">{{ l.o.dataVencimento | date:'dd/MM/yyyy' }}</td>
+                          <td><span class="badge badge-soft badge-{{ l.o.dataVencimento | prazoTom }}">{{ l.o.dataVencimento | prazo }}</span></td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            } @empty {
+              <div class="empty">
+                <div class="empty-icon"><app-icon name="check-circle" [size]="22" /></div>
+                <div class="empty-title">Nenhuma pendência em aberto</div>
+                <div class="empty-text">Todas as obrigações foram entregues. Bom trabalho!</div>
+              </div>
+            }
+          }
+
+          <footer class="sh-foot">
+            <span>Gerado em {{ geradoEm | date:'dd/MM/yyyy HH:mm' }} por {{ usuario || 'usuário' }} — Gerenciador Diniz</span>
+            <span>Diniz Contabilidade</span>
+          </footer>
+        </article>
+      } @else {
+        <div class="sheet">
+          <div class="empty">
+            <div class="empty-icon"><app-icon name="building" [size]="22" /></div>
+            <div class="empty-title">Nenhuma empresa disponível</div>
+            <div class="empty-text">Cadastre uma empresa para gerar o relatório mensal.</div>
+          </div>
+        </div>
+      }
+    </section>
+  </div>
+</div>

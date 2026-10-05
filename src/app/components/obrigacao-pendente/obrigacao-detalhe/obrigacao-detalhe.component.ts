@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { saveAs } from 'file-saver';
 import { ObrigacaoPendenteResponseDTO, SituacaoPagamento } from '../../../models/obrigacao-pendente-response.dto';
@@ -8,6 +8,9 @@ import { IconComponent } from '../../../shared/icon.component';
 import { ToastService } from '../../../shared/ui/toast.service';
 import { BytesPipe, PrazoPipe } from '../../../pipes/formatos.pipe';
 import { visualTipo, VisualTipo } from '../../explorer/tipo-arquivo.util';
+import { ObrigacaoConversaComponent } from '../../mensagens/obrigacao-conversa.component';
+import { DadosLeituraComponent } from '../../ia/dados-leitura/dados-leitura.component';
+import { legivelPorIa } from '../../../models/documento-analisado.dto';
 import {
   aguardaPagamento, isCliente, mensagemErro, pagamentoVisual, PagamentoVisual, rotuloAnexar, rotuloResponsavel, situacaoPagamento
 } from '../obrigacao.util';
@@ -20,11 +23,11 @@ interface ArquivoVisual { a: ArquivoResponseDTO; v: VisualTipo; }
 @Component({
   selector: 'app-obrigacao-detalhe',
   standalone: true,
-  imports: [CommonModule, IconComponent, BytesPipe, PrazoPipe],
+  imports: [CommonModule, IconComponent, BytesPipe, PrazoPipe, ObrigacaoConversaComponent, DadosLeituraComponent],
   templateUrl: './obrigacao-detalhe.component.html',
   styleUrl: './obrigacao-detalhe.component.css'
 })
-export class ObrigacaoDetalheComponent implements OnChanges {
+export class ObrigacaoDetalheComponent implements OnChanges, OnDestroy {
   @Input({ required: true }) obrigacao!: ObrigacaoPendenteResponseDTO;
   @Input() empresa = '';
   @Input() situacao: SituacaoObrigacao = 'PENDENTE';
@@ -84,9 +87,38 @@ export class ObrigacaoDetalheComponent implements OnChanges {
     if (ch['obrigacao']) this.carregarArquivos();
   }
 
-  carregarArquivos(): void {
+  /** Valor lido da guia anexada mais recente (ou o informado pela lista). */
+  get valorGuia(): number | null {
+    return this.arquivos.find(f => f.a.valor != null)?.a.valor ?? this.obrigacao.valorGuia ?? null;
+  }
+
+  /** Arquivo relido pela IA no próprio drawer. */
+  atualizarArquivo(a: ArquivoResponseDTO): void {
+    this.arquivos = this.arquivos.map(f => (f.a.id === a.id ? { a, v: f.v } : f));
+  }
+
+  // a guia anexada é lida em segundo plano logo após o envio: recarrega algumas vezes até os dados chegarem
+  private releitura: ReturnType<typeof setTimeout> | null = null;
+  private tentativasReleitura = 0;
+
+  private agendarReleitura(): void {
+    if (this.releitura) clearTimeout(this.releitura);
+    const agora = Date.now();
+    const aguardando = this.arquivos.some(f => !f.a.analisadoEm && f.a.possuiConteudo !== false && legivelPorIa(f.a.nomeOriginal)
+      && !!f.a.dataCriacao && agora - new Date(f.a.dataCriacao).getTime() < 90_000);
+    if (!aguardando || this.tentativasReleitura >= 8) return;
+    this.tentativasReleitura++;
+    this.releitura = setTimeout(() => this.carregarArquivos(true), 3000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.releitura) clearTimeout(this.releitura);
+  }
+
+  carregarArquivos(silencioso = false): void {
     if (!this.obrigacao) return;
-    this.carregando = true;
+    if (!silencioso) this.tentativasReleitura = 0;
+    this.carregando = !silencioso;
     this.erro = '';
     this.arquivoService.porObrigacao(this.obrigacao.id).subscribe({
       next: (lista) => {
@@ -95,6 +127,7 @@ export class ObrigacaoDetalheComponent implements OnChanges {
           .sort((x, y) => (y.dataCriacao ?? '').localeCompare(x.dataCriacao ?? ''))
           .map(a => ({ a, v: visualTipo(a.nomeOriginal, a.tipoArquivo) }));
         this.carregando = false;
+        this.agendarReleitura();
       },
       error: (err) => {
         this.carregando = false;

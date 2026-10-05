@@ -1,0 +1,222 @@
+<div class="page">
+  <header class="page-header">
+    <div class="page-header-text">
+      <h1 class="page-title">Certidões</h1>
+      <p class="page-subtitle">
+        @if (carregando) { Carregando certidões… }
+        @else {
+          Certidões negativas de débitos{{ isAdmin ? ' das empresas' : ' da sua empresa' }} · aviso <strong>15 dias</strong> antes de vencer
+        }
+      </p>
+    </div>
+    <div class="page-actions">
+      @if (isAdmin) {
+        <div class="segmented" role="group" aria-label="Visualização">
+          <button type="button" [class.active]="visao === 'lista'" (click)="setVisao('lista')" [attr.aria-pressed]="visao === 'lista'">
+            <app-icon name="list" [size]="15" /> Lista
+          </button>
+          <button type="button" [class.active]="visao === 'matriz'" (click)="setVisao('matriz')" [attr.aria-pressed]="visao === 'matriz'">
+            <app-icon name="grid" [size]="15" /> Matriz
+          </button>
+        </div>
+        <button type="button" class="btn btn-primary" (click)="nova()" [disabled]="carregando">
+          <app-icon name="plus" [size]="16" /> Nova certidão
+        </button>
+      }
+    </div>
+  </header>
+
+  <!-- KPIs que funcionam como filtros -->
+  <section class="kpis grid-4" aria-label="Resumo das certidões">
+    <button type="button" class="kpi is-success" [class.active]="filtroStatus === 'VALIDA'" (click)="setStatus('VALIDA')" [attr.aria-pressed]="filtroStatus === 'VALIDA'">
+      <div class="kpi-head">
+        <span class="kpi-label">Válidas</span>
+        <span class="icon-tile sm success"><app-icon name="shield-check" [size]="16" /></span>
+      </div>
+      <div class="kpi-main">
+        @if (carregando) { <span class="skeleton kpi-sk"></span> }
+        @else {
+          <span class="kpi-value">{{ kpi.validas }}</span>
+          @if (kpi.total && kpi.validas === kpi.total) { <span class="badge badge-soft badge-success">Tudo em dia</span> }
+        }
+      </div>
+      <div class="kpi-foot">
+        <span class="truncate">{{ kpi.total ? 'Mais de 15 dias de validade' : 'Nenhuma certidão cadastrada' }}</span>
+        <span class="kpi-link">Ver <app-icon name="arrow-right" [size]="14" /></span>
+      </div>
+    </button>
+
+    <button type="button" class="kpi is-warning" [class.active]="filtroStatus === 'VENCENDO'" (click)="setStatus('VENCENDO')" [attr.aria-pressed]="filtroStatus === 'VENCENDO'">
+      <div class="kpi-head">
+        <span class="kpi-label">Vencendo em 15 dias</span>
+        <span class="icon-tile sm warning"><app-icon name="clock" [size]="16" /></span>
+      </div>
+      <div class="kpi-main">
+        @if (carregando) { <span class="skeleton kpi-sk"></span> }
+        @else {
+          <span class="kpi-value">{{ kpi.vencendo }}</span>
+          @if (kpi.vencendo) { <span class="badge badge-soft badge-warning">Renovar</span> }
+          @else { <span class="badge badge-soft badge-success">Sob controle</span> }
+        }
+      </div>
+      <div class="kpi-foot">
+        <span class="truncate">
+          @if (kpi.proximo != null) { Próxima vence {{ kpi.proximo === 0 ? 'hoje' : kpi.proximo === 1 ? 'amanhã' : 'em ' + kpi.proximo + ' dias' }} }
+          @else { Sem vencimentos próximos }
+        </span>
+        <span class="kpi-link">Renovar <app-icon name="arrow-right" [size]="14" /></span>
+      </div>
+    </button>
+
+    <button type="button" class="kpi is-danger" [class.is-urgent]="kpi.vencidas > 0" [class.active]="filtroStatus === 'VENCIDA'" (click)="setStatus('VENCIDA')" [attr.aria-pressed]="filtroStatus === 'VENCIDA'">
+      <div class="kpi-head">
+        <span class="kpi-label">Vencidas</span>
+        <span class="icon-tile sm danger"><app-icon name="shield-alert" [size]="16" /></span>
+      </div>
+      <div class="kpi-main">
+        @if (carregando) { <span class="skeleton kpi-sk"></span> }
+        @else {
+          <span class="kpi-value">{{ kpi.vencidas }}</span>
+          @if (kpi.vencidas) {
+            <span class="badge badge-soft badge-danger">Urgente</span>
+            <span class="badge badge-soft badge-danger tnum kpi-extra" title="Maior atraso">Venceu há {{ kpi.maiorAtraso }} {{ kpi.maiorAtraso === 1 ? 'dia' : 'dias' }}</span>
+          }
+        }
+      </div>
+      <div class="kpi-foot">
+        <span class="truncate">
+          {{ kpi.vencidas ? (isAdmin ? kpi.empresasAlerta + ' empresa(s) com alerta' : 'Impede licitações e financiamentos') : 'Nenhuma certidão vencida' }}
+        </span>
+        <span class="kpi-link">Resolver <app-icon name="arrow-right" [size]="14" /></span>
+      </div>
+    </button>
+
+    <button type="button" class="kpi" [class.active]="filtroStatus === 'TODAS'" (click)="setStatus('TODAS')" [attr.aria-pressed]="filtroStatus === 'TODAS'">
+      <div class="kpi-head">
+        <span class="kpi-label">Total</span>
+        <span class="icon-tile sm"><app-icon name="scroll-text" [size]="16" /></span>
+      </div>
+      <div class="kpi-main">
+        @if (carregando) { <span class="skeleton kpi-sk"></span> }
+        @else { <span class="kpi-value">{{ kpi.total }}</span> }
+      </div>
+      <div class="kpi-foot">
+        <span class="truncate">
+          @if (kpi.total) { {{ kpi.percentual }}% em dia }
+          @else { Cadastre a primeira certidão }
+        </span>
+        <span class="kpi-link">Ver todas <app-icon name="arrow-right" [size]="14" /></span>
+      </div>
+    </button>
+  </section>
+
+  <!-- Barra de filtros -->
+  <section class="filter-card">
+    <label class="input-icon search">
+      <app-icon name="search" [size]="16" />
+      <input class="input" type="search" [placeholder]="isAdmin ? 'Buscar empresa, certidão, número ou órgão…' : 'Buscar certidão, número ou órgão…'"
+             [(ngModel)]="busca" (ngModelChange)="aoMudarFiltro()" aria-label="Buscar certidões" />
+    </label>
+    @if (isAdmin && empresas.length > 1) {
+      <select class="select" [(ngModel)]="idEmpresaFiltro" (ngModelChange)="aoMudarFiltro()" aria-label="Empresa">
+        <option [ngValue]="null">Todas as empresas</option>
+        @for (e of empresas; track e.id) { <option [ngValue]="e.id">{{ e.nomeFantasia }}</option> }
+      </select>
+    }
+    @if (visao === 'lista' || !isAdmin) {
+      <div class="filter-chips" role="group" aria-label="Tipo de certidão">
+        <button type="button" class="chip" [class.active]="!filtroTipo" (click)="setTipo(null)">
+          Todos <span class="count">{{ filtroStatus === 'TODAS' ? kpi.total : (filtroStatus === 'VALIDA' ? kpi.validas : filtroStatus === 'VENCENDO' ? kpi.vencendo : kpi.vencidas) }}</span>
+        </button>
+        @for (t of tipos; track t.id) {
+          @if (contTipo[t.id] || filtroTipo === t.id) {
+            <button type="button" class="chip" [class.active]="filtroTipo === t.id" (click)="setTipo(t.id)">
+              <app-icon [name]="t.icone" [size]="14" /> {{ t.curto }} <span class="count">{{ contTipo[t.id] || 0 }}</span>
+            </button>
+          }
+        }
+      </div>
+    }
+  </section>
+
+  @if (visao === 'matriz' && isAdmin) {
+    <section class="card table-card">
+      @if (carregando) {
+        <div class="loading-block"><span class="spinner"></span> Montando a matriz…</div>
+      } @else {
+        <app-certidao-matriz [certidoes]="certidoesMatriz" [empresas]="empresasMatriz"
+                             [destaque]="filtroStatus === 'TODAS' ? null : filtroStatus" [podeEditar]="isAdmin"
+                             (abrir)="aoClicarCelula($event)" />
+      }
+    </section>
+  } @else {
+    <section class="card table-card">
+      @if (carregando) {
+        <div class="table-wrap">
+          <table class="table">
+            <tbody>
+              @for (s of skeleton; track s) {
+                <tr>
+                  <td><span class="skeleton skeleton-line sk-w60"></span></td>
+                  <td><span class="skeleton skeleton-line sk-w40"></span></td>
+                  <td><span class="skeleton skeleton-line sk-w30"></span></td>
+                  <td><span class="skeleton skeleton-line sk-w30"></span></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else if (erroCarga) {
+        <div class="empty">
+          <div class="empty-icon"><app-icon name="alert-triangle" [size]="22" /></div>
+          <div class="empty-title">Não foi possível carregar</div>
+          <div class="empty-text">Verifique a conexão e tente de novo.</div>
+          <button type="button" class="btn btn-secondary" (click)="carregar()"><app-icon name="refresh" [size]="16" /> Tentar novamente</button>
+        </div>
+      } @else if (!certidoes.length) {
+        <div class="empty">
+          <div class="empty-icon"><app-icon name="shield-check" [size]="22" /></div>
+          <div class="empty-title">Nenhuma certidão cadastrada</div>
+          <div class="empty-text">
+            {{ isAdmin ? 'Cadastre as CNDs das empresas (Federal, Estadual, FGTS, Trabalhista…) para acompanhar a validade e ser avisado antes de vencer.'
+                       : 'Quando o escritório cadastrar as certidões da sua empresa, elas aparecem aqui com a validade.' }}
+          </div>
+          @if (isAdmin) { <button type="button" class="btn btn-primary" (click)="nova()"><app-icon name="plus" [size]="16" /> Nova certidão</button> }
+        </div>
+      } @else if (!filtradas.length) {
+        <div class="empty">
+          <div class="empty-icon"><app-icon [name]="filtroStatus === 'VENCIDA' || filtroStatus === 'VENCENDO' ? 'check-circle' : 'search'" [size]="22" /></div>
+          <div class="empty-title">
+            @switch (filtroStatus) {
+              @case ('VENCIDA') { Nenhuma certidão vencida }
+              @case ('VENCENDO') { Nada vence nos próximos 15 dias }
+              @default { Nenhum resultado }
+            }
+          </div>
+          <div class="empty-text">Nenhuma certidão corresponde aos filtros selecionados.</div>
+          <button type="button" class="btn btn-secondary" (click)="limparFiltros()"><app-icon name="x" [size]="16" /> Limpar filtros</button>
+        </div>
+      } @else {
+        <app-certidao-tabela [itens]="itensPagina" [mostrarEmpresa]="isAdmin" [isAdmin]="isAdmin" [ocupadoId]="excluindoId"
+                             (editar)="editar($event)" (excluir)="excluir($event)" />
+        <app-paginador [total]="filtradas.length" rotulo="certidões" [(pagina)]="pagina" [(porPagina)]="porPagina" />
+      }
+    </section>
+  }
+
+  <p class="footnote nota">
+    <app-icon name="info" [size]="14" />
+    <span>
+      @if (isAdmin) {
+        A consulta nos sites dos órgãos (Receita/PGFN, SEFAZ-TO, Caixa, TST) é feita pelo escritório; aqui ficam a validade, o PDF no Drive e os avisos no calendário.
+      } @else {
+        O escritório emite e renova as certidões da sua empresa. Os vencimentos também aparecem no calendário.
+      }
+    </span>
+  </p>
+</div>
+
+@if (formAberto) {
+  <app-certidao-form [certidao]="editando" [empresas]="empresas" [idEmpresa]="formEmpresa" [tipoInicial]="formTipo"
+                     (fechar)="fecharForm()" (salvo)="aoSalvar($event)" />
+}

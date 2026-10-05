@@ -1,0 +1,122 @@
+<!-- celular: cartões -->
+<ul class="m-list" aria-label="Certidões">
+  @for (c of itens; track c.id) {
+    <li class="m-item" [class.is-danger]="tom(c) === 'danger'" [class.is-warning]="tom(c) === 'warning'">
+      <div class="m-top">
+        <span class="icon-tile sm" [class]="'icon-tile sm ' + tom(c)"><app-icon [name]="tipoInfo(c.tipo).icone" [size]="15" /></span>
+        <div class="min0 grow">
+          <span class="cell-main">{{ c.tipoRotulo }}</span>
+          @if (mostrarEmpresa) { <span class="cell-sub truncate">{{ c.nomeEmpresa }}</span> }
+        </div>
+        <span class="badge prazo tnum" [class]="'badge prazo tnum ' + prazoClasse(c.diasParaVencer)">{{ prazoTexto(c.diasParaVencer) }}</span>
+      </div>
+      <div class="m-meta">
+        <span class="badge badge-dot" [class]="'badge badge-dot ' + situacaoClasse(c.situacao)">{{ situacaoRotulo(c.situacao, true) }}</span>
+        <span class="text-sm text-mute tnum">Validade {{ c.dataValidade | date:'dd/MM/yyyy' }}</span>
+      </div>
+      @if (c.idArquivo || isAdmin) {
+        <div class="m-acoes">
+          @if (c.idArquivo) {
+            <button type="button" class="btn btn-secondary btn-sm" (click)="abrirArquivo(c)" [disabled]="abrindoId === c.id">
+              @if (abrindoId === c.id) { <span class="spinner"></span> } @else { <app-icon name="file-text" [size]="14" /> } Ver PDF
+            </button>
+          }
+          @if (isAdmin) {
+            <button type="button" class="btn btn-ghost btn-sm" (click)="editar.emit(c)"><app-icon name="pencil" [size]="14" /> Editar</button>
+            <button type="button" class="btn-icon sm bordered danger" (click)="excluir.emit(c)" [disabled]="ocupadoId === c.id" aria-label="Excluir certidão">
+              <app-icon name="trash" [size]="15" />
+            </button>
+          }
+        </div>
+      }
+    </li>
+  }
+</ul>
+
+<div class="table-wrap desk-only">
+  <table class="table table-compact">
+    <thead>
+      <tr>
+        @if (mostrarEmpresa) { <th>Empresa</th> }
+        <th>Certidão</th>
+        <th>Situação</th>
+        <th>Número · emissão</th>
+        <th>Validade</th>
+        <th class="col-arq">Arquivo</th>
+        @if (isAdmin) { <th class="col-actions"><span class="sr-only">Ações</span></th> }
+      </tr>
+    </thead>
+    <tbody>
+      @for (c of itens; track c.id) {
+        <tr [class.row-danger]="tom(c) === 'danger'" [class.row-warning]="tom(c) === 'warning'">
+          @if (mostrarEmpresa) {
+            <td>
+              <a class="cell-entity emp-link" [routerLink]="['/empresas', c.idEmpresa]" [title]="'Abrir ' + c.nomeEmpresa">
+                <span [class]="'avatar avatar-sm ' + (c.nomeEmpresa | avatarCor)">{{ c.nomeEmpresa | iniciais }}</span>
+                <span class="truncate emp-nome">{{ c.nomeEmpresa }}</span>
+              </a>
+            </td>
+          }
+          <td>
+            <div class="cell-entity">
+              <span [class]="'icon-tile sm ' + tom(c)"><app-icon [name]="tipoInfo(c.tipo).icone" [size]="15" /></span>
+              <div class="min0">
+                <span class="cell-main nowrap">{{ c.tipoRotulo }}</span>
+                @if (c.orgaoEmissor) { <span class="cell-sub truncate orgao" [title]="c.orgaoEmissor">{{ c.orgaoEmissor }}</span> }
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="sit">
+              <span [class]="'badge badge-dot nowrap ' + situacaoClasse(c.situacao)" [title]="situacaoRotulo(c.situacao)">{{ situacaoRotulo(c.situacao, true) }}</span>
+              @if (c.observacao) {
+                <span class="obs" [title]="c.observacao" tabindex="0" [attr.aria-label]="'Observação: ' + c.observacao"><app-icon name="info" [size]="14" /></span>
+              }
+            </div>
+          </td>
+          <td>
+            <span class="tnum numero truncate cell-main" [title]="c.numero || ''">{{ c.numero || '—' }}</span>
+            <span class="cell-sub tnum nowrap">{{ c.dataEmissao ? 'Emitida em ' + (c.dataEmissao | date:'dd/MM/yyyy') : 'Emissão não informada' }}</span>
+          </td>
+          <td>
+            <span class="tnum cell-main nowrap">{{ c.dataValidade | date:'dd/MM/yyyy' }}</span>
+            <span [class]="'badge prazo tnum ' + prazoClasse(c.diasParaVencer)">{{ prazoTexto(c.diasParaVencer) }}</span>
+          </td>
+          <td class="col-arq">
+            @if (c.idArquivo) {
+              <div class="arq">
+                <button type="button" class="btn-icon sm bordered" (click)="abrirArquivo(c)" [disabled]="abrindoId === c.id"
+                        [title]="'Abrir ' + (c.nomeArquivo || 'PDF')" aria-label="Abrir PDF da certidão">
+                  @if (abrindoId === c.id) { <span class="spinner"></span> } @else { <app-icon name="eye" [size]="15" /> }
+                </button>
+                <button type="button" class="btn-icon sm bordered" (click)="abrirArquivo(c, true)" [disabled]="abrindoId === c.id"
+                        title="Baixar PDF" aria-label="Baixar PDF da certidão">
+                  <app-icon name="download" [size]="15" />
+                </button>
+              </div>
+            } @else if (isAdmin) {
+              <button type="button" class="link text-sm nowrap" (click)="editar.emit(c)" title="Anexar o PDF da certidão">
+                <app-icon name="paperclip" [size]="13" /> <span class="anexar-txt">Anexar</span>
+              </button>
+            } @else {
+              <span class="text-faint">—</span>
+            }
+          </td>
+          @if (isAdmin) {
+            <td class="col-actions">
+              <div class="row-actions">
+                <button type="button" class="btn-icon sm bordered" (click)="editar.emit(c)" title="Editar / renovar" aria-label="Editar certidão">
+                  <app-icon name="pencil" [size]="15" />
+                </button>
+                <button type="button" class="btn-icon sm bordered danger" (click)="excluir.emit(c)" [disabled]="ocupadoId === c.id"
+                        title="Excluir" aria-label="Excluir certidão">
+                  @if (ocupadoId === c.id) { <span class="spinner"></span> } @else { <app-icon name="trash" [size]="15" /> }
+                </button>
+              </div>
+            </td>
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

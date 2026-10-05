@@ -1,0 +1,92 @@
+@if (modo === 'resumo') {
+  <!-- Visão geral: cartão compacto -->
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">Certidões negativas</h2>
+        <p class="card-subtitle">
+          @if (carregando) { Carregando… }
+          @else if (!certidoes.length) { Nenhuma certidão cadastrada }
+          @else {
+            <span class="tnum text-success">{{ cont.validas }} válida(s)</span>
+            @if (cont.vencendo) { · <span class="tnum text-warning">{{ cont.vencendo }} vencendo</span> }
+            @if (cont.vencidas) { · <span class="tnum text-danger">{{ cont.vencidas }} vencida(s)</span> }
+          }
+        </p>
+      </div>
+      <button type="button" class="link text-sm" (click)="verTodas.emit()">Ver certidões →</button>
+    </div>
+    <div class="card-body">
+      @if (carregando) {
+        <span class="skeleton skeleton-line"></span>
+      } @else {
+        <div class="pilulas">
+          @for (p of pilulas; track p.tipo) {
+            <button type="button" [class]="'pil ' + p.tom" (click)="clicarPilula(p)" [title]="p.curto + ': ' + p.texto">
+              <i class="pdot"></i>
+              <span class="pil-nome">{{ p.curto }}</span>
+              <span class="pil-txt tnum">{{ p.certidao ? (p.certidao.diasParaVencer < 0 ? 'Vencida' : p.certidao.diasParaVencer + 'd') : '—' }}</span>
+            </button>
+          }
+        </div>
+      }
+    </div>
+  </section>
+} @else {
+  <!-- Aba completa -->
+  <div class="section-label topo">
+    <h2>Certidões negativas de débitos</h2>
+    <div class="row-sm">
+      @if (!carregando && certidoes.length) {
+        <span class="tnum text-sm text-mute">{{ certidoes.length }} certidão(ões)@if (alertas) { · <span class="text-danger">{{ alertas }} com alerta</span> }</span>
+      }
+      @if (isAdmin) {
+        <button type="button" class="btn btn-primary btn-sm" (click)="nova()"><app-icon name="plus" [size]="15" /> Nova certidão</button>
+      }
+    </div>
+  </div>
+
+  @if (!carregando && certidoes.length) {
+    <div class="pilulas mb">
+      @for (p of pilulas; track p.tipo) {
+        <button type="button" [class]="'pil ' + p.tom" (click)="clicarPilula(p)" [disabled]="!isAdmin"
+                [title]="isAdmin ? (p.certidao ? 'Renovar / editar ' + p.curto : 'Cadastrar ' + p.curto) : p.curto + ': ' + p.texto">
+          <i class="pdot"></i>
+          <app-icon [name]="p.icone" [size]="14" />
+          <span class="pil-nome">{{ p.curto }}</span>
+          <span class="pil-txt tnum">{{ p.texto }}</span>
+        </button>
+      }
+    </div>
+  }
+
+  <section class="card table-card">
+    @if (carregando) {
+      <div class="loading-block"><span class="spinner"></span> Carregando certidões…</div>
+    } @else if (erro) {
+      <div class="empty">
+        <div class="empty-icon"><app-icon name="alert-triangle" [size]="22" /></div>
+        <div class="empty-title">Não foi possível carregar</div>
+        <button type="button" class="btn btn-secondary" (click)="carregar()"><app-icon name="refresh" [size]="16" /> Tentar novamente</button>
+      </div>
+    } @else if (!certidoes.length) {
+      <div class="empty">
+        <div class="empty-icon"><app-icon name="shield-check" [size]="22" /></div>
+        <div class="empty-title">Nenhuma certidão cadastrada</div>
+        <div class="empty-text">Cadastre as CNDs desta empresa para acompanhar a validade e receber aviso 15 dias antes de vencer.</div>
+        @if (isAdmin) { <button type="button" class="btn btn-primary" (click)="nova()"><app-icon name="plus" [size]="16" /> Nova certidão</button> }
+      </div>
+    } @else {
+      <app-certidao-tabela [itens]="itensPagina" [mostrarEmpresa]="false" [isAdmin]="isAdmin" [ocupadoId]="excluindoId"
+                           (editar)="editar($event)" (excluir)="excluir($event)" />
+      @if (certidoes.length > 10) {
+        <app-paginador [total]="certidoes.length" rotulo="certidões" [(pagina)]="pagina" [(porPagina)]="porPagina" />
+      }
+    }
+  </section>
+
+  @if (formAberto) {
+    <app-certidao-form [certidao]="editando" [empresas]="empresasForm" [idEmpresa]="idEmpresa" [tipoInicial]="formTipo"
+                       (fechar)="formAberto = false; editando = null" (salvo)="aoSalvar($event)" />
+  }
+}

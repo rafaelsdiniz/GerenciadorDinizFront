@@ -1,0 +1,76 @@
+@if (compacto) {
+  <!-- ===== uma linha (anexos da obrigação) ===== -->
+  @if (analisado && !semDados) {
+    <div class="dl-linha">
+      @if (arquivo.valor != null) { <strong class="tnum dl-valor">{{ arquivo.valor | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong> }
+      @if (tipo) { <span class="tag">{{ tipo }}</span> }
+      @if (arquivo.competenciaDocumento) { <span class="tnum dl-meta">Comp. {{ arquivo.competenciaDocumento }}</span> }
+      @if (porIa) { <span class="dl-ia" title="Lido por IA"><app-icon name="sparkles" [size]="12" /></span> }
+      @if (arquivo.linhaDigitavel) {
+        <button type="button" class="btn btn-ghost btn-sm dl-copiar" (click)="copiar($event)" [title]="'Copiar linha digitável: ' + linha" aria-label="Copiar linha digitável">
+          <app-icon [name]="copiado ? 'check' : 'barcode'" [size]="14" /> {{ copiado ? 'Copiado' : 'Copiar código' }}
+        </button>
+      }
+    </div>
+  } @else if (lendoAuto && !lendo) {
+    <span class="dl-auto"><span class="spinner"></span> Lendo a guia…</span>
+  } @else if (!analisado && legivel) {
+    <button type="button" class="btn btn-ghost btn-sm dl-ler" (click)="ler($event)" [disabled]="lendo">
+      @if (lendo) { <span class="spinner"></span> Lendo… } @else { <app-icon name="sparkles" [size]="13" /> Ler com IA }
+    </button>
+  }
+} @else {
+  <!-- ===== bloco completo (detalhes do arquivo) ===== -->
+  @if (analisado) {
+    <section class="dl-box" aria-label="Dados extraídos pela leitura inteligente">
+      <header class="dl-head">
+        <span class="dl-mark"><app-icon name="sparkles" [size]="14" /></span>
+        <strong>Leitura inteligente</strong>
+        <span class="badge" [class.badge-accent]="porIa" [class.badge-neutral]="!porIa">{{ porIa ? 'Lido por IA' : 'Leitura automática' }}</span>
+      </header>
+      @if (semDados) {
+        <p class="dl-vazio text-sm text-mute">Nenhum dado de guia encontrado neste documento.</p>
+      } @else {
+        <dl class="dl-grid">
+          <div><dt>Tipo</dt><dd>{{ tipo || '—' }}</dd></div>
+          <div><dt>Valor</dt><dd class="tnum dl-valor">{{ arquivo.valor != null ? (arquivo.valor | currency:'BRL':'symbol':'1.2-2':'pt-BR') : '—' }}</dd></div>
+          <div><dt>Competência</dt><dd class="tnum">{{ arquivo.competenciaDocumento || '—' }}</dd></div>
+          <div><dt>CNPJ no documento</dt><dd class="tnum">{{ cnpj || '—' }}</dd></div>
+        </dl>
+        @if (arquivo.linhaDigitavel) {
+          <div class="dl-codigo">
+            <app-icon name="barcode" [size]="16" />
+            <span class="dl-codigo-num tnum" [title]="arquivo.linhaDigitavel">{{ linha }}</span>
+            <button type="button" class="btn btn-secondary btn-sm" (click)="copiar($event)" aria-label="Copiar linha digitável">
+              <app-icon [name]="copiado ? 'check' : 'copy'" [size]="14" /> {{ copiado ? 'Copiado' : 'Copiar' }}
+            </button>
+          </div>
+        }
+      }
+      @if (arquivo.alertasLeitura?.length) {
+        <ul class="dl-alertas">
+          @for (a of arquivo.alertasLeitura; track a) { <li><app-icon name="alert-circle" [size]="14" /><span>{{ a }}</span></li> }
+        </ul>
+      }
+      <div class="dl-rodape">
+        <span class="dl-quando tnum">Lido em {{ arquivo.analisadoEm | date:"dd/MM/yyyy 'às' HH:mm" }}</span>
+        @if (legivel) {
+          <button type="button" class="btn btn-ghost btn-sm" (click)="ler($event)" [disabled]="lendo" title="Ler o documento novamente">
+            @if (lendo) { <span class="spinner"></span> } @else { <app-icon name="refresh" [size]="14" /> } Ler novamente
+          </button>
+        }
+      </div>
+    </section>
+  } @else if (legivel) {
+    <section class="dl-cta">
+      <span class="dl-mark lg"><app-icon name="scan-text" [size]="18" /></span>
+      <div class="dl-cta-text">
+        <strong>Leitura inteligente</strong>
+        <span>Extraia valor, vencimento, competência e linha digitável deste documento.</span>
+      </div>
+      <button type="button" class="btn btn-accent btn-sm" (click)="ler($event)" [disabled]="lendo">
+        @if (lendo) { <span class="spinner"></span> Lendo… } @else { <app-icon name="sparkles" [size]="14" /> Ler com IA }
+      </button>
+    </section>
+  }
+}

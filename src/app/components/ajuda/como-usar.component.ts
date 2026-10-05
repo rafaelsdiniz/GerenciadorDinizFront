@@ -3,6 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { IconComponent } from '../../shared/icon.component';
 import { ToastService } from '../../shared/ui/toast.service';
 import { AuthService } from '../../services/auth.service';
+import { IaExemplosComponent } from '../ia/ia-exemplos/ia-exemplos.component';
 
 type Perfil = 'escritorio' | 'cliente';
 
@@ -15,7 +16,7 @@ const SENHA_DEMO = '123456';
 @Component({
   selector: 'app-como-usar',
   standalone: true,
-  imports: [RouterLink, IconComponent],
+  imports: [RouterLink, IconComponent, IaExemplosComponent],
   templateUrl: './como-usar.component.html',
   styleUrl: './como-usar.component.css'
 })
@@ -32,7 +33,9 @@ export class ComoUsarComponent implements OnInit {
     { icone: 'handshake', tom: 'accent', titulo: 'Escritório e cliente no mesmo lugar',
       texto: 'Guias, documentos e confirmações trocados no sistema, não por e-mail ou WhatsApp.' },
     { icone: 'inbox', tom: 'info', titulo: 'Comunicações da SEFAZ automáticas',
-      texto: 'Avisos do DEC chegam sozinhos, com a contagem até a ciência tácita.' }
+      texto: 'Avisos do DEC chegam sozinhos, com a contagem até a ciência tácita.' },
+    { icone: 'sparkles', tom: 'success', titulo: 'Inteligência artificial no dia a dia',
+      texto: 'A IA lê guias e documentos (valor, vencimento, CNPJ) e o Assistente responde sobre a sua conta.' }
   ];
 
   readonly perfis = [
@@ -64,6 +67,8 @@ export class ComoUsarComponent implements OnInit {
     escritorio: [
       { titulo: 'Painel', link: '/dashboard', icone: 'dashboard',
         texto: 'Mostra o que exige atenção hoje: obrigações vencidas, prazos da semana e documentos aguardando os clientes.' },
+      { titulo: 'Leitura de guia com IA', link: '/obrigacoes-pendentes', icone: 'sparkles',
+        texto: 'Em Pendências, clique em "Anexar guia" numa obrigação do escritório e escolha um PDF de guia: a IA lê tipo, valor, vencimento, competência e CNPJ, preenche o formulário e avisa divergências. Há guias de exemplo para baixar na seção abaixo.' },
       { titulo: 'Pendências', link: '/obrigacoes-pendentes', icone: 'list-checks',
         texto: 'Clique no indicador "Vencidas" para filtrar. Numa linha, prorrogue o vencimento (ícone de calendário) ou use "Anexar guia": a obrigação passa a Entregue.' },
       { titulo: 'Calendário', link: '/calendario', icone: 'calendar',
@@ -74,6 +79,14 @@ export class ComoUsarComponent implements OnInit {
         texto: 'Mensagens do Domicílio Eletrônico do Contribuinte (SEFAZ-TO) importadas do DEC Monitor, com o prazo restante até a ciência tácita.' },
       { titulo: 'Arquivos', link: '/arquivos', icone: 'folder',
         texto: 'Pastas por empresa, no estilo Drive: envie (ou arraste) arquivos, mova, renomeie e alterne entre lista e grade.' },
+      { titulo: 'Fechamento mensal', link: '/fechamento', icone: 'layers',
+        texto: 'Kanban do fechamento de cada empresa no mês: arraste os cards entre as etapas e defina o responsável.' },
+      { titulo: 'Certidões', link: '/certidoes', icone: 'shield-check',
+        texto: 'Validade das certidões negativas de cada cliente. Use a visão "Matriz" para ver a carteira inteira de uma vez.' },
+      { titulo: 'Relatórios', link: '/relatorios', icone: 'bar-chart',
+        texto: 'Relatório mensal da empresa, da carteira e de pendências: imprima, salve em PDF ou exporte CSV.' },
+      { titulo: 'Assistente Diniz', link: '/dashboard', icone: 'sparkles',
+        texto: 'Clique no botão flutuante no canto inferior direito e pergunte, por exemplo: "Quais empresas estão com obrigações vencidas?".' },
       { titulo: 'Auditoria', link: '/logs', icone: 'activity',
         texto: 'Confira o registro das ações que você acabou de fazer: quem fez, o quê e quando.' }
     ],
@@ -86,6 +99,10 @@ export class ComoUsarComponent implements OnInit {
         texto: 'Use o filtro "A enviar", escolha um item (ex.: extrato bancário) e envie o arquivo. Ele vai para a pasta sugerida e o item fica entregue.' },
       { titulo: 'Confirmar pagamento de guia', link: '/obrigacoes-pendentes', icone: 'banknote',
         texto: 'Clique numa guia entregue pelo escritório (ex.: DAS) para ver os detalhes e baixar o PDF. Em "Confirmar pagamento", informe a data e anexe o comprovante.' },
+      { titulo: 'Conversar com o escritório', link: '/obrigacoes-pendentes', icone: 'message-circle',
+        texto: 'Abra uma obrigação e use a "Conversa" no painel lateral para tirar dúvidas. Mensagens novas aparecem no sino.' },
+      { titulo: 'Assistente Diniz', link: '/dashboard', icone: 'sparkles',
+        texto: 'No botão flutuante, pergunte: "O que eu preciso enviar este mês?" ou "Quais guias vencem esta semana?".' },
       { titulo: 'Arquivos', link: '/arquivos', icone: 'folder',
         texto: 'As pastas da sua empresa. Arquivos de outras empresas não aparecem aqui nem na busca.' },
       { titulo: 'Minha conta', link: '/conta', icone: 'user', aviso: 'Não troque a senha da conta de demonstração: outros avaliadores usam o mesmo acesso.',
@@ -105,6 +122,13 @@ export class ComoUsarComponent implements OnInit {
     { icone: 'shield-check', tom: 'success', titulo: 'Isolamento por empresa', texto: 'LGPD: cada cliente acessa só os dados da própria empresa.' },
     { icone: 'activity', tom: 'neutral', titulo: 'Auditoria', texto: 'Acessos, envios, downloads e exclusões ficam registrados.' },
     { icone: 'trash', tom: 'danger', titulo: 'Lixeira', texto: 'Itens excluídos podem ser restaurados.' },
+    { icone: 'sparkles', tom: 'success', titulo: 'Leitura inteligente (IA)', texto: 'Lê guias e documentos em PDF e confere com a obrigação.' },
+    { icone: 'sparkles', tom: '', titulo: 'Assistente Diniz', texto: 'Chat com IA que responde com os dados da sua conta.' },
+    { icone: 'shield-check', tom: 'warning', titulo: 'Certidões', texto: 'Validade das CNDs com alerta antes de vencer.' },
+    { icone: 'layers', tom: 'info', titulo: 'Fechamento mensal', texto: 'Kanban das etapas de cada empresa no mês.' },
+    { icone: 'message-circle', tom: 'accent', titulo: 'Conversas', texto: 'Mensagens dentro de cada obrigação, com histórico.' },
+    { icone: 'bar-chart', tom: '', titulo: 'Relatórios', texto: 'Mensal, carteira e pendências, em PDF ou CSV.' },
+    { icone: 'camera', tom: 'neutral', titulo: 'No celular', texto: 'Tire foto do documento e instale como aplicativo.' },
     { icone: 'command', tom: 'neutral', titulo: 'Atalhos de teclado', texto: '' }
   ];
 
@@ -114,6 +138,7 @@ export class ComoUsarComponent implements OnInit {
     { icone: 'hard-drive', titulo: 'Banco de dados', texto: 'PostgreSQL (Neon)' },
     { icone: 'lock', titulo: 'Segurança', texto: 'JWT com perfis Escritório e Cliente' },
     { icone: 'link', titulo: 'Integração', texto: 'REST com o DEC Monitor (Next.js), somente leitura' },
+    { icone: 'sparkles', titulo: 'Inteligência artificial', texto: 'DeepSeek (LLM) + extração de texto de PDF (PDFBox)' },
     { icone: 'upload-cloud', titulo: 'Publicação', texto: 'Nuvem gratuita: Vercel + Render' }
   ];
 

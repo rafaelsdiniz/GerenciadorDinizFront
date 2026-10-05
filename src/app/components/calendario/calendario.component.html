@@ -56,6 +56,11 @@
             <app-icon name="inbox" [size]="14" /> DEC <span class="count">{{ contarTipo('DEC') }}</span>
           </button>
         }
+        @if (contarTipo('CERTIDAO')) {
+          <button type="button" class="chip chip-success" [class.active]="filtroTipo === 'CERTIDAO'" (click)="setFiltroTipo('CERTIDAO')">
+            <app-icon name="shield-check" [size]="14" /> Certidões <span class="count">{{ contarTipo('CERTIDAO') }}</span>
+          </button>
+        }
       </div>
       @if (!estreito) {
         <div class="segmented" role="group" aria-label="Visualização">
@@ -213,14 +218,14 @@
 
 <ng-template #itemEvento let-ev>
   <a class="list-item ev-item" [routerLink]="linkEvento(ev).link" [queryParams]="linkEvento(ev).params"
-     [title]="ev.tipo === 'ARQUIVO' ? 'Abrir arquivo' : ev.tipo === 'DEC' ? 'Ver comunicação do DEC' : 'Ver nas pendências'">
+     [title]="ev.tipo === 'ARQUIVO' ? 'Abrir arquivo' : ev.tipo === 'DEC' ? 'Ver comunicação do DEC' : ev.tipo === 'CERTIDAO' ? 'Ver certidões' : 'Ver nas pendências'">
     <span class="icon-tile sm" [class]="'icon-tile sm ' + (tom(ev) === 'info' ? '' : tom(ev))">
-      <app-icon [name]="ev.tipo === 'ARQUIVO' ? 'file-text' : ev.tipo === 'DEC' ? 'inbox' : 'list-checks'" [size]="15" />
+      <app-icon [name]="ev.tipo === 'ARQUIVO' ? 'file-text' : ev.tipo === 'DEC' ? 'inbox' : ev.tipo === 'CERTIDAO' ? 'shield-check' : 'list-checks'" [size]="15" />
     </span>
     <span class="list-item-body">
       <span class="list-item-title truncate block">{{ ev.titulo }}</span>
       <span class="list-item-sub block truncate">
-        {{ ev.tipo === 'ARQUIVO' ? 'Arquivo' : ev.tipo === 'DEC' ? 'DEC · SEFAZ-TO' : 'Obrigação' }}@if (categoriaTexto(ev)) { · {{ categoriaTexto(ev) }} }@if (ev.descricao) { · {{ ev.descricao }} }
+        {{ ev.tipo === 'ARQUIVO' ? 'Arquivo' : ev.tipo === 'DEC' ? 'DEC · SEFAZ-TO' : ev.tipo === 'CERTIDAO' ? 'Certidão negativa' : 'Obrigação' }}@if (categoriaTexto(ev)) { · {{ categoriaTexto(ev) }} }@if (ev.descricao) { · {{ ev.descricao }} }
       </span>
     </span>
     <span class="badge badge-dot" [class]="'badge badge-dot badge-' + tom(ev)">{{ statusTexto(ev) }}</span>

@@ -1,0 +1,45 @@
+:host { display: block; }
+.min0 { min-width: 0; }
+.grow { flex: 1; display: flex; flex-direction: column; }
+
+.emp-link { color: inherit; text-decoration: none; }
+.emp-link:hover .emp-nome { color: var(--primary); text-decoration: underline; }
+.emp-nome { max-width: 150px; }
+.orgao { display: block; max-width: 170px; }
+.numero { display: block; max-width: 150px; }
+.prazo { display: flex; width: fit-content; margin-top: 3px; height: 20px; font-size: 11.5px; }
+.sit { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+.obs { display: inline-flex; color: var(--ink-faint); vertical-align: middle; cursor: help; }
+.obs:hover { color: var(--primary); }
+.col-arq { width: 96px; }
+.arq { display: flex; gap: 6px; }
+.link app-icon { vertical-align: -2px; }
+
+.row-danger td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+.row-warning td:first-child { box-shadow: inset 3px 0 0 var(--warning); }
+
+.m-list { display: none; list-style: none; margin: 0; padding: 0; }
+.m-item { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--hairline); }
+.m-item.is-danger { box-shadow: inset 3px 0 0 var(--danger); }
+.m-item.is-warning { box-shadow: inset 3px 0 0 var(--warning); }
+.m-top { display: flex; align-items: center; gap: 10px; }
+.m-top .prazo { margin-top: 0; flex-shrink: 0; }
+.m-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.m-acoes { display: flex; align-items: center; gap: 8px; }
+.m-acoes .danger { margin-left: auto; }
+
+@media (max-width: 720px) {
+  .m-list { display: block; }
+  .desk-only { display: none; }
+}
+
+/* números alinhados à esquerda (o global alinha .tnum à direita) e colunas mais justas */
+.table .tnum { text-align: left; }
+.table th, .table td { padding-left: 12px; padding-right: 12px; }
+.table th:first-child, .table td:first-child { padding-left: 16px; }
+@media (max-width: 1400px) { .orgao { display: none; } }
+@media (max-width: 1366px) {
+  .emp-nome { max-width: 110px; }
+  .numero { max-width: 115px; }
+  .anexar-txt { display: none; }
+}

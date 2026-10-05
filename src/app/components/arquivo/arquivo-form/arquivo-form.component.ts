@@ -12,6 +12,25 @@ import { ConfirmService } from '../../../shared/ui/confirm.service';
 import { IconComponent } from '../../../shared/icon.component';
 import { BytesPipe } from '../../../pipes/formatos.pipe';
 import { visualTipo, VisualTipo } from '../../explorer/tipo-arquivo.util';
+import { fotoDoInput, temCameraTouch } from '../../../shared/camera.util';
+import { Subscription } from 'rxjs';
+import { IaService } from '../../../services/ia.service';
+import { LeituraIaComponent } from '../../ia/leitura-ia/leitura-ia.component';
+import { DocumentoAnalisado, TipoDocumento } from '../../../models/documento-analisado.dto';
+
+/** Nome da obrigação compatível com o tipo de documento lido (para sugerir o vínculo). */
+const OBRIGACAO_POR_TIPO: Partial<Record<TipoDocumento, RegExp>> = {
+  DAS: /^das\b|simples nacional/i,
+  FGTS: /\bfgts\b/i,
+  GPS: /\binss\b|\bgps\b|previd/i,
+  DARF: /\bdarf\b|\birpj\b|\bcsll\b|\bpis\b|\bcofins\b|\birrf\b|\binss\b/i,
+  ICMS: /\bicms\b|\bdare\b/i,
+  ISS: /\biss\b/i,
+  EXTRATO_BANCARIO: /extrato/i,
+  NFE: /nota|nf-?e/i,
+  NFSE: /nota|nfs-?e/i,
+  BALANCETE: /balancete/i
+};
 
 type OpcaoPasta = { id: number; label: string };
 const COLLATOR = new Intl.Collator('pt-BR', { numeric: true, sensitivity: 'base' });
@@ -23,7 +42,7 @@ const COLLATOR = new Intl.Collator('pt-BR', { numeric: true, sensitivity: 'base'
 @Component({
   selector: 'app-arquivo-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent, BytesPipe],
+  imports: [CommonModule, FormsModule, IconComponent, BytesPipe, LeituraIaComponent],
   templateUrl: './arquivo-form.component.html',
   styleUrl: './arquivo-form.component.css'
 })
@@ -33,6 +52,7 @@ export class ArquivoFormComponent implements OnInit, OnChanges, OnDestroy {
   private obrigacaoPendenteService = inject(ObrigacaoPendenteService);
   private authService = inject(AuthService);
   private confirm = inject(ConfirmService);
+  private ia = inject(IaService);
 
   @Input() empresas: EmpresaResponseDTO[] = [];
   @Input() pastas: PastaResponseDTO[] = [];
@@ -65,12 +85,23 @@ export class ArquivoFormComponent implements OnInit, OnChanges, OnDestroy {
   categoriaLabel = CategoriaFiscalLabel;
 
   arrastando = false;
+  /** "Tirar foto" só em telas de toque (celular/tablet) */
+  readonly podeFotografar = temCameraTouch();
   enviando = false;
   progresso = 0;
   enviandoIndice = 0;
   erros: Record<string, string> = {};
   erroGeral = '';
   falhas: string[] = [];
+
+  // ---- leitura inteligente (IA): só com um arquivo selecionado; nunca bloqueia o envio
+  analise: DocumentoAnalisado | null = null;
+  analisando = false;
+  erroAnalise: string | null = null;
+  /** campos preenchidos pela IA (o selo some quando o usuário edita) */
+  daIa = { descricao: false, categoria: false, vencimento: false };
+  private lidoChave = '';
+  private leituraSub?: Subscription;
 
   private intervalo: ReturnType<typeof setInterval> | null = null;
   /** Esc que fechou o diálogo de confirmação não deve fechar também o modal. */
@@ -107,7 +138,83 @@ export class ArquivoFormComponent implements OnInit, OnChanges, OnDestroy {
 
   ngOnDestroy(): void {
     this.pararSimulacao();
+    this.leituraSub?.unsubscribe();
     document.removeEventListener('keydown', this.capturaEsc, true);
+  }
+
+  // ================= LEITURA INTELIGENTE =================
+
+  /** Relê quando muda o arquivo único, a empresa ou a obrigação vinculada (contexto das conferências). */
+  atualizarLeitura(): void {
+    const f = this.arquivosSelecionados.length === 1 ? this.arquivosSelecionados[0] : null;
+    if (!f) {
+      this.leituraSub?.unsubscribe();
+      this.analise = null;
+      this.analisando = false;
+      this.erroAnalise = null;
+      this.lidoChave = '';
+      this.desfazerIa();
+      return;
+    }
+    const chave = `${f.name}|${f.size}|${f.lastModified}|${this.idEmpresa}|${this.idObrigacaoPendente}`;
+    if (chave === this.lidoChave) return;
+    this.lidoChave = chave;
+    this.leituraSub?.unsubscribe();
+    this.analisando = true;
+    this.erroAnalise = null;
+    this.leituraSub = this.ia.analisar(f, { idEmpresa: this.idEmpresa || null, idObrigacaoPendente: this.idObrigacaoPendente }).subscribe({
+      next: (a) => { this.analisando = false; this.analise = a; this.aplicarIa(a); },
+      error: () => {
+        this.analisando = false;
+        this.analise = null;
+        this.erroAnalise = 'Não foi possível ler o documento agora — você pode enviar normalmente.';
+      }
+    });
+  }
+
+  /** Preenche descrição, categoria e vencimento vazios (ou já preenchidos pela IA) com os dados lidos. */
+  private aplicarIa(a: DocumentoAnalisado): void {
+    if (!a.textoLegivel) return;
+    if (a.descricaoSugerida && (!this.descricao.trim() || this.daIa.descricao)) {
+      this.descricao = a.descricaoSugerida;
+      this.daIa.descricao = true;
+    }
+    if (a.tipoDocumento !== 'OUTRO' && a.categoriaFiscalSugerida && (!this.categoriaFiscal || this.daIa.categoria)) {
+      this.categoriaFiscal = a.categoriaFiscalSugerida;
+      this.daIa.categoria = true;
+    }
+    const venc = a.vencimento ?? a.validade;
+    if (venc && (!this.dataVencimento || this.daIa.vencimento)) {
+      this.dataVencimento = venc;
+      this.daIa.vencimento = true;
+    }
+  }
+
+  /** Vários arquivos: os dados de um único documento não valem para todos. */
+  private desfazerIa(): void {
+    if (this.daIa.descricao) this.descricao = '';
+    if (this.daIa.categoria) this.categoriaFiscal = '';
+    if (this.daIa.vencimento) this.dataVencimento = '';
+    this.daIa = { descricao: false, categoria: false, vencimento: false };
+  }
+
+  get rotuloIa(): string { return this.analise?.fonte === 'IA' ? 'Aplicado pela IA' : 'Preenchido pela leitura automática'; }
+
+  /** Obrigação pendente que parece corresponder ao documento lido (mesmo tipo e competência/vencimento). */
+  get obrigacaoSugerida(): ObrigacaoPendenteResponseDTO | null {
+    const a = this.analise;
+    if (!a?.textoLegivel || this.idObrigacaoPendente != null || a.tipoDocumento === 'OUTRO') return null;
+    const re = OBRIGACAO_POR_TIPO[a.tipoDocumento];
+    if (!re) return null;
+    const candidatas = this.obrigacoesPendentes.filter(o => re.test(o.nomeObrigacao ?? ''));
+    return candidatas.find(o => !!a.competencia && o.competencia === a.competencia)
+      ?? candidatas.find(o => !!a.vencimento && o.dataVencimento === a.vencimento)
+      ?? null;
+  }
+
+  vincularSugerida(o: ObrigacaoPendenteResponseDTO): void {
+    this.idObrigacaoPendente = o.id;
+    this.atualizarLeitura();
   }
 
   private atualizarPastas(): void {
@@ -134,6 +241,7 @@ export class ArquivoFormComponent implements OnInit, OnChanges, OnDestroy {
     this.obrigacoesPendentes = [];
     this.erros['idEmpresa'] = '';
     this.carregarObrigacoes();
+    this.atualizarLeitura();
   }
 
   private carregarObrigacoes(): void {
@@ -157,6 +265,13 @@ export class ArquivoFormComponent implements OnInit, OnChanges, OnDestroy {
     this.erros['arquivo'] = '';
     this.erroGeral = '';
     this.falhas = [];
+    this.atualizarLeitura();
+  }
+
+  /** Foto tirada pela câmera do celular entra na lista como qualquer outro arquivo. */
+  onFotoTirada(event: Event): void {
+    const foto = fotoDoInput(event);
+    if (foto) this.adicionarArquivos([foto]);
   }
 
   onArquivoSelecionado(event: Event): void {
@@ -186,6 +301,7 @@ export class ArquivoFormComponent implements OnInit, OnChanges, OnDestroy {
     event.stopPropagation();
     if (this.enviando) return;
     this.arquivosSelecionados = this.arquivosSelecionados.filter((_, i) => i !== indice);
+    this.atualizarLeitura();
   }
 
   visual(f: File): VisualTipo { return visualTipo(f.name); }
@@ -208,8 +324,19 @@ export class ArquivoFormComponent implements OnInit, OnChanges, OnDestroy {
     return Object.values(this.erros).every(v => !v);
   }
 
-  enviar(): void {
+  async enviar(): Promise<void> {
     if (this.enviando || !this.validar()) return;
+
+    // divergência grave apontada pela leitura inteligente: confirma antes de enviar
+    const grave = this.arquivosSelecionados.length === 1 ? this.analise?.alertas.find(a => a.nivel === 'danger') : undefined;
+    if (grave && !(await this.confirm.ask({
+      titulo: 'Enviar mesmo assim?',
+      mensagem: `${grave.mensagem} Confira se este é o arquivo certo.`,
+      confirmar: 'Enviar assim mesmo',
+      cancelar: 'Revisar',
+      tom: 'danger'
+    }))) return;
+    if (this.enviando) return;
 
     const idUsuario = this.authService.getUsuarioId();
     if (!idUsuario) {

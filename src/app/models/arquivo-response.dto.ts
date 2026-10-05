@@ -23,4 +23,19 @@ export interface ArquivoResponseDTO {
   dataCriacao?: string | null;
   /** quem enviou */
   nomeUsuario?: string | null;
+  // ---- leitura inteligente (null enquanto o documento não foi lido)
+  /** valor do documento (ex.: total da guia) */
+  valor?: number | null;
+  /** linha digitável, só dígitos */
+  linhaDigitavel?: string | null;
+  /** "MM/aaaa" */
+  competenciaDocumento?: string | null;
+  cnpjDocumento?: string | null;
+  tipoDocumento?: import('./documento-analisado.dto').TipoDocumento | null;
+  /** "IA" | "PADROES" */
+  fonteLeitura?: string | null;
+  alertasLeitura?: string[] | null;
+  analisadoEm?: string | null;
+  /** false = registro sem o arquivo físico (dados de demonstração) */
+  possuiConteudo?: boolean;
 }

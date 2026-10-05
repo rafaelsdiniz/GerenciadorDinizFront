@@ -27,4 +27,6 @@ export interface ObrigacaoPendenteResponseDTO {
   /** "yyyy-MM-dd" — data em que a guia foi paga */
   dataPagamento?: string | null;
   situacaoPagamento?: SituacaoPagamento | null;
+  /** valor da guia mais recente lida pela leitura inteligente */
+  valorGuia?: number | null;
 }

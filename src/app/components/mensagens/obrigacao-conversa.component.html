@@ -1,0 +1,74 @@
+<section class="conv" aria-label="Conversa sobre a obrigação">
+  <div class="section-label">
+    <h2><app-icon name="messages-square" [size]="15" /> Conversa</h2>
+    @if (mensagens.length) { <span class="tnum">{{ mensagens.length }}</span> }
+  </div>
+
+  <div class="conv-box">
+    <div class="conv-lista" #lista role="log" aria-live="polite" aria-label="Mensagens">
+      @if (carregando && !mensagens.length) {
+        <div class="loading-block"><span class="spinner"></span> Carregando conversa…</div>
+      } @else if (erro) {
+        <div class="alert alert-danger conv-erro" role="alert">
+          <app-icon name="alert-triangle" [size]="16" />
+          <span>{{ erro }} <button type="button" class="link" (click)="carregar(false)">Tentar novamente</button></span>
+        </div>
+      } @else if (!itens.length) {
+        <div class="conv-vazio">
+          <span class="icon-tile"><app-icon name="message-circle" [size]="20" /></span>
+          <p>{{ vazioTexto }}</p>
+        </div>
+      } @else {
+        @for (it of itens; track it.m.id) {
+          @if (it.dia) { <div class="conv-dia"><span>{{ it.dia }}</span></div> }
+          @if (it.primeiraNova) { <div class="conv-novas"><span>Novas mensagens</span></div> }
+          <div class="msg" [class.minha]="it.m.minha" [class.cont]="it.continua">
+            @if (!it.m.minha) {
+              <span class="msg-av" aria-hidden="true">
+                @if (!it.continua) {
+                  <span [class]="'avatar avatar-sm ' + ((it.m.autorNome || '') | avatarCor)">{{ it.m.autorNome | iniciais }}</span>
+                }
+              </span>
+            }
+            <div class="msg-col">
+              @if (!it.continua) {
+                <div class="msg-head">
+                  <strong class="truncate">{{ it.m.minha ? 'Você' : (it.m.autorNome || 'Usuário') }}</strong>
+                  <span class="badge msg-papel" [class.badge-primary]="it.m.doEscritorio" [class.badge-accent]="!it.m.doEscritorio">{{ papel(it.m) }}</span>
+                  <time class="msg-tempo" [attr.datetime]="it.m.dataCriacao" [title]="dataHora(it.m.dataCriacao)">{{ tempo(it.m.dataCriacao) }}</time>
+                </div>
+              }
+              <div class="msg-bolha" [title]="dataHora(it.m.dataCriacao)">
+                <p class="msg-texto">{{ it.m.texto }}</p>
+                @if (it.m.nomeArquivo) {
+                  <span class="msg-anexo"><app-icon name="paperclip" [size]="12" /> <span class="truncate">{{ it.m.nomeArquivo }}</span></span>
+                }
+              </div>
+              @if (it.m.minha) {
+                <span class="msg-visto" [class.lida]="it.m.lidaPeloDestinatario">
+                  <app-icon [name]="it.m.lidaPeloDestinatario ? 'check-check' : 'check'" [size]="13" />
+                  {{ it.m.lidaPeloDestinatario ? 'Lida' : 'Enviada' }}
+                </span>
+              }
+            </div>
+          </div>
+        }
+      }
+    </div>
+
+    <form class="conv-form" (ngSubmit)="enviar()">
+      <textarea #campo class="textarea conv-campo" name="texto" rows="2" [(ngModel)]="texto" [maxlength]="max"
+                [placeholder]="placeholder" (keydown)="aoTeclar($event)" [disabled]="carregando && !mensagens.length && !erro"
+                aria-label="Mensagem"></textarea>
+      <div class="conv-acoes">
+        <span class="conv-dica">
+          @if (restante < 200) { <span class="tnum" [class.text-danger]="restante < 50">{{ restante }} caracteres restantes</span> }
+          @else { <span class="kbd">Enter</span> envia · <span class="kbd">Shift</span>+<span class="kbd">Enter</span> quebra linha }
+        </span>
+        <button type="submit" class="btn btn-primary btn-sm" [disabled]="!podeEnviar">
+          @if (enviando) { <span class="spinner"></span> Enviando… } @else { <app-icon name="send" [size]="14" /> Enviar }
+        </button>
+      </div>
+    </form>
+  </div>
+</section>

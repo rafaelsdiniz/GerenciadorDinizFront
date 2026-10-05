@@ -48,6 +48,12 @@
         <dt>Responsável</dt>
         <dd>{{ cliente ? 'Cliente envia os documentos' : 'Escritório entrega a guia' }}</dd>
       </div>
+      @if (valorGuia != null) {
+        <div>
+          <dt>Valor da guia</dt>
+          <dd class="tnum valor-guia">{{ valorGuia | currency:'BRL':'symbol':'1.2-2':'pt-BR' }} <app-icon name="sparkles" [size]="12" title="Lido da guia anexada" /></dd>
+        </div>
+      }
     </dl>
 
     @if (pagamento; as pg) {
@@ -116,6 +122,7 @@
                   · {{ f.a.tamanho | bytes }}
                 </span>
                 @if (f.a.descricao) { <span class="det-file-desc truncate">{{ f.a.descricao }}</span> }
+                <app-dados-leitura [arquivo]="f.a" [compacto]="true" (atualizado)="atualizarArquivo($event)" />
               </div>
               <button type="button" class="btn btn-secondary btn-sm" (click)="baixar(f.a)" [disabled]="baixandoId === f.a.id"
                       [attr.aria-label]="'Baixar ' + f.a.nomeOriginal">
@@ -127,6 +134,9 @@
         </ul>
       }
     </section>
+
+    <!-- Conversa escritório x cliente (módulo de mensagens) -->
+    <app-obrigacao-conversa [idObrigacao]="obrigacao.id" [isAdmin]="isAdmin" />
   </div>
 
   <div class="modal-footer">

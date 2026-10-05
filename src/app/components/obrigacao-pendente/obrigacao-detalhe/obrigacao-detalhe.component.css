@@ -37,3 +37,7 @@
   .det-dl { grid-template-columns: minmax(0, 1fr); }
   .modal-footer { flex-wrap: wrap; }
 }
+
+/* valor lido da guia (leitura inteligente) */
+.valor-guia { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+.valor-guia app-icon { color: var(--accent-fg); }

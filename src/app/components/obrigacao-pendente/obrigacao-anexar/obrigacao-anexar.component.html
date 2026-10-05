@@ -54,10 +54,34 @@
         }
         <input #inputArquivo type="file" class="sr-only" tabindex="-1" (change)="onInput($event)"
                accept=".pdf,.xml,.xls,.xlsx,.csv,.ods,.doc,.docx,.odt,.txt,.jpg,.jpeg,.png,.zip" />
+        @if (podeFotografar && !enviando) {
+          <button type="button" class="btn btn-secondary btn-block mt-sm" (click)="inputFoto.click()">
+            <app-icon name="camera" [size]="16" /> {{ arquivo ? 'Tirar outra foto' : 'Tirar foto' }}
+          </button>
+          <input #inputFoto type="file" class="sr-only" tabindex="-1" accept="image/*" capture="environment" (change)="onFotoTirada($event)" />
+        }
         @if (erroArquivo) {
           <span class="field-error mt-sm"><app-icon name="alert-circle" [size]="14" /> {{ erroArquivo }}</span>
         }
+        @if (!arquivo && exemploTipo && !enviando) {
+          <p class="ia-exemplo">
+            <app-icon name="sparkles" [size]="13" />
+            <span>Sem a guia em mãos?
+              <button type="button" class="link" (click)="usarExemplo()" [disabled]="carregandoExemplo">Testar a leitura inteligente com uma guia de exemplo</button>
+              · <button type="button" class="link" (click)="usarExemplo(true)" [disabled]="carregandoExemplo">baixar PDF</button>
+            </span>
+            @if (carregandoExemplo) { <span class="spinner"></span> }
+          </p>
+        }
       </div>
+
+      @if (arquivo) {
+        <app-leitura-ia [analise]="analise" [carregando]="analisando" [erro]="erroAnalise" conferencia="a obrigação e a empresa">
+          @if (analise?.textoLegivel && !cliente) {
+            <p class="ia-aplica"><app-icon name="sparkles" [size]="12" /> O arquivo será salvo com a categoria e o vencimento lidos da guia.</p>
+          }
+        </app-leitura-ia>
+      }
 
       <div class="field">
         <label class="field-label" for="anexar-pasta">Pasta de destino <span class="req">*</span></label>
@@ -76,7 +100,11 @@
       <div class="field">
         <label class="field-label" for="anexar-desc">Descrição <span class="text-faint">(opcional)</span></label>
         <input id="anexar-desc" class="input" name="descricao" [(ngModel)]="descricao" [disabled]="enviando" maxlength="255"
+               (ngModelChange)="onDescricaoEditada()"
                [placeholder]="cliente ? 'Ex.: extrato de setembro, conta principal' : 'Ex.: guia com juros e multa'" />
+        @if (descricaoDaIa) {
+          <span class="field-hint ia-hint"><app-icon name="sparkles" [size]="12" /> {{ analise?.fonte === 'IA' ? 'Aplicado pela IA' : 'Preenchido pela leitura automática' }} — edite se quiser.</span>
+        }
       </div>
 
       @if (erro) {

@@ -14,6 +14,7 @@ import { ArquivoResponseDTO } from '../../../models/arquivo-response.dto';
 import { StatusArquivo, StatusArquivoLabel } from '../../../models/enums/status-arquivo.enum';
 import { CategoriaFiscalLabel } from '../../../models/enums/categoria-fiscal.enum';
 import { EXT_IMAGEM, extensao, mostraPrazo, tomStatus, visualTipo, VisualTipo } from '../tipo-arquivo.util';
+import { DadosLeituraComponent } from '../../ia/dados-leitura/dados-leitura.component';
 
 /**
  * Detalhes de um arquivo com pré-visualização (imagem/PDF) e edição rápida (admin).
@@ -23,7 +24,7 @@ import { EXT_IMAGEM, extensao, mostraPrazo, tomStatus, visualTipo, VisualTipo } 
 @Component({
   selector: 'app-arquivo-detalhe',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, SafePipe, IconComponent, BytesPipe, PrazoPipe, PrazoTomPipe, IniciaisPipe, AvatarCorPipe],
+  imports: [CommonModule, FormsModule, RouterLink, SafePipe, IconComponent, BytesPipe, PrazoPipe, PrazoTomPipe, IniciaisPipe, AvatarCorPipe, DadosLeituraComponent],
   templateUrl: './arquivo-detalhe.component.html',
   styleUrl: './arquivo-detalhe.component.css'
 })

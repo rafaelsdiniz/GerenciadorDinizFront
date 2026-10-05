@@ -138,6 +138,12 @@
         </select>
       }
       <div class="filter-chips" role="group" aria-label="Situação">
+        @if (contar('mensagens') > 0 || filtro === 'mensagens') {
+          <button type="button" class="chip chip-danger" [class.active]="filtro === 'mensagens'" (click)="setFiltro('mensagens')"
+                  [title]="isAdmin ? 'Obrigações com mensagens do cliente ainda não lidas' : 'Obrigações com mensagens do escritório ainda não lidas'">
+            <app-icon name="message-circle" [size]="14" /> Com mensagens novas <span class="count">{{ contar('mensagens') }}</span>
+          </button>
+        }
         @if (!isAdmin) {
           <button type="button" class="chip chip-accent" [class.active]="filtro === 'enviar'" (click)="setFiltro('enviar')"
                   title="Documentos que sua empresa precisa enviar ao escritório">
@@ -211,6 +217,7 @@
         </div>
         <div class="empty-title">
           @switch (filtro) {
+            @case ('mensagens') { Nenhuma mensagem nova }
             @case ('enviar') { Nenhum documento a enviar }
             @case ('pagar') { Nenhuma guia aguardando pagamento }
             @case ('vencidas') { Nenhuma obrigação vencida }
@@ -239,6 +246,7 @@
               <button type="button" class="m-titulo" (click)="abrirDetalhe(l)">
                 <span class="cell-main">{{ l.p.nomeObrigacao || 'Obrigação avulsa' }}</span>
                 @if (l.p.competencia) { <span class="cell-sub tnum">Competência {{ l.p.competencia }}</span> }
+                @if (l.p.valorGuia != null) { <span class="cell-sub tnum valor-guia" title="Valor da guia (lido do documento)">Guia: {{ l.p.valorGuia | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span> }
               </button>
               <span [class]="'badge badge-dot ' + statusClasse(l.situacao)">{{ statusTexto(l.situacao) }}</span>
             </div>
@@ -248,6 +256,11 @@
                       [attr.aria-label]="l.arquivos + ' arquivo(s) anexado(s) — ver detalhes'">
                 <app-icon name="paperclip" [size]="14" /> <span class="tnum">{{ l.arquivos }}</span>
               </button>
+              @if (mensagensNovas(l); as n) {
+                <button type="button" class="msg-nova" (click)="abrirDetalhe(l)" [attr.aria-label]="n + ' mensagem(ns) nova(s) — abrir conversa'">
+                  <app-icon name="message-circle" [size]="13" /> <span class="tnum">{{ n }}</span>
+                </button>
+              }
             </div>
             @if (!idEmpresaUsuario) {
             <div class="m-emp">
@@ -344,11 +357,18 @@
                       <app-icon [name]="l.situacao === 'ENTREGUE' ? 'file-check' : 'file-clock'" [size]="15" />
                     </span>
                     <div class="min0 obr-cell">
-                      <span class="cell-main">{{ l.p.nomeObrigacao || 'Obrigação avulsa' }}</span>
+                      <span class="cell-main">{{ l.p.nomeObrigacao || 'Obrigação avulsa' }}
+                        @if (mensagensNovas(l); as n) {
+                          <span class="msg-nova" [title]="n + ' mensagem(ns) nova(s) na conversa'" [attr.aria-label]="n + ' mensagem(ns) nova(s)'">
+                            <app-icon name="message-circle" [size]="12" /> <span class="tnum">{{ n }}</span>
+                          </span>
+                        }
+                      </span>
                       <span class="cell-sub obr-sub">
                         @if (l.p.competencia) { <span class="tnum nowrap">Competência {{ l.p.competencia }}</span> }
                         @else if (!l.p.idObrigacaoRecorrente) { Avulsa }
                         <span class="badge resp" [class.badge-accent]="l.cliente" [class.badge-primary]="!l.cliente">{{ l.cliente ? 'Cliente envia' : 'Escritório' }}</span>
+                        @if (l.p.valorGuia != null) { <span class="tnum nowrap valor-guia" title="Valor da guia (lido do documento)">Guia {{ l.p.valorGuia | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span> }
                       </span>
                     </div>
                   </div>

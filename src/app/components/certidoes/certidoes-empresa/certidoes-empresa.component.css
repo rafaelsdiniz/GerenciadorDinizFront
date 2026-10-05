@@ -1,0 +1,26 @@
+:host { display: block; }
+.topo { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.mb { margin-bottom: var(--sp-lg); }
+
+.pilulas { display: flex; flex-wrap: wrap; gap: 8px; }
+.pil {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 32px; padding: 0 12px;
+  border: 1px solid var(--hairline); border-radius: var(--radius-pill);
+  background: var(--canvas); color: var(--ink-2);
+  font-size: 12.5px; font-weight: 500; cursor: pointer;
+  transition: border-color var(--t-fast), background var(--t-fast);
+}
+.pil:disabled { cursor: default; }
+.pil:not(:disabled):hover { border-color: var(--hairline-strong); background: var(--canvas-soft); }
+.pil app-icon { color: var(--ink-faint); }
+.pil-txt { color: var(--ink-mute); font-weight: 400; }
+.pdot { width: 9px; height: 9px; border-radius: 50%; background: transparent; border: 1.5px dashed var(--ink-faint); flex-shrink: 0; }
+.pil.success .pdot { background: var(--success); border: 0; }
+.pil.warning { border-color: var(--warning-200); background: var(--warning-bg); }
+.pil.warning .pdot { background: var(--warning); border: 0; }
+.pil.warning .pil-txt { color: var(--warning-fg); font-weight: 500; }
+.pil.danger { border-color: var(--danger-200); background: var(--danger-bg); }
+.pil.danger .pdot { background: var(--danger); border: 0; }
+.pil.danger .pil-txt { color: var(--danger-fg); font-weight: 500; }
+.pil.neutral { color: var(--ink-faint); }

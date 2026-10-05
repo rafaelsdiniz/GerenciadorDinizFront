@@ -1,0 +1,85 @@
+<section class="ia-card" [class.is-danger]="temDanger && !carregando" aria-live="polite" [attr.aria-busy]="carregando">
+  <header class="ia-head">
+    <span class="ia-mark" [class.is-busy]="carregando"><app-icon name="sparkles" [size]="15" /></span>
+    <div class="ia-head-text">
+      <strong>Leitura inteligente</strong>
+      <span>
+        @if (carregando) { Lendo e conferindo o documento… }
+        @else if (analise?.fonte === 'IA') { Dados extraídos por IA e conferidos automaticamente }
+        @else if (analise) { Dados extraídos automaticamente do documento }
+        @else { Extração automática de dados }
+      </span>
+    </div>
+    @if (analise && !carregando && analise.textoLegivel) {
+      @if (analise.fonte === 'IA') {
+        <span class="badge badge-accent ia-fonte" [title]="'Modelo: ' + (analise.modelo || 'DeepSeek')"><app-icon name="sparkles" [size]="12" /> Lido por IA</span>
+      } @else {
+        <span class="badge badge-neutral ia-fonte" title="Leitura por padrões (sem IA)"><app-icon name="zap" [size]="12" /> Leitura automática</span>
+      }
+    }
+  </header>
+
+  @if (carregando) {
+    <div class="ia-grid" aria-label="Lendo documento">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <div class="ia-item"><span class="skeleton sk-l"></span><span class="skeleton sk-v"></span></div>
+      }
+    </div>
+    <span class="sr-only">Lendo documento…</span>
+  } @else if (erro) {
+    <p class="ia-nota"><app-icon name="info" [size]="14" /> {{ erro }}</p>
+  } @else if (analise) {
+    @if (analise.textoLegivel) {
+      <div class="ia-tipo">
+        <span class="tag">{{ analise.tipoDocumentoRotulo }}</span>
+        @if (analise.razaoSocial) { <span class="ia-razao truncate" [title]="analise.razaoSocial">{{ analise.razaoSocial }}</span> }
+        <span class="ia-conf tnum" title="Confiança da leitura">{{ confianca }}% de confiança</span>
+      </div>
+
+      <dl class="ia-grid">
+        <div class="ia-item">
+          <dt>Valor</dt>
+          <dd class="ia-valor tnum">{{ analise.valor != null ? (analise.valor | currency:'BRL':'symbol':'1.2-2':'pt-BR') : '—' }}</dd>
+        </div>
+        <div class="ia-item">
+          <dt>Vencimento</dt>
+          <dd class="tnum">{{ analise.vencimento ? (analise.vencimento | date:'dd/MM/yyyy') : (analise.validade ? 'Válida até ' + (analise.validade | date:'dd/MM/yyyy') : '—') }}</dd>
+        </div>
+        <div class="ia-item">
+          <dt>Competência</dt>
+          <dd class="tnum">{{ analise.competencia || '—' }}</dd>
+        </div>
+        <div class="ia-item">
+          <dt>CNPJ</dt>
+          <dd class="tnum ia-cnpj" [class.ok]="analise.cnpjConfere === true" [class.bad]="analise.cnpjConfere === false">
+            <span class="truncate">{{ cnpj || '—' }}</span>
+            @if (analise.cnpjConfere === true) { <app-icon name="check-circle" [size]="14" title="Confere com a empresa" /> }
+            @else if (analise.cnpjConfere === false) { <app-icon name="x-circle" [size]="14" title="Diferente da empresa" /> }
+          </dd>
+        </div>
+      </dl>
+
+      @if (analise.linhaDigitavel) {
+        <div class="ia-linha">
+          <app-icon name="barcode" [size]="16" />
+          <span class="ia-linha-num tnum" [title]="analise.linhaDigitavel">{{ linha }}</span>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="copiar()" aria-label="Copiar linha digitável">
+            <app-icon [name]="copiado ? 'check' : 'copy'" [size]="14" /> {{ copiado ? 'Copiado' : 'Copiar' }}
+          </button>
+        </div>
+      }
+    }
+
+    @if (alertasVisiveis.length) {
+      <ul class="ia-alertas">
+        @for (a of alertasVisiveis; track a.codigo + a.mensagem) {
+          <li [class]="'ia-alerta ' + a.nivel"><app-icon [name]="icone(a)" [size]="14" /><span>{{ a.mensagem }}</span></li>
+        }
+      </ul>
+    }
+    @if (semDivergencias) {
+      <p class="ia-ok"><app-icon name="check-circle" [size]="14" /> Documento confere com {{ conferencia }}.</p>
+    }
+    <ng-content />
+  }
+</section>

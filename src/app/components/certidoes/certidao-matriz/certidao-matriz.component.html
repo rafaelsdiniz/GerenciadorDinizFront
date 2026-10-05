@@ -1,0 +1,61 @@
+<div class="mx-head">
+  <div class="legenda" aria-label="Legenda">
+    <span><i class="mdot success"></i> Válida <b class="tnum">{{ totais.success }}</b></span>
+    <span><i class="mdot warning"></i> Vence em até 15 dias <b class="tnum">{{ totais.warning }}</b></span>
+    <span><i class="mdot danger"></i> Vencida ou positiva <b class="tnum">{{ totais.danger }}</b></span>
+    <span><i class="mdot neutral"></i> Não cadastrada <b class="tnum">{{ totais.neutral }}</b></span>
+  </div>
+  @if (podeEditar) { <span class="text-xs text-mute dica">Clique numa célula para renovar ou cadastrar</span> }
+</div>
+
+<div class="mx-wrap">
+  <table class="mx" aria-label="Matriz de certidões por empresa">
+    <thead>
+      <tr>
+        <th class="mx-emp" scope="col">Empresa</th>
+        @for (t of tipos; track t.id) {
+          <th scope="col" [title]="t.rotulo">
+            <span class="th-tipo"><app-icon [name]="t.icone" [size]="14" /> {{ t.curto }}</span>
+          </th>
+        }
+        <th scope="col" class="mx-sit">Situação</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (l of linhas; track l.idEmpresa) {
+        <tr>
+          <th scope="row" class="mx-emp">
+            <a class="emp" [routerLink]="['/empresas', l.idEmpresa]" [title]="'Abrir ' + l.nome">
+              <span [class]="'avatar avatar-sm ' + (l.nome | avatarCor)">{{ l.nome | iniciais }}</span>
+              <span class="truncate">{{ l.nome }}</span>
+            </a>
+          </th>
+          @for (c of l.celulas; track c.tipo) {
+            <td>
+              <button type="button" class="cel" [class]="'cel ' + c.tom" [class.dim]="esmaecida(c)" [disabled]="!podeEditar"
+                      (click)="abrir.emit(c)" [title]="c.titulo + (c.certidao ? ' · validade ' + (c.certidao.dataValidade | date:'dd/MM/yyyy') : '')"
+                      [attr.aria-label]="c.titulo">
+                <i class="mdot" [class]="'mdot ' + c.tom"></i>
+                <span class="tnum">{{ c.texto }}</span>
+                @if (!c.certidao && podeEditar) { <app-icon name="plus" [size]="12" class="mais" /> }
+              </button>
+            </td>
+          }
+          <td class="mx-sit">
+            @if (l.alertas) {
+              <span class="badge badge-soft tnum" [class.badge-danger]="l.pior === 0" [class.badge-warning]="l.pior > 0">
+                {{ l.alertas }} {{ l.alertas === 1 ? 'alerta' : 'alertas' }}
+              </span>
+            } @else if (l.faltando === tipos.length) {
+              <span class="badge badge-soft badge-neutral">Sem certidões</span>
+            } @else {
+              <span class="badge badge-soft badge-success"><app-icon name="check" [size]="12" /> Em dia</span>
+            }
+          </td>
+        </tr>
+      } @empty {
+        <tr><td [attr.colspan]="tipos.length + 2" class="vazio">Nenhuma empresa para exibir.</td></tr>
+      }
+    </tbody>
+  </table>
+</div>

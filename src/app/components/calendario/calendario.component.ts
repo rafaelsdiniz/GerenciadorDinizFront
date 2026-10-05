@@ -13,7 +13,7 @@ import { ToastService } from '../../shared/ui/toast.service';
 import { UrgenciaDecLabel } from '../../models/comunicacao-dec.dto';
 
 type Tom = 'danger' | 'warning' | 'success' | 'neutral' | 'info';
-type FiltroTipo = 'TODOS' | 'OBRIGACAO' | 'ARQUIVO' | 'DEC';
+type FiltroTipo = 'TODOS' | 'OBRIGACAO' | 'ARQUIVO' | 'DEC' | 'CERTIDAO';
 
 interface DiaCelula {
   data: Date | null;
@@ -281,6 +281,10 @@ export class CalendarioComponent implements OnInit, OnDestroy {
       if (ev.data < this.hojeIso || ev.categoria === 'CRITICA' || ev.categoria === 'ALTA') return 'danger';
       return 'warning';
     }
+    if (ev.tipo === 'CERTIDAO') {
+      // validade de certidão: VENCIDA = perigo · VENCENDO (≤ 15 dias) = atenção · VALIDA = ok
+      return ev.status === 'VENCIDA' ? 'danger' : ev.status === 'VENCENDO' ? 'warning' : 'success';
+    }
     const s = (ev.status ?? '').toUpperCase();
     if (s === 'ENTREGUE') return 'success';
     if (s === 'VENCIDO' || s === 'VENCIDA') return 'danger';
@@ -291,6 +295,7 @@ export class CalendarioComponent implements OnInit, OnDestroy {
 
   statusTexto(ev: EventoCalendarioDTO): string {
     if (ev.tipo === 'DEC') return ev.status === 'PRAZO_RESPOSTA' ? 'Prazo de resposta' : 'Ciência tácita';
+    if (ev.tipo === 'CERTIDAO') return ev.status === 'VENCIDA' ? 'Vencida' : ev.status === 'VENCENDO' ? 'Renovar' : 'Válida';
     const fem = ev.tipo === 'OBRIGACAO';
     switch (this.tom(ev)) {
       case 'success': return 'Entregue';
@@ -302,13 +307,14 @@ export class CalendarioComponent implements OnInit, OnDestroy {
   }
 
   categoriaTexto(ev: EventoCalendarioDTO): string {
-    if (!ev.categoria) return '';
+    if (!ev.categoria || ev.tipo === 'CERTIDAO') return '';
     if (ev.tipo === 'DEC') return 'Urgência ' + (UrgenciaDecLabel[ev.categoria] ?? ev.categoria).toLowerCase();
     return CategoriaFiscalLabel[ev.categoria as CategoriaFiscal] ?? ev.categoria;
   }
 
   linkEvento(ev: EventoCalendarioDTO): { link: string[]; params: Record<string, number> } {
     if (ev.tipo === 'DEC') return { link: ['/dec'], params: this.idEmpresa ? { empresa: this.idEmpresa } : {} };
+    if (ev.tipo === 'CERTIDAO') return { link: ['/certidoes'], params: this.idEmpresa ? { empresa: this.idEmpresa } : {} };
     return ev.tipo === 'ARQUIVO'
       ? { link: ['/arquivos'], params: { id: ev.idReferencia } }
       : { link: ['/obrigacoes-pendentes'], params: this.idEmpresa ? { empresa: this.idEmpresa } : {} };

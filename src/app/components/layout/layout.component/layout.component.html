@@ -95,6 +95,9 @@
                   </button>
                 }
 
+                <app-mensagens-notificacao [limite]="4" titulo="Mensagens" [ocultarSeVazio]="true"
+                  (navegou)="menuNotifAberto = false" (resumo)="msgsNaoLidas = $event.naoLidas" />
+
                 @if (decAtencao.length) {
                   <div class="menu-label">DEC · SEFAZ-TO</div>
                   @for (c of decAtencao.slice(0, 4); track c.id) {
@@ -187,5 +190,6 @@
     <main class="content" id="conteudo">
       <router-outlet />
     </main>
+    <app-assistente />
   </div>
 </div>

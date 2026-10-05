@@ -1,0 +1,362 @@
+<div class="page">
+  <header class="page-header">
+    <div class="page-header-text">
+      <h1 class="page-title">Fechamento mensal</h1>
+      <p class="page-subtitle">
+        Competência <strong class="text-ink-2">{{ rotuloCompetencia }}</strong>
+        @if (prazoCompetencia) { · prazo interno até <span class="tnum">{{ prazoCompetencia | date:'dd/MM/yyyy' }}</span> }
+      </p>
+    </div>
+    <div class="page-actions">
+      <div class="comp-switch" role="group" aria-label="Competência">
+        <button type="button" class="btn-icon bordered" (click)="irPara(-1)" [disabled]="!podeAnterior"
+                aria-label="Competência anterior" title="Competência anterior">
+          <app-icon name="chevron-left" [size]="18" />
+        </button>
+        <select class="select comp-select tnum" [ngModel]="competencia" (ngModelChange)="trocarCompetencia($event)"
+                aria-label="Selecionar competência">
+          @for (c of competencias; track c.competencia) {
+            <option [value]="c.competencia">{{ c.competencia }} · {{ c.rotulo }}{{ c.padrao ? ' (atual)' : '' }}</option>
+          }
+        </select>
+        <button type="button" class="btn-icon bordered" (click)="irPara(1)" [disabled]="!podeProxima"
+                aria-label="Próxima competência" title="Próxima competência">
+          <app-icon name="chevron-right" [size]="18" />
+        </button>
+      </div>
+      <button type="button" class="btn btn-secondary" (click)="carregar()" [disabled]="carregando">
+        <app-icon name="refresh" [size]="16" [class.girando]="carregando" /> Atualizar
+      </button>
+    </div>
+  </header>
+
+  <!-- resumo da competência -->
+  <section class="card resumo" aria-label="Resumo da competência">
+    <div class="resumo-pct">
+      <span class="kpi-label">Concluído</span>
+      @if (carregando && !fechamentos.length) {
+        <span class="skeleton sk-num"></span>
+      } @else {
+        <div class="resumo-num">
+          <span class="resumo-valor tnum" [class.text-success]="percentual === 100">{{ percentual }}%</span>
+          <span class="text-sm text-mute"><strong class="tnum text-ink-2">{{ concluidos }}</strong> de <span class="tnum">{{ fechamentos.length }}</span> empresas</span>
+        </div>
+      }
+      <div class="progress success resumo-bar" role="progressbar" [attr.aria-valuenow]="percentual" aria-valuemin="0" aria-valuemax="100"
+           aria-label="Percentual concluído">
+        <span [style.width.%]="percentual"></span>
+      </div>
+      <div class="resumo-alertas">
+        @if (atrasados) {
+          <button type="button" class="badge badge-soft badge-danger" (click)="alternarAtrasados()" title="Filtrar atrasados">
+            <app-icon name="alert-triangle" [size]="13" /> {{ atrasados }} com prazo vencido
+          </button>
+        }
+        @if (semResponsavel) {
+          <button type="button" class="badge badge-soft badge-warning" (click)="filtroResp = 'nenhum'; aoFiltrarResp()" title="Filtrar sem responsável">
+            <app-icon name="user" [size]="13" /> {{ semResponsavel }} sem responsável
+          </button>
+        }
+        @if (!carregando && fechamentos.length && !atrasados && !semResponsavel) {
+          <span class="badge badge-soft badge-success"><app-icon name="check" [size]="13" /> Tudo dentro do prazo</span>
+        }
+      </div>
+    </div>
+    <div class="resumo-etapas">
+      @for (e of etapas; track e.id) {
+        <div class="resumo-etapa" [attr.data-tom]="e.tom">
+          <span class="icon-tile sm {{ e.tom }}"><app-icon [name]="e.icone" [size]="16" /></span>
+          <div class="min-w-0">
+            <div class="stat-label">{{ e.nome }}</div>
+            <div class="stat-value tnum">{{ contarEtapa(e.id) }}</div>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- filtros -->
+  <div class="filter-card">
+    <div class="input-icon search">
+      <app-icon name="search" [size]="16" />
+      <input class="input" type="search" placeholder="Buscar empresa ou CNPJ…" [(ngModel)]="busca" (ngModelChange)="recalcular()"
+             aria-label="Buscar empresa" />
+    </div>
+    <div class="filter-chips">
+      <select class="select resp-select" [(ngModel)]="filtroResp" (ngModelChange)="aoFiltrarResp()" aria-label="Filtrar por responsável">
+        <option value="">Todos os responsáveis</option>
+        <option value="nenhum">Sem responsável</option>
+        @for (u of equipe; track u.id) {
+          <option [value]="'' + u.id">{{ u.nome }}{{ u.id === meuId ? ' (você)' : '' }}</option>
+        }
+      </select>
+      <button type="button" class="chip" [class.active]="soMeus" (click)="alternarMeus()" [attr.aria-pressed]="soMeus">
+        <app-icon name="user" [size]="14" /> Só os meus <span class="count tnum">{{ meus }}</span>
+      </button>
+      @if (atrasados || soAtrasados) {
+        <button type="button" class="chip chip-danger" [class.active]="soAtrasados" (click)="alternarAtrasados()" [attr.aria-pressed]="soAtrasados">
+          Atrasados <span class="count tnum">{{ atrasados }}</span>
+        </button>
+      }
+      @if (filtrosAtivos) {
+        <button type="button" class="btn btn-ghost btn-sm" (click)="limparFiltros()">
+          <app-icon name="x" [size]="14" /> Limpar
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- quadro -->
+  @if (carregando && !fechamentos.length) {
+    <div class="board" aria-busy="true" aria-label="Carregando quadro">
+      @for (e of etapas; track e.id) {
+        <section class="col" [attr.data-tom]="e.tom">
+          <header class="col-head">
+            <span class="col-icon"><app-icon [name]="e.icone" [size]="16" /></span>
+            <h2 class="col-title">{{ e.nome }}</h2>
+          </header>
+          <div class="col-body">
+            @for (i of [1, 2]; track i) {
+              <div class="fcard sk-card">
+                <span class="skeleton skeleton-line" style="width: 70%"></span>
+                <span class="skeleton skeleton-line" style="width: 45%"></span>
+                <span class="skeleton skeleton-line" style="width: 90%"></span>
+              </div>
+            }
+          </div>
+        </section>
+      }
+    </div>
+  } @else if (erro && !fechamentos.length) {
+    <div class="card empty">
+      <div class="empty-icon"><app-icon name="alert-circle" [size]="24" /></div>
+      <div class="empty-title">Não foi possível carregar o fechamento</div>
+      <div class="empty-text">{{ erro }}</div>
+      <button type="button" class="btn btn-primary" (click)="carregar()"><app-icon name="refresh" [size]="16" /> Tentar novamente</button>
+    </div>
+  } @else if (!fechamentos.length) {
+    <div class="card empty">
+      <div class="empty-icon"><app-icon name="calendar-check" [size]="24" /></div>
+      <div class="empty-title">Nenhum fechamento nesta competência</div>
+      <div class="empty-text">Só são criados fechamentos para empresas ativas, dos últimos 12 meses até o mês atual.</div>
+      <a routerLink="/empresas" class="btn btn-secondary"><app-icon name="building" [size]="16" /> Ver empresas</a>
+    </div>
+  } @else {
+    @if (filtrosAtivos && !totalFiltrado) {
+      <div class="alert alert-info filtro-vazio">
+        <app-icon name="filter" [size]="16" />
+        <span>Nenhuma empresa encontrada com esses filtros.</span>
+        <button type="button" class="btn btn-ghost btn-sm" (click)="limparFiltros()">Limpar filtros</button>
+      </div>
+    }
+
+    <div class="board" [class.is-dragging]="arrastandoId != null">
+      @for (col of colunas; track col.etapa.id) {
+        <section class="col" [attr.data-tom]="col.etapa.tom" [class.is-over]="colunaAlvo === col.etapa.id"
+                 (dragover)="aoSobrevoar($event, col.etapa.id)" (dragleave)="aoSairColuna($event, col.etapa.id)"
+                 (drop)="aoSoltar($event, col.etapa.id)" [attr.aria-label]="col.etapa.nome">
+          <header class="col-head" [title]="col.etapa.descricao">
+            <span class="col-icon"><app-icon [name]="col.etapa.icone" [size]="16" /></span>
+            <h2 class="col-title">{{ col.etapa.nome }}</h2>
+            <span class="col-count tnum">{{ col.cards.length }}</span>
+          </header>
+
+          <div class="col-body">
+            @for (c of col.cards; track c.f.id) {
+              <article class="fcard" draggable="true" tabindex="0" [attr.data-card]="c.f.id"
+                       [class.is-drag]="arrastandoId === c.f.id" [class.is-saving]="salvando.has(c.f.id)"
+                       [class.is-late]="c.f.atrasado" [class.is-menu]="menuAberto === c.f.id"
+                       [attr.aria-label]="c.f.nomeEmpresa + ' — ' + col.etapa.nome + '. Enter para editar, Shift e setas para mudar de etapa.'"
+                       (dragstart)="aoArrastar($event, c)" (dragend)="aoFimArrastar()"
+                       (click)="abrirEdicao(c.f)" (keydown)="aoTeclar($event, c.f)">
+                <div class="fcard-top">
+                  <span class="avatar avatar-square {{ c.f.nomeEmpresa | avatarCor }}">{{ c.f.nomeEmpresa | iniciais }}</span>
+                  <div class="fcard-title">
+                    <div class="fcard-nome truncate" [title]="c.f.nomeEmpresa">{{ c.f.nomeEmpresa }}</div>
+                    <div class="fcard-sub truncate">{{ regime(c.f.regimeTributario) || (c.f.cnpj | documento) }}</div>
+                  </div>
+                  <div class="fcard-menu">
+                    <button type="button" class="btn-icon sm" (click)="alternarMenu($event, c.f.id)"
+                            aria-haspopup="menu" [attr.aria-expanded]="menuAberto === c.f.id" [attr.aria-label]="'Ações de ' + c.f.nomeEmpresa"
+                            title="Mover para… / ações">
+                      <app-icon name="more-horizontal" [size]="16" />
+                    </button>
+                    @if (menuAberto === c.f.id) {
+                      <div class="menu fmenu" role="menu" (click)="$event.stopPropagation()">
+                        <div class="menu-label">Mover para…</div>
+                        @for (e of etapas; track e.id) {
+                          <button type="button" class="menu-item" role="menuitem" [disabled]="e.id === c.f.etapa"
+                                  (click)="moverPeloMenu($event, c.f, e.id)">
+                            <span class="edot" [attr.data-tom]="e.tom"></span> {{ e.nome }}
+                            @if (e.id === c.f.etapa) { <app-icon name="check" [size]="14" class="menu-check" /> }
+                          </button>
+                        }
+                        <div class="menu-sep"></div>
+                        <button type="button" class="menu-item" role="menuitem" (click)="abrirEdicao(c.f)">
+                          <app-icon name="pencil" [size]="15" /> Editar
+                        </button>
+                        <a class="menu-item" role="menuitem" routerLink="/obrigacoes-pendentes" [queryParams]="{ empresa: c.f.idEmpresa }">
+                          <app-icon name="list-checks" [size]="15" /> Ver pendências
+                        </a>
+                        <a class="menu-item" role="menuitem" [routerLink]="['/empresas', c.f.idEmpresa]">
+                          <app-icon name="building" [size]="15" /> Abrir empresa
+                        </a>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                @if (c.total) {
+                  <div class="fcard-prog" [title]="c.feitas + ' de ' + c.total + ' obrigações da competência cumpridas'">
+                    <div class="progress" [class.success]="c.pct === 100"><span [style.width.%]="c.pct"></span></div>
+                    <span class="tnum">{{ c.feitas }}/{{ c.total }}</span>
+                  </div>
+                }
+
+                @if (c.chips.length) {
+                  <div class="fcard-chips">
+                    @for (ch of c.chips; track ch.texto) {
+                      <span class="badge badge-{{ ch.tom }}" [title]="ch.titulo"><app-icon [name]="ch.icone" [size]="12" /> {{ ch.texto }}</span>
+                    }
+                  </div>
+                } @else if (!c.total) {
+                  <div class="fcard-vazio">Sem obrigações nesta competência</div>
+                }
+
+                @if (c.f.observacao) {
+                  <p class="fcard-obs" [title]="c.f.observacao">{{ c.f.observacao }}</p>
+                }
+
+                <footer class="fcard-foot">
+                  @if (c.f.etapa === 'CONCLUIDO') {
+                    <span class="badge badge-success" [title]="c.f.concluidoEm ? 'Concluído em ' + (c.f.concluidoEm | date:'dd/MM/yyyy HH:mm') : 'Concluído'">
+                      <app-icon name="check" [size]="12" /> Concluído{{ c.f.concluidoEm ? ' ' + (c.f.concluidoEm | date:'dd/MM') : '' }}
+                    </span>
+                  } @else if (c.f.prazo) {
+                    <span class="badge badge-{{ c.f.diasParaPrazo | prazoTom }}" [title]="'Prazo interno: ' + (c.f.prazo | date:'dd/MM/yyyy')">
+                      <app-icon name="clock" [size]="12" /> {{ c.f.diasParaPrazo | prazo }}
+                    </span>
+                  }
+                  @if (salvando.has(c.f.id)) { <span class="spinner fspin" aria-label="Salvando"></span> }
+                  <span class="spacer"></span>
+                  @if (c.f.idResponsavel) {
+                    <span class="fresp" [title]="'Responsável: ' + c.f.nomeResponsavel">
+                      <span class="truncate">{{ primeiroNome(c.f.nomeResponsavel) }}</span>
+                      <span class="avatar avatar-sm {{ c.f.nomeResponsavel | avatarCor }}">{{ c.f.nomeResponsavel | iniciais }}</span>
+                    </span>
+                  } @else {
+                    <span class="fresp is-none" title="Sem responsável — clique para definir">
+                      <span>Definir</span>
+                      <span class="avatar avatar-sm"><app-icon name="user-plus" [size]="13" /></span>
+                    </span>
+                  }
+                </footer>
+              </article>
+            } @empty {
+              <div class="col-empty">
+                {{ arrastandoId != null ? 'Solte aqui' : (filtrosAtivos ? 'Nenhuma empresa com estes filtros' : 'Nenhuma empresa nesta etapa') }}
+              </div>
+            }
+          </div>
+        </section>
+      }
+    </div>
+
+    <p class="footnote">
+      <app-icon name="info" [size]="14" />
+      <span>Arraste os cards entre as colunas ou use o menu <strong>⋯ › Mover para…</strong>. Com um card selecionado:
+        <span class="kbd">Enter</span> edita, <span class="kbd">Shift</span> + <span class="kbd">←</span>/<span class="kbd">→</span> muda de etapa.</span>
+    </p>
+  }
+</div>
+
+<!-- modal de edição -->
+@if (editando; as f) {
+  <div class="modal-backdrop" (click)="fecharEdicao()">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="fech-modal-titulo" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="m-head">
+          <span class="avatar avatar-lg avatar-square {{ f.nomeEmpresa | avatarCor }}">{{ f.nomeEmpresa | iniciais }}</span>
+          <div class="min-w-0">
+            <h2 class="modal-title truncate" id="fech-modal-titulo">{{ f.nomeEmpresa }}</h2>
+            <p class="modal-subtitle">Fechamento <span class="tnum">{{ f.competencia }}</span>@if (f.cnpj) { · <span class="tnum">{{ f.cnpj | documento }}</span> }</p>
+          </div>
+        </div>
+        <button type="button" class="btn-icon" (click)="fecharEdicao()" aria-label="Fechar"><app-icon name="x" [size]="18" /></button>
+      </div>
+
+      <form class="modal-body" id="fech-form" (ngSubmit)="salvarEdicao()">
+        <div class="form-grid">
+          <div class="field">
+            <label class="field-label" for="fech-etapa">Etapa</label>
+            <select id="fech-etapa" class="select" name="etapa" [(ngModel)]="form.etapa">
+              @for (e of etapas; track e.id) { <option [ngValue]="e.id">{{ e.nome }}</option> }
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="fech-resp">Responsável</label>
+            <select id="fech-resp" class="select" name="responsavel" [(ngModel)]="form.responsavel">
+              <option value="">Sem responsável</option>
+              @for (u of equipeModal; track u.id) {
+                <option [value]="'' + u.id">{{ u.nome }}{{ u.id === meuId ? ' (você)' : '' }}</option>
+              }
+            </select>
+          </div>
+          <div class="field span-2">
+            <label class="field-label" for="fech-obs">Observação</label>
+            <textarea id="fech-obs" class="textarea" name="observacao" rows="3" maxlength="1000" [(ngModel)]="form.observacao"
+                      placeholder="Ex.: cliente vai enviar o extrato até sexta"></textarea>
+            <span class="field-hint m-cont tnum">{{ form.observacao.length }}/1000</span>
+          </div>
+        </div>
+
+        <div class="m-ind">
+          <div class="m-stat">
+            <span class="stat-label">Documentos do cliente</span>
+            <strong class="tnum" [class.text-warning]="f.indicadores.documentosClientePendentes">
+              {{ f.indicadores.documentosClienteTotal - f.indicadores.documentosClientePendentes }}/{{ f.indicadores.documentosClienteTotal }}
+            </strong>
+            <span class="text-xs text-mute">recebidos</span>
+          </div>
+          <div class="m-stat">
+            <span class="stat-label">Guias e declarações</span>
+            <strong class="tnum">{{ f.indicadores.obrigacoesEscritorioEntregues }}/{{ f.indicadores.obrigacoesEscritorioTotal }}</strong>
+            <span class="text-xs text-mute">entregues</span>
+          </div>
+          <div class="m-stat">
+            <span class="stat-label">Aguardando pagamento</span>
+            <strong class="tnum" [class.text-danger]="f.indicadores.guiasPagamentoAtrasado">{{ f.indicadores.guiasAguardandoPagamento }}</strong>
+            <span class="text-xs text-mute">{{ f.indicadores.guiasPagamentoAtrasado ? f.indicadores.guiasPagamentoAtrasado + ' atrasada(s)' : f.indicadores.guiasPagas + ' paga(s)' }}</span>
+          </div>
+          <div class="m-stat">
+            <span class="stat-label">Prazo interno</span>
+            <strong class="tnum">{{ f.prazo ? (f.prazo | date:'dd/MM/yyyy') : '—' }}</strong>
+            <span class="text-xs" [class.text-danger]="f.atrasado" [class.text-mute]="!f.atrasado">
+              {{ f.etapa === 'CONCLUIDO' ? 'Concluído' : (f.diasParaPrazo | prazo) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="m-links">
+          <a class="btn btn-outline btn-sm" routerLink="/obrigacoes-pendentes" [queryParams]="{ empresa: f.idEmpresa }">
+            <app-icon name="list-checks" [size]="15" /> Ver pendências
+          </a>
+          <a class="btn btn-ghost btn-sm" [routerLink]="['/empresas', f.idEmpresa]">
+            <app-icon name="building" [size]="15" /> Abrir empresa
+          </a>
+        </div>
+      </form>
+
+      <div class="modal-footer">
+        @if (f.dataAtualizacao) {
+          <span class="text-xs text-mute">Atualizado em {{ f.dataAtualizacao | date:"dd/MM 'às' HH:mm" }}</span>
+        }
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-secondary" (click)="fecharEdicao()" [disabled]="salvandoModal">Cancelar</button>
+        <button type="submit" form="fech-form" class="btn btn-primary" [disabled]="salvandoModal">
+          @if (salvandoModal) { <span class="spinner"></span> Salvando… } @else { Salvar }
+        </button>
+      </div>
+    </div>
+  </div>
+}

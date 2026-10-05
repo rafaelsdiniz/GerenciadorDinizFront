@@ -1,0 +1,148 @@
+<div class="modal-backdrop" (click)="tentarFechar()">
+  <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="cert-form-titulo" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="min0">
+        <h2 class="modal-title" id="cert-form-titulo">{{ editando ? 'Editar certidão' : 'Nova certidão' }}</h2>
+        <p class="modal-subtitle truncate">
+          @if (nomeEmpresa) { {{ nomeEmpresa }} · }
+          Controle de validade com aviso antes de vencer
+        </p>
+      </div>
+      <button type="button" class="btn-icon sm" (click)="tentarFechar()" [disabled]="salvando" aria-label="Fechar" title="Fechar (Esc)">
+        <app-icon name="x" [size]="18" />
+      </button>
+    </div>
+
+    <form class="modal-body stack-lg" id="form-certidao" (ngSubmit)="salvar()" novalidate>
+      @if (!empresaFixa) {
+        <div class="field">
+          <label class="field-label" for="cert-empresa">Empresa <span class="req">*</span></label>
+          <select id="cert-empresa" class="select" name="empresa" [(ngModel)]="empresaSel" [disabled]="salvando"
+                  [class.is-invalid]="tentouSalvar && !empresaSel" required>
+            <option [ngValue]="null" disabled>Selecione a empresa</option>
+            @for (e of empresas; track e.id) { <option [ngValue]="e.id">{{ e.nomeFantasia }}</option> }
+          </select>
+          @if (tentouSalvar && !empresaSel) { <span class="field-error"><app-icon name="alert-circle" [size]="14" /> Selecione a empresa.</span> }
+        </div>
+      }
+
+      <div class="field">
+        <span class="field-label" id="cert-tipo-label">Tipo de certidão <span class="req">*</span></span>
+        <div class="tipos" role="radiogroup" aria-labelledby="cert-tipo-label">
+          @for (t of tipos; track t.id) {
+            <button type="button" class="tipo" role="radio" [class.active]="tipo === t.id" [attr.aria-checked]="tipo === t.id"
+                    (click)="selecionarTipo(t.id)" [disabled]="salvando">
+              <app-icon [name]="t.icone" [size]="16" />
+              <span>{{ t.rotulo }}</span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label class="field-label" for="cert-situacao">Situação <span class="req">*</span></label>
+          <select id="cert-situacao" class="select" name="situacao" [(ngModel)]="situacao" [disabled]="salvando" required>
+            @for (s of situacoes; track s.id) { <option [ngValue]="s.id">{{ s.rotulo }}</option> }
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label" for="cert-numero">Número / código de controle</label>
+          <input id="cert-numero" class="input tnum" name="numero" [(ngModel)]="numero" maxlength="120" [disabled]="salvando"
+                 placeholder="Ex.: 8F2A.4C71.9B3D.E605" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="cert-emissao">Emissão</label>
+          <input id="cert-emissao" class="input tnum" type="date" name="emissao" [(ngModel)]="dataEmissao" [max]="hoje" [disabled]="salvando"
+                 [class.is-invalid]="!!erroDatas && dataEmissao > hoje" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="cert-validade">Validade <span class="req">*</span></label>
+          <input id="cert-validade" class="input tnum" type="date" name="validade" [(ngModel)]="dataValidade" [disabled]="salvando" required
+                 [class.is-invalid]="(tentouSalvar && !dataValidade) || (!!erroDatas && dataEmissao <= hoje)" />
+          @if (tentouSalvar && !dataValidade) {
+            <span class="field-error"><app-icon name="alert-circle" [size]="14" /> Informe a validade.</span>
+          } @else if (erroDatas) {
+            <span class="field-error"><app-icon name="alert-circle" [size]="14" /> {{ erroDatas }}</span>
+          } @else {
+            <span class="field-hint">
+              @if (prazo; as p) { <span [class]="p.tom">{{ p.texto }}</span> · }
+              @if (podeRenovar) {
+                <button type="button" class="link" (click)="renovarHoje()" [disabled]="salvando">Renovada hoje (+{{ validadePadraoDias }} dias)</button>
+              } @else {
+                <button type="button" class="link" (click)="aplicarValidadePadrao()" [disabled]="salvando">Usar {{ validadePadraoDias }} dias</button>
+              }
+            </span>
+          }
+        </div>
+        <div class="field span-2">
+          <label class="field-label" for="cert-orgao">Órgão emissor</label>
+          <input id="cert-orgao" class="input" name="orgao" [(ngModel)]="orgaoEmissor" maxlength="160" [disabled]="salvando" />
+        </div>
+        <div class="field span-2">
+          <label class="field-label" for="cert-obs">Observação</label>
+          <textarea id="cert-obs" class="textarea" name="obs" rows="2" [(ngModel)]="observacao" maxlength="1000" [disabled]="salvando"
+                    placeholder="Ex.: exigida no edital da concorrência 012/2026; débito parcelado…"></textarea>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="field-label">PDF da certidão <span class="text-faint">(opcional — vai para a pasta Certidões do Drive)</span></span>
+        @if (certidao?.nomeArquivo && !arquivo) {
+          <span class="field-hint atual"><app-icon name="paperclip" [size]="13" /> Anexado: <strong class="truncate">{{ certidao?.nomeArquivo }}</strong> · enviar outro substitui o vínculo</span>
+        }
+        @if (!arquivo) {
+          <div class="dropzone" role="button" tabindex="0" [class.is-over]="arrastando" [class.is-invalid]="erroArquivo"
+               (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)"
+               (click)="!salvando && inputArq.click()" (keydown.enter)="!salvando && inputArq.click()"
+               (keydown.space)="$event.preventDefault(); !salvando && inputArq.click()" aria-label="Selecionar PDF da certidão">
+            <span class="icon-tile"><app-icon name="upload-cloud" [size]="20" /></span>
+            <div class="dz-text">
+              <strong>{{ arrastando ? 'Solte o arquivo aqui' : 'Arraste o PDF ou clique para selecionar' }}</strong>
+              <span>PDF ou imagem · até 10 MB</span>
+            </div>
+          </div>
+        } @else {
+          <div class="file-chip">
+            <span class="icon-tile sm danger"><app-icon name="file-text" [size]="15" /></span>
+            <div class="fchip-text">
+              <span class="fchip-name truncate" [title]="arquivo.name">{{ arquivo.name }}</span>
+              <span class="fchip-meta tnum">{{ arquivo.size | bytes }}</span>
+            </div>
+            @if (!salvando) {
+              <button type="button" class="btn btn-ghost btn-sm" (click)="inputArq.click()">Trocar</button>
+              <button type="button" class="btn-icon sm" (click)="remover()" aria-label="Remover arquivo" title="Remover"><app-icon name="x" [size]="16" /></button>
+            }
+          </div>
+        }
+        <input #inputArq type="file" class="sr-only" tabindex="-1" accept=".pdf,.png,.jpg,.jpeg" (change)="onInput($event)" />
+        @if (erroArquivo) { <span class="field-error"><app-icon name="alert-circle" [size]="14" /> {{ erroArquivo }}</span> }
+
+        @if (lendo) {
+          <div class="ia ia-lendo" role="status"><span class="spinner"></span> Lendo o documento com IA…</div>
+        } @else if (avisoIa) {
+          <div class="ia ia-aviso" role="status"><app-icon name="alert-triangle" [size]="15" /> <span>{{ avisoIa }} Confira o arquivo.</span></div>
+        } @else if (lidosIa.length) {
+          <div class="ia ia-ok" role="status">
+            <app-icon name="sparkles" [size]="15" />
+            <span>A IA preencheu <strong>{{ lidosIa.join(', ') }}</strong>. Confira antes de salvar.</span>
+          </div>
+        } @else {
+          <div class="ia"><app-icon name="sparkles" [size]="15" /> <span>A IA pode ler a validade e o número direto do PDF.</span></div>
+        }
+      </div>
+
+      @if (erro) {
+        <div class="alert alert-danger" role="alert"><app-icon name="alert-circle" [size]="16" /> <span>{{ erro }}</span></div>
+      }
+    </form>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="tentarFechar()" [disabled]="salvando">Cancelar</button>
+      <button type="submit" form="form-certidao" class="btn btn-primary" [disabled]="salvando || lendo">
+        @if (salvando) { <span class="spinner"></span> Salvando… }
+        @else { <app-icon name="check" [size]="16" /> {{ editando ? 'Salvar alterações' : 'Cadastrar certidão' }} }
+      </button>
+    </div>
+  </div>
+</div>

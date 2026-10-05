@@ -46,6 +46,22 @@ export const routes: Routes = [
           .then(m => m.ComoUsarComponent)
       },
       {
+        path: 'certidoes',
+        loadComponent: () => import('./components/certidoes/certidao-list.component')
+          .then(m => m.CertidaoListComponent)
+      },
+      {
+        path: 'fechamento',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./components/fechamento/fechamento-board.component')
+          .then(m => m.FechamentoBoardComponent)
+      },
+      {
+        path: 'relatorios',
+        loadComponent: () => import('./components/relatorios/relatorios.component')
+          .then(m => m.RelatoriosComponent)
+      },
+      {
         path: 'dec',
         loadComponent: () => import('./components/dec/dec-comunicacoes.component')
           .then(m => m.DecComunicacoesComponent)

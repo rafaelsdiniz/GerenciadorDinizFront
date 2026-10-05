@@ -1,7 +1,9 @@
-import { Component, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { MensagemService } from '../../services/mensagem.service';
 import { ObrigacaoPendenteService } from '../../services/obrigacao-pendente.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { AuthService } from '../../services/auth.service';
@@ -22,8 +24,10 @@ import {
 
 /** Situação "real" exibida: PENDENTE com vencimento passado conta como VENCIDA. */
 type Situacao = 'VENCIDA' | 'PENDENTE' | 'ENTREGUE';
-type Filtro = 'enviar' | 'pagar' | 'pendentes' | 'vencidas' | 'semana' | 'entregues' | 'entreguesMes' | 'todas';
-const FILTROS: Filtro[] = ['enviar', 'pagar', 'pendentes', 'vencidas', 'semana', 'entregues', 'entreguesMes', 'todas'];
+type Filtro = 'enviar' | 'pagar' | 'pendentes' | 'vencidas' | 'semana' | 'entregues' | 'entreguesMes' | 'todas' | 'mensagens';
+const FILTROS: Filtro[] = ['enviar', 'pagar', 'pendentes', 'vencidas', 'semana', 'entregues', 'entreguesMes', 'todas', 'mensagens'];
+/** Atualização das mensagens não lidas enquanto a lista está aberta. */
+const POLL_MENSAGENS_MS = 30000;
 type Ordem = 'urgencia' | 'nome' | 'empresa' | 'vencimento';
 
 interface Linha {
@@ -60,7 +64,7 @@ const pesoPagamento = (l: Linha): number => l.pagamentoAtrasado ? 0 : l.aguardaP
   templateUrl: './obrigacao-pendente-list.component.html',
   styleUrl: './obrigacao-pendente-list.component.css'
 })
-export class ObrigacaoPendenteListComponent implements OnInit {
+export class ObrigacaoPendenteListComponent implements OnInit, OnDestroy {
   @ViewChild('buscaInput') buscaInput?: ElementRef<HTMLInputElement>;
 
   pendentes: ObrigacaoPendenteResponseDTO[] = [];
@@ -101,6 +105,11 @@ export class ObrigacaoPendenteListComponent implements OnInit {
   /** filtro veio da URL ou foi escolhido → não aplica o padrão "O que preciso enviar" */
   private filtroDefinido = false;
 
+  /** mensagens não lidas por obrigação (módulo de mensagens) */
+  naoLidas: Record<number, number> = {};
+  private subs: Subscription[] = [];
+  private pollMensagens: ReturnType<typeof setInterval> | null = null;
+
   readonly skeletonRows = [1, 2, 3, 4, 5, 6];
   readonly hojeIso = toIso(new Date());
 
@@ -110,7 +119,9 @@ export class ObrigacaoPendenteListComponent implements OnInit {
     private authService: AuthService,
     private toast: ToastService,
     private confirm: ConfirmService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private router: Router,
+    private mensagemService: MensagemService
   ) {}
 
   ngOnInit(): void {
@@ -131,6 +142,33 @@ export class ObrigacaoPendenteListComponent implements OnInit {
       error: () => {}
     });
     this.carregar();
+    this.iniciarMensagens();
+  }
+
+  ngOnDestroy(): void {
+    this.subs.forEach(s => s.unsubscribe());
+    if (this.pollMensagens) clearInterval(this.pollMensagens);
+  }
+
+  // -------------------------------------------------------------- mensagens
+  /** Contadores de não lidas + abertura do drawer por ?obrigacao=<id> (links das notificações). */
+  private iniciarMensagens(): void {
+    this.subs.push(this.mensagemService.naoLidas$.subscribe(n => this.naoLidas = n.porObrigacao ?? {}));
+    this.mensagemService.atualizarNaoLidas();
+    this.pollMensagens = setInterval(() => {
+      if (typeof document === 'undefined' || !document.hidden) this.mensagemService.atualizarNaoLidas();
+    }, POLL_MENSAGENS_MS);
+    this.subs.push(this.route.queryParamMap.subscribe(qp => {
+      const id = Number(qp.get('obrigacao'));
+      if (!id) return;
+      this.detalheId = id;
+      // limpa o parâmetro: um novo clique na mesma notificação volta a abrir o drawer
+      this.router.navigate([], { relativeTo: this.route, queryParams: { obrigacao: null }, queryParamsHandling: 'merge', replaceUrl: true });
+    }));
+  }
+
+  mensagensNovas(l: Linha): number {
+    return this.naoLidas[l.p.id] ?? 0;
   }
 
   // ------------------------------------------------------------------ dados
@@ -206,6 +244,7 @@ export class ObrigacaoPendenteListComponent implements OnInit {
       case 'semana': return l.situacao === 'PENDENTE' && l.dias != null && l.dias >= 0 && l.dias <= 7;
       case 'entregues': return l.situacao === 'ENTREGUE';
       case 'entreguesMes': return l.situacao === 'ENTREGUE' && !!l.p.dataEntrega && l.p.dataEntrega.slice(0, 7) === this.hojeIso.slice(0, 7);
+      case 'mensagens': return this.mensagensNovas(l) > 0;
       default: return true;
     }
   }
@@ -469,6 +508,7 @@ export class ObrigacaoPendenteListComponent implements OnInit {
 
   fecharDetalhe(): void {
     this.detalheId = null;
+    this.mensagemService.atualizarNaoLidas();
   }
 
   abrirAnexar(l: Linha): void {

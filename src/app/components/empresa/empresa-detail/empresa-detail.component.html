@@ -290,6 +290,9 @@
         </div>
 
         <aside class="stack-lg">
+          <!-- certidões (resumo compacto) -->
+          <app-certidoes-empresa [idEmpresa]="empresa.id" [nomeEmpresa]="empresa.nomeFantasia" [isAdmin]="isAdmin" modo="resumo" (verTodas)="mudarAba('certidoes')" />
+
           <!-- resumo -->
           <section class="card">
             <header class="card-header"><h2 class="card-title">Resumo</h2>
@@ -494,6 +497,11 @@
     }
 
     <!-- ========== DEC ========== -->
+    <!-- ========== CERTIDÕES ========== -->
+    @if (abaAtual === 'certidoes') {
+      <app-certidoes-empresa [idEmpresa]="empresa.id" [nomeEmpresa]="empresa.nomeFantasia" [isAdmin]="isAdmin" />
+    }
+
     @if (abaAtual === 'dec') {
       <section class="card table-card">
         <header class="card-header">

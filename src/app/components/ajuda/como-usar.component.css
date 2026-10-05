@@ -5,7 +5,7 @@ code { font-family: var(--font); font-weight: 600; color: var(--ink); overflow-w
 
 /* o que é */
 .intro { margin-top: 8px !important; color: var(--ink-2); line-height: 1.6; max-width: 860px; }
-.valores { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-md); margin-top: var(--sp-lg); }
+.valores { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-md); margin-top: var(--sp-lg); }
 .valor {
   display: flex; gap: 12px; align-items: flex-start; padding: 14px;
   border: 1px solid var(--hairline); border-radius: var(--radius-md); background: var(--canvas-soft);

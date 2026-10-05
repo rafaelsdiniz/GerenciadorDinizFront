@@ -1,0 +1,57 @@
+.min0 { min-width: 0; }
+.modal-subtitle { max-width: 520px; }
+
+.tipos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.tipo {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 40px; padding: 8px 12px;
+  border: 1px solid var(--hairline-input); border-radius: var(--radius-md);
+  background: var(--canvas); color: var(--ink-2);
+  font-size: 13px; font-weight: 500; text-align: left; cursor: pointer;
+  transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast);
+}
+.tipo app-icon { color: var(--ink-faint); }
+.tipo:hover:not(:disabled) { border-color: var(--primary-200); background: var(--primary-50); }
+.tipo.active { border-color: var(--primary); background: var(--primary-50); color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+.tipo.active app-icon { color: var(--primary); }
+
+.field-hint, .field-error { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.atual { margin-bottom: 6px; max-width: 100%; }
+.atual strong { max-width: 260px; font-weight: 500; color: var(--ink-2); }
+
+.dropzone {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px;
+  border: 1.5px dashed var(--hairline-input); border-radius: var(--radius-lg);
+  background: var(--canvas-soft); cursor: pointer;
+  transition: border-color var(--t-fast), background var(--t-fast);
+}
+.dropzone:hover, .dropzone:focus-visible, .dropzone.is-over { border-color: var(--primary); background: var(--primary-50); outline: none; }
+.dropzone.is-invalid { border-color: var(--danger); background: var(--danger-bg); }
+.dz-text { display: flex; flex-direction: column; gap: 2px; }
+.dz-text strong { font-size: 14px; font-weight: 500; color: var(--ink); }
+.dz-text span { font-size: 12px; color: var(--ink-mute); }
+
+.file-chip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 10px 10px 12px;
+  border: 1px solid var(--primary-200); border-radius: var(--radius-md); background: var(--primary-50);
+}
+.fchip-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.fchip-name { font-size: 14px; font-weight: 500; color: var(--ink); }
+.fchip-meta { font-size: 12px; color: var(--ink-mute); }
+
+.ia {
+  display: flex; align-items: center; gap: 8px; margin-top: 8px;
+  font-size: 12.5px; color: var(--accent-fg);
+}
+.ia app-icon { color: var(--accent); }
+.ia-lendo { color: var(--ink-mute); }
+.ia-lendo .spinner { width: 14px; height: 14px; }
+.ia-ok { padding: 8px 12px; border: 1px solid var(--accent-200); border-radius: var(--radius-md); background: var(--accent-bg); color: var(--ink-2); }
+
+@media (max-width: 720px) {
+  .tipos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.ia-aviso { color: var(--warning-fg); }
+.ia-aviso app-icon { color: var(--warning); }

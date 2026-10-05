@@ -89,6 +89,9 @@
     }
   </dl>
 
+  <!-- leitura inteligente: dados extraídos (valor, linha digitável...) ou botão "Ler com IA" -->
+  <app-dados-leitura class="dados-ia" [arquivo]="arquivo" [semConteudo]="previewErro" (atualizado)="atualizado.emit($event)" />
+
   @if (isAdmin) {
     <section class="edit-box">
       <h3 class="form-section-title">Atualizar documento</h3>
