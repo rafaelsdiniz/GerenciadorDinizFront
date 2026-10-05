@@ -122,7 +122,7 @@
   --sidebar-w: 264px;
   --sidebar-w-collapsed: 76px;
   --topbar-h: 68px;
-  --content-max: 1600px;
+  --content-max: none;  /* conteúdo ocupa toda a largura disponível */
 
   /* --- aliases de compatibilidade --- */
   --brand: var(--primary);
